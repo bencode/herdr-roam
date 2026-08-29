@@ -35,15 +35,14 @@ Herdr Roam
 │       ├── Loops
 │       └── Files
 ├── Agents                 cross-project live runtime
-├── Sessions               cross-project conversation history
 ├── Skills                 user skills and active-project skills
 └── Settings               application preferences
     └── Runtime            Herdr ownership and diagnostics
 ```
 
-Projects, Agents, Sessions, and Skills are global dimensions. Issues, Loops,
-Files, and the project-filtered Session view live inside the active project.
-Settings is a utility destination rather than another resource dimension.
+Projects, Agents, and Skills are global dimensions. Sessions, Issues, Loops,
+and Files live inside the active project. Settings is a utility destination
+rather than another resource dimension.
 
 These resources remain orthogonal. A Loop can create a Session, and a Session
 can use a Skill to read or write Issues, but one resource does not own the
@@ -51,36 +50,63 @@ others.
 
 ## Application Shell
 
-The default shell has two panes: a contextual sidebar and one main work surface.
-The four global dimensions switch the contents of both panes.
+The default shell has two panes: a left navigation area and one tabbed work
+area. The left area combines a fixed Activity Bar with a contextual panel. The
+three global dimensions switch that panel without clearing open resources from
+the work area.
 
 ```text
-┌──────────────────────────┬────────────────────────────────────────────────────────────┐
-│ ROAM              Herdr● │ herdr-roam / Workbench                    Search  ⌘K  ⚙ │
-│                          ├────────────────────────────────────────────────────────────┤
-│ Projects Agents Sessions │                                                            │
-│ Skills                   │                                                            │
-│ ────────                 │                                                            │
-│                          │                                                            │
-│ Active project           │                    Main work surface                       │
-│ herdr-roam            ▾  │                                                            │
-│                          │                                                            │
-│ Workbench                │                                                            │
-│ Sessions                 │                                                            │
-│ Issues                   │                                                            │
-│ Loops                    │                                                            │
-│ Files                    │                                                            │
-│                          │                                                            │
-│                          │                                                            │
-├──────────────────────────┤                                                            │
-│ 4 agents · 1 blocked     │                                                            │
-└──────────────────────────┴────────────────────────────────────────────────────────────┘
+┌────────────────────────────┬──────────────────────────────────────────────────────────┐
+│ ROAM                       │ herdr-roam / Workbench                                  │
+├────┬───────────────────────┼──────────────────────────────────────────────────────────┤
+│ P  │ herdr-roam         ▾  │                                                          │
+│    │ Workbench             │                                                          │
+│ A  │                       │                                                          │
+│    │ Sessions          14 ▾│                    Main work surface                     │
+│ S  │ Search sessions...    │                                                          │
+│    │ ● Product scan    now │                                                          │
+│    │ ● API review      12m │                                                          │
+│    │                       │                                                          │
+│    │                       │                                                          │
+│ H  ├───────────────────────┤                                                          │
+│ ⚙  │ 4 agents · 1 blocked  │                                                          │
+└────┴───────────────────────┴──────────────────────────────────────────────────────────┘
 ```
 
-Switching to Agents, Sessions, or Skills does not clear the active project.
-Returning to Projects restores the previous project location and selection.
-The Settings button and the persistent Herdr status both open Runtime settings
-without changing the active project.
+The Activity Bar contains Projects, Agents, and Skills at the top. Herdr Runtime
+status and Settings sit at the bottom. Their icon buttons have accessible labels
+and tooltips. The project panel begins with one compact row for Sessions, Issues,
+Loops, and Files, followed by the selected resource browser.
+
+Switching to Agents or Skills does not clear the active project. React Activity
+keeps each contextual panel mounted, so returning restores its previous resource
+selection, search, and scroll position. The Settings button and the persistent
+Herdr status both open a temporary Runtime utility tab without changing the
+active project. A compact `PanelLeft` control in the project header collapses
+the sidebar to the Activity Bar and restores its previous width. While collapsed,
+the ROAM mark remains visible and changes into the expand control on hover or
+keyboard focus. Selecting a global Activity also expands the sidebar, and the
+collapsed state survives reload.
+
+### Workbench tabs
+
+Workbench is a fixed project home. Session, Issue, File, and Skill resources
+open to its right using one shared tab foundation. Opening an existing resource
+activates its tab instead of creating a duplicate. Tabs can span projects and
+show project context when names collide; activating a cross-project tab does
+not silently change the active project.
+
+Closing a tab closes only the view. It does not stop an Agent, close an Issue,
+or modify a file. Closing the active tab selects its right neighbor, then its
+left neighbor, then Workbench. Inactive tabs retain local view state such as a
+Session draft or Markdown Preview/Source mode. Overflow scrolls horizontally;
+tabs are never hidden to fit the viewport.
+
+The active resource is represented by a deep-linkable URL. The ordered tab set
+is an interface preference stored in the browser and contains resource
+references only, not copied Session, Issue, File, or Skill content.
+Canonical Project routes and restoration behavior are defined in
+[Project Registry and Routing](../architecture/project-registry-and-routing.md).
 
 ## Runtime Detection and Ownership
 
@@ -152,27 +178,21 @@ The Workbench is the default page for the active project. It starts standard
 Sessions and summarizes recent project activity without becoming a dashboard.
 
 ```text
-┌──────────────────────────┬────────────────────────────────────────────────────────────┐
-│ ROAM              Herdr● │ herdr-roam / Workbench                                    │
-│                          ├────────────────────────────────────────────────────────────┤
-│ [Projects] Agents        │                                                            │
-│ Sessions Skills          │                 Start work in herdr-roam                   │
-│                          │                                                            │
-│ herdr-roam            ▾  │  Directory  /work/herdr-roam                          ▾   │
-│                          │  Agent      Codex                                      ▾   │
-│ + New session            │  Name       optional                                         │
-│                          │                                                            │
-│ [Workbench]              │  ┌──────────────────────────────────────────────────────┐  │
-│ Sessions                 │  │ Describe the work...                                 │  │
-│ Issues                   │  │                                                      │  │
-│ Loops                    │  └──────────────────────────────────────────────────────┘  │
-│ Files                    │                                              Start  ↵      │
-│                          │                                                            │
-│ Recent sessions         │  Recent activity                                           │
-│  API review       done  │  10:42  codex-api finished a review                       │
-│  Product scan   working │  10:31  nightly-explore created a Session                 │
-│                          │  10:18  6 Issues changed in the configured Issue store    │
-└──────────────────────────┴────────────────────────────────────────────────────────────┘
+┌────────────────────────────┬──────────────────────────────────────────────────────────┐
+│ ROAM                Herdr● │ herdr-roam / Workbench                                  │
+├────┬───────────────────────┼──────────────────────────────────────────────────────────┤
+│ P  │ herdr-roam         ▾  │                 Start work in herdr-roam                 │
+│    │ Workbench             │  Directory  /work/herdr-roam                        ▾   │
+│ A  │                       │  Agent      Codex                                    ▾   │
+│    │ Sessions          14 ▾│  Name       optional                                   │
+│ S  │ Search sessions...    │                                                          │
+│    │ ● Product scan    now │  ┌────────────────────────────────────────────────────┐  │
+│    │ ● API review      12m │  │ Describe the work...                               │  │
+│    │                       │  └────────────────────────────────────────────────────┘  │
+│    │                       │                                            Start  ↵      │
+│ ⚙  ├───────────────────────┤  Recent activity                                       │
+│    │ 4 agents · 1 blocked  │  10:42  codex-api finished a review                   │
+└────┴───────────────────────┴──────────────────────────────────────────────────────────┘
 ```
 
 Starting work creates the required Herdr runtime location, starts the selected
@@ -185,27 +205,27 @@ Session.
 
 ## Session Conversation
 
-Selecting a Session replaces the Workbench with its readable conversation. A
-live Session accepts another Prompt; a historical Session offers Resume.
+Selecting a Session opens or reuses its Workbench tab. Multiple Sessions can
+remain open across projects, and inactive tabs continue to show working,
+blocked, done, and unread state. A live Session accepts another Prompt; a
+historical Session offers Resume.
 
 ```text
-┌──────────────────────────┬────────────────────────────────────────────────────────────┐
-│ herdr-roam               │ API review                         done · Codex · 28m      │
-│                          │────────────────────────────────────────────────────────────│
-│ Workbench                │ You                                                        │
-│ [Sessions]               │ Review the public API and record actionable findings.      │
-│ Issues                   │                                                            │
-│ Loops                    │ Codex                                                      │
-│ Files                    │ I found two compatibility risks. The complete report is    │
-│                          │ available at docs/api-review.md.                           │
-│ API review        done  │                                                            │
-│ Product scan   working  │ Artifacts                                                   │
-│ Auth design       idle  │ docs/api-review.md                              [Open]      │
-│                          │                                                            │
-│                          │ ┌────────────────────────────────────────────────────────┐ │
-│                          │ │ Continue this Session...                              │ │
-│                          │ └────────────────────────────────────────────────────────┘ │
-└──────────────────────────┴────────────────────────────────────────────────────────────┘
+┌────────────────────────────┬──────────────────────────────────────────────────────────┐
+│ ROAM                Herdr● │ API review                       done · Codex · 28m      │
+├────┬───────────────────────┼──────────────────────────────────────────────────────────┤
+│ P  │ herdr-roam         ▾  │ You                                                      │
+│    │ Workbench             │ Review the public API and record actionable findings.   │
+│ A  │                       │                                                          │
+│    │ Sessions          14 ▾│ Codex                                                    │
+│ S  │ Search sessions...    │ I found two compatibility risks. The complete report is  │
+│    │ API review       done │ available at docs/api-review.md.                         │
+│    │ Product scan  working │ Artifacts                                                 │
+│    │ Auth design      idle │ docs/api-review.md                              [Open]    │
+│    │                       │                                                          │
+│ ⚙  ├───────────────────────┤ ┌──────────────────────────────────────────────────────┐ │
+│    │ 4 agents · 1 blocked  │ │ Continue this Session...                            │ │
+└────┴───────────────────────┴─┴──────────────────────────────────────────────────────┴─┘
 ```
 
 Provider adapters may enrich a transcript when structured history is available.
@@ -275,29 +295,11 @@ This terminal is controlled by another client.
 `Copy command` copies the standard `herdr agent attach <target>` command. Roam
 does not launch an external terminal process.
 
-## Cross-Project Sessions
+## Deferred Cross-Project Sessions
 
-Sessions is a global dimension, separate from Live Agents. It lists complete
-known history across Projects and defaults to recent activity order.
-
-```text
-┌──────────────────────────┬────────────────────────────────────────────────────────────┐
-│ [Sessions]               │ API review                                                 │
-│ Search sessions...       │ herdr-roam · Codex · today 10:12                          │
-│ Project       All     ▾  │────────────────────────────────────────────────────────────│
-│ Agent         All     ▾  │                                                            │
-│                          │ Readable transcript                                        │
-│ Today                    │                                                            │
-│  API review             │ Artifacts                                                   │
-│  Product scan           │ docs/api-review.md                                         │
-│                          │                                                            │
-│ Yesterday                │ Runtime                                                    │
-│  Auth design            │ No live Agent                                [Resume]      │
-│  Test failures          │                                                            │
-└──────────────────────────┴────────────────────────────────────────────────────────────┘
-```
-
-The Project Sessions page is the same resource filtered to the active project.
+The first version browses conversation history inside the active Project.
+Cross-project Session history and search remain a later capability; Agents
+continues to provide the cross-project view for live runtime coordination.
 
 ## Skills
 
@@ -350,8 +352,11 @@ location is stored in a minimal Git-tracked project configuration.
 └──────────────────────────┴────────────────────────────────────────────────────────────┘
 ```
 
-Each Issue is one JSON file with a minimal GitHub-like core. Skills may interpret
-labels or an optional stage without forcing a global production lifecycle.
+Each Issue is one Markdown file. YAML Front Matter holds the minimal structured
+GitHub-like core, while the Markdown body holds the description and reviewable
+context. Roam presents this through a dedicated structured Issue interface;
+Skills may interpret labels or an optional stage without forcing a global
+production lifecycle.
 
 ## Project Loops
 
@@ -401,7 +406,9 @@ not become a Web IDE.
 └──────────────────────────┴────────────────────────────────────────────────────────────┘
 ```
 
-Markdown defaults to Preview and supports Source. Code uses syntax highlighting;
+Opening a file creates or reuses its Workbench tab regardless of whether the
+entry point is Files, a Session artifact, an Issue, a Skill, or search. Markdown
+defaults to Preview and supports Source. Code uses syntax highlighting;
 unsupported or oversized files return an explicit state instead of blank output.
 
 ## Common States

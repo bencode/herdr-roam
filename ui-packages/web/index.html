@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Herdr Roam</title>
+    <script>
+      try {
+        const value = localStorage.getItem('herdr-roam.theme.v1')
+        document.documentElement.dataset.theme = ['system', 'light', 'dark'].includes(value)
+          ? value
+          : 'system'
+      } catch (error) {
+        console.error('theme preference bootstrap failed', error)
+        document.documentElement.dataset.theme = 'system'
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

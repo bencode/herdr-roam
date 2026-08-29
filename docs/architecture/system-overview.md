@@ -50,10 +50,10 @@ The server:
 
 ### Browser application
 
-The browser presents Project, Agent, Session, Issue, Loop, File, and Skill views.
-It does not access the filesystem or Herdr socket directly. The default Agent
-surface is a text Inspector; a terminal renderer is loaded only after explicit
-Browser Attach.
+The browser presents Project, Agent, Session, Issue, Loop, File, and Skill views
+inside one tabbed work area. It does not access the filesystem or Herdr socket
+directly. The default Agent surface is a text Inspector; a terminal renderer is
+loaded only after explicit Browser Attach.
 
 ## Herdr Discovery
 
@@ -151,10 +151,16 @@ metadata is authoritative for historical conversations. The local filesystem is
 authoritative for project files, artifacts, and existing user-level and
 project-level Skills.
 
+A small local Project Registry maps a unique, stable Project Name to each
+trusted project root. Its ordered array is the source for the Project Selector;
+it is not a project or task database. The contract and URL behavior are defined
+in [Project Registry and Routing](project-registry-and-routing.md).
+
 Projects may opt into the `herdr-roam-issues` convention. A minimal Git-tracked
-project configuration points to the project-selected Issue directory, and each
-Issue is stored as one JSON file. Loop definitions are also file-backed. Git,
-not an application database, supplies durable history for this project state.
+project configuration points to the project-selected Issue directory. Each
+Issue is one Markdown file with structured YAML Front Matter and a human-readable
+Markdown body. Loop definitions are also file-backed. Git, not an application
+database, supplies durable history for this project state.
 
 Herdr Roam derives global and per-project views from those sources. It does not
 persist a duplicate task, agent, artifact, or conversation model in a database
@@ -193,11 +199,14 @@ The server binds to `127.0.0.1` by default. Because the first version is local
 and single-user, it has no account or authentication system and must not be
 presented as safe for public network exposure.
 
-No application database is required. The global Runtime setting and small
-interface preferences may remain in local application or browser storage;
-portable project coordination state remains in Git-backed files. Connection,
-read, runtime-start, Issue, and Loop errors are observable in the interface and
-server logs; unknown errors must not be replaced with empty fallback data.
+No application database is required. The Project Registry and global Runtime
+setting remain in local application configuration; small interface preferences
+may remain in browser storage. The
+browser may persist the ordered set of open resource references, but not copied
+resource content; the active resource remains a deep-linkable URL. Portable
+project coordination state remains in Git-backed files. Connection, read,
+runtime-start, Issue, and Loop errors are observable in the interface and server
+logs; unknown errors must not be replaced with empty fallback data.
 
 ## Herdr References
 

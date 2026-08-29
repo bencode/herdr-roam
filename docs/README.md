@@ -10,6 +10,9 @@ decisions and technical boundaries that guide its first implementation.
   explicit non-goals.
 - [System overview](architecture/system-overview.md) describes the local Web
   architecture, runtime boundaries, technology choices, and security model.
+- [Project registry and routing](architecture/project-registry-and-routing.md)
+  defines stable Project Names, the local registry contract, canonical URLs,
+  and Tab restoration.
 - [Workbench interactions](design/workbench-interactions.md) records the
   desktop information architecture, ASCII wireframes, and primary interaction
   flows.

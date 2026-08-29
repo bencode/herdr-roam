@@ -73,7 +73,8 @@ command when the native terminal interface is required.
 
 ## Core Concepts
 
-- **Project**: a working directory, normally identified by its Git root.
+- **Project**: a working directory, normally rooted at a Git root and registered
+  under a unique, stable Project Name.
 - **Agent**: a Codex or Claude process currently managed by Herdr.
 - **Conversation Session**: a resumable Codex or Claude conversation, whether
   or not an agent is currently running for it.
@@ -102,6 +103,11 @@ Sessions, Issues, Loops, Files, and effective project Skills.
 The Workbench starts a named or automatically named Codex or Claude agent in
 the selected directory without exposing Herdr Workspace or Pane setup.
 
+The main work area uses one shared tab foundation. Sessions, Issues, files,
+artifacts, and Skills can remain open together, including resources from
+different projects. Closing a tab closes only its view and never changes the
+underlying resource or Agent.
+
 ### Cross-project agents
 
 The Agents view presents live agents across projects and prioritizes attention
@@ -129,19 +135,15 @@ loads the native terminal only after an explicit action. Roam also copies the
 standard attach command for use in an existing terminal, but it does not launch
 external terminal processes.
 
-### Cross-project conversation history
-
-Codex and Claude conversation sessions are listed independently of live Herdr
-agents. A person can filter them by project and agent kind, search useful
-metadata, distinguish live from historical work, and identify resumable
-sessions.
-
 ### Artifact and project reading
 
 Projects provide a read-only file tree with dedicated rendering for Markdown
 and syntax-highlighted source code. Common context files such as `README.md`
 and `AGENTS.md` are easy to reach. Git branch and working-tree state provide
 review context without turning Herdr Roam into a Git client.
+
+Opening a file from the tree, a Session, an Issue, a Skill, or search uses the
+same Workbench tab rather than a viewer owned by the entry point.
 
 Artifact discovery starts from files and runtime context already available on
 the local machine. A separate task or artifact database is not part of the first
@@ -151,9 +153,10 @@ version.
 
 The optional `herdr-roam-issues` Skill gives agents deterministic tools and
 instructions for producing and consuming local Issues. A project selects its
-Issue directory in a minimal Git-tracked configuration. Each Issue is one JSON
-file with a small GitHub-like core; Skills may use labels or an optional stage
-without forcing one production workflow on every project.
+Issue directory in a minimal Git-tracked configuration. Each Issue is one
+Markdown file: YAML Front Matter contains its structured GitHub-like core and
+the Markdown body contains human-readable context. Skills may use labels or an
+optional stage without forcing one production workflow on every project.
 
 ### Loops
 
@@ -193,7 +196,6 @@ Herdr Roam
 │       ├── Loops
 │       └── Files
 ├── Agents
-├── Sessions
 ├── Skills
 └── Settings
     └── Runtime
@@ -217,6 +219,8 @@ The first version does not include:
 - multiple Herdr servers or remote hosts;
 - multiple users, access control, or public Internet deployment;
 - a Codex SDK or Claude Agent SDK runtime;
+- cross-project conversation history and search; Sessions are browsed within
+  the active Project in the first version;
 - a database for Issues, Loops, artifacts, or copied runtime state.
 
 These boundaries keep the first version focused on concurrent visibility,
