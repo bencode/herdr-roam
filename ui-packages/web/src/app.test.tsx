@@ -315,6 +315,7 @@ describe('workbench application', () => {
     fireEvent.click(await screen.findByRole('button', { name: /codex-product/ }))
 
     expect(screen.getByTestId('current-path')).toHaveTextContent('/agents/terminal-codex')
+    expect(screen.getByRole('button', { name: /codex-product/, current: 'page' })).toBeVisible()
     expect(screen.getByRole('tab', { name: /codex-product/ })).toBeVisible()
     expect(screen.getByRole('button', { name: 'Copy attach command' })).toBeVisible()
     expect(await screen.findByText('Recent output')).toBeVisible()

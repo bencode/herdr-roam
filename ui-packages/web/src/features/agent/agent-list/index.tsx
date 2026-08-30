@@ -30,8 +30,10 @@ const matches = (agent: AgentSummary, query: string): boolean => {
 }
 
 export const AgentList = ({
+  activeAgentId,
   onOpen,
 }: {
+  readonly activeAgentId: string | null
   readonly onOpen: (resource: ResourceRef) => void
 }) => {
   const { snapshot, transportError } = useAgentRuntime()
@@ -76,26 +78,40 @@ export const AgentList = ({
                 <span>{group.label}</span>
                 <span className="ml-auto font-normal tabular-nums">{agents.length}</span>
               </h2>
-              {agents.map(agent => (
-                <button
-                  type="button"
-                  key={agent.id}
-                  className="flex w-full items-start gap-2.5 rounded-sm border-0 bg-transparent px-2 py-2 text-left hover:bg-hover [&>i]:mt-[0.32rem]"
-                  onClick={() => onOpen({ type: 'agent', agentId: agent.id })}
-                >
-                  <i
-                    className={cn('size-1.5 flex-none rounded-full', statusClasses[agent.status])}
-                    role="img"
-                    aria-label={agent.status}
-                  />
-                  <span className="grid min-w-0 flex-1 gap-0.5">
-                    <strong className="truncate text-xs font-semibold">{agent.name}</strong>
-                    <small className="truncate text-[0.625rem] text-faint">
-                      {[agent.provider, agent.cwd].filter(Boolean).join(' · ') || 'Runtime agent'}
-                    </small>
-                  </span>
-                </button>
-              ))}
+              {agents.map(agent => {
+                const active = agent.id === activeAgentId
+                return (
+                  <button
+                    type="button"
+                    key={agent.id}
+                    aria-current={active ? 'page' : undefined}
+                    className={cn(
+                      'flex w-full items-start gap-2.5 rounded-sm border-0 px-2 py-2 text-left [&>i]:mt-[0.32rem]',
+                      active
+                        ? 'bg-primary-soft text-foreground'
+                        : 'bg-transparent hover:bg-hover',
+                    )}
+                    onClick={() => onOpen({ type: 'agent', agentId: agent.id })}
+                  >
+                    <i
+                      className={cn('size-1.5 flex-none rounded-full', statusClasses[agent.status])}
+                      role="img"
+                      aria-label={agent.status}
+                    />
+                    <span className="grid min-w-0 flex-1 gap-0.5">
+                      <strong className="truncate text-xs font-semibold">{agent.name}</strong>
+                      <small
+                        className={cn(
+                          'truncate text-[0.625rem]',
+                          active ? 'text-muted' : 'text-faint',
+                        )}
+                      >
+                        {[agent.provider, agent.cwd].filter(Boolean).join(' · ') || 'Runtime agent'}
+                      </small>
+                    </span>
+                  </button>
+                )
+              })}
             </section>
           )
         })}

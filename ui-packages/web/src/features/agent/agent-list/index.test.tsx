@@ -39,16 +39,21 @@ import { AgentList } from '.'
 describe('Agent list', () => {
   it('groups raw statuses in attention order and opens an Agent resource', () => {
     const onOpen = vi.fn()
-    render(<AgentList onOpen={onOpen} />)
+    render(<AgentList activeAgentId="blocked-1" onOpen={onOpen} />)
 
     const headings = screen.getAllByRole('heading').map(heading => heading.textContent)
     expect(headings).toEqual(['Blocked1', 'Idle1'])
-    fireEvent.click(screen.getByRole('button', { name: /codex-api/ }))
+    const activeAgent = screen.getByRole('button', { name: /codex-api/ })
+    expect(activeAgent).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: /claude-review/ })).not.toHaveAttribute(
+      'aria-current',
+    )
+    fireEvent.click(activeAgent)
     expect(onOpen).toHaveBeenCalledWith({ type: 'agent', agentId: 'blocked-1' })
   })
 
   it('searches name, provider, and cwd', () => {
-    render(<AgentList onOpen={() => undefined} />)
+    render(<AgentList activeAgentId={null} onOpen={() => undefined} />)
     fireEvent.change(screen.getByRole('textbox', { name: 'Search agents' }), {
       target: { value: '/work/review' },
     })

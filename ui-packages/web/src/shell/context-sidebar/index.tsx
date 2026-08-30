@@ -9,6 +9,7 @@ import { ProjectPanel } from './project-panel'
 type Props = {
   readonly dimension: GlobalDimension
   readonly activeProjectName: string
+  readonly activeAgentId: string | null
   readonly projectSection: ProjectSection
   readonly onProjectSection: (section: ProjectSection) => void
   readonly onOpen: (resource: ResourceRef) => void
@@ -60,7 +61,7 @@ export const ContextSidebar = (props: Props) => {
         </div>
       </Activity>
       <Activity name="agents-sidebar" mode={props.dimension === 'agents' ? 'visible' : 'hidden'}>
-        <AgentList onOpen={props.onOpen} />
+        <AgentList activeAgentId={props.activeAgentId} onOpen={props.onOpen} />
       </Activity>
       <Activity name="skills-sidebar" mode={props.dimension === 'skills' ? 'visible' : 'hidden'}>
         <SkillPanel onOpen={props.onOpen} />

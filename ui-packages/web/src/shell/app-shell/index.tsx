@@ -189,6 +189,7 @@ export const AppShell = ({
               <ContextSidebar
                 dimension={activeDimension}
                 activeProjectName={activeProjectName}
+                activeAgentId={active?.type === 'agent' ? active.agentId : null}
                 projectSection={projectSection}
                 onProjectSection={onProjectSection}
                 onOpen={onOpen}
