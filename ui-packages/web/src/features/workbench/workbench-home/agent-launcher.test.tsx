@@ -13,7 +13,6 @@ vi.mock('../../agent/runtime-provider', () => ({
       source: { state: 'connected' as const, version: '0.8.2', protocol: 20 },
       stale: false,
       items: [],
-      observedDirectories: [],
     },
   }),
 }))

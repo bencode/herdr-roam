@@ -28,7 +28,6 @@ describe('Agent runtime provider', () => {
     mocks.fetch.mockResolvedValue({
       source: { state: 'connected', version: '0.8.2', protocol: 20 },
       stale: false,
-      observedDirectories: [],
       items: [],
     })
     render(
@@ -46,7 +45,6 @@ describe('Agent runtime provider', () => {
           message: 'reconnecting',
         },
         stale: true,
-        observedDirectories: [],
         items: [
           {
             id: 'terminal-1',

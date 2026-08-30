@@ -7,7 +7,6 @@ import { AgentServiceError, type AgentServiceApi } from './service.js'
 const snapshot: AgentRuntimeSnapshot = {
   source: { state: 'connected', version: '0.8.2', protocol: 20 },
   stale: false,
-  observedDirectories: [],
   items: [],
 }
 
@@ -36,6 +35,9 @@ const projects: ProjectRegistryApi = {
   snapshot: vi.fn().mockResolvedValue({ configPath: '/tmp/config.json', projects: [] }),
   get: vi.fn().mockResolvedValue({ name: 'herdr-roam', path: '/work/herdr-roam' }),
   add: vi.fn(),
+  discover: vi.fn(),
+  remove: vi.fn(),
+  subscribe: vi.fn(),
 }
 
 const routes = (agentService = service()) => createAgentRoutes(agentService, projects)

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createProject, fetchProjects } from './client'
+import { createProject, fetchProjects, removeProject } from './client'
 
 afterEach(() => vi.restoreAllMocks())
 
@@ -17,16 +17,25 @@ describe('Project API client', () => {
           status: 201,
         }),
       )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ...snapshot, project: snapshot.projects[0] }), {
+          status: 200,
+        }),
+      )
 
     await expect(fetchProjects()).resolves.toEqual(snapshot)
-    await expect(
-      createProject({ name: 'herdr-roam', path: '/work/herdr-roam' }),
-    ).resolves.toMatchObject({ project: snapshot.projects[0] })
-    expect(fetch).toHaveBeenLastCalledWith('/api/projects', {
+    await expect(createProject({ path: '/work/herdr-roam' })).resolves.toMatchObject({
+      project: snapshot.projects[0],
+    })
+    expect(fetch).toHaveBeenNthCalledWith(2, '/api/projects', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name: 'herdr-roam', path: '/work/herdr-roam' }),
+      body: JSON.stringify({ path: '/work/herdr-roam' }),
     })
+    await expect(removeProject('herdr-roam')).resolves.toMatchObject({
+      project: snapshot.projects[0],
+    })
+    expect(fetch).toHaveBeenLastCalledWith('/api/projects/herdr-roam', { method: 'DELETE' })
   })
 
   it('preserves typed Project API errors', async () => {

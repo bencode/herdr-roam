@@ -5,12 +5,14 @@ import { serve } from '@hono/node-server'
 import { createAgentService } from './agents/service.js'
 import { createApp } from './app.js'
 import { projectConfigPath, serverConfig } from './config.js'
+import { startProjectDiscovery } from './projects/discovery.js'
 import { createProjectRegistry } from './projects/registry.js'
 
 const moduleDirectory = dirname(fileURLToPath(import.meta.url))
 const webRoot = resolve(moduleDirectory, '../../../ui-packages/web/dist')
 const agentService = createAgentService()
 const projectRegistry = createProjectRegistry(projectConfigPath)
+const stopProjectDiscovery = startProjectDiscovery(agentService, projectRegistry)
 agentService.start()
 
 const app = createApp(agentService, projectRegistry, existsSync(webRoot) ? webRoot : undefined)
@@ -24,6 +26,7 @@ console.info(`Herdr Roam listening on http://${serverConfig.host}:${serverConfig
 
 const shutdown = (signal: NodeJS.Signals) => {
   console.info(`Received ${signal}; shutting down.`)
+  stopProjectDiscovery()
   agentService.stop()
   server.close(error => {
     if (error) {

@@ -27,6 +27,7 @@ const RoutedApp = () => {
   const activityPaths = useWorkbenchStore(state => state.activityPaths)
   const open = useWorkbenchStore(state => state.open)
   const close = useWorkbenchStore(state => state.close)
+  const forgetProject = useWorkbenchStore(state => state.forgetProject)
   const rememberActivity = useWorkbenchStore(state => state.rememberActivity)
   const showWorkbench = useWorkbenchStore(state => state.showWorkbench)
   const setActiveProject = useWorkbenchStore(state => state.setActiveProject)
@@ -44,30 +45,29 @@ const RoutedApp = () => {
   const fallbackProjectName = projects.some(project => project.name === activeProjectName)
     ? activeProjectName
     : (projects[0]?.name ?? '')
+  const fallbackProjectPath = fallbackProjectName ? projectPath(fallbackProjectName) : '/projects'
 
   useEffect(() => {
     if (projectRegistry.status === 'loading') return
     if (fallbackProjectName && fallbackProjectName !== activeProjectName) {
       setActiveProject(fallbackProjectName)
     }
-    if (
-      (projectRegistry.status === 'error' || projects.length === 0) &&
-      target.kind !== 'utility'
-    ) {
-      navigate(runtimePath(), { replace: true })
-      return
-    }
     if (target.kind === 'root') {
-      navigate(activityPaths[lastActivity], { replace: true })
+      navigate(
+        lastActivity === 'projects' && !fallbackProjectName
+          ? '/projects'
+          : activityPaths[lastActivity],
+        { replace: true },
+      )
       return
     }
     if (target.kind === 'projects') {
-      navigate(activityPaths.projects, { replace: true })
+      if (fallbackProjectName) navigate(fallbackProjectPath, { replace: true })
       return
     }
     if (target.kind === 'unknown') {
       console.error('unknown workbench route', location.pathname)
-      navigate(projectPath(fallbackProjectName), { replace: true })
+      navigate(fallbackProjectPath, { replace: true })
       return
     }
     const canonical = canonicalPath(target)
@@ -78,7 +78,7 @@ const RoutedApp = () => {
     if (target.kind === 'workbench' || target.kind === 'project-section') {
       if (!projects.some(project => project.name === target.projectName)) {
         console.error('unknown project route', target.projectName)
-        navigate(projectPath(fallbackProjectName), { replace: true })
+        navigate(fallbackProjectPath, { replace: true })
         return
       }
       if (target.projectName !== activeProjectName) setActiveProject(target.projectName)
@@ -96,7 +96,7 @@ const RoutedApp = () => {
     const owner = 'projectName' in target.resource ? target.resource.projectName : null
     if (owner && !projects.some(project => project.name === owner)) {
       console.error('unknown resource project', owner)
-      navigate(projectPath(fallbackProjectName), { replace: true })
+      navigate(fallbackProjectPath, { replace: true })
       return
     }
     open(target.resource)
@@ -106,6 +106,7 @@ const RoutedApp = () => {
     activeProjectName,
     activityPaths,
     fallbackProjectName,
+    fallbackProjectPath,
     lastActivity,
     location.pathname,
     navigate,
@@ -128,7 +129,7 @@ const RoutedApp = () => {
 
   const openWorkbench = useCallback(() => {
     showWorkbench()
-    navigate(projectPath(activeProjectName))
+    navigate(activeProjectName ? projectPath(activeProjectName) : '/projects')
   }, [activeProjectName, navigate, showWorkbench])
 
   const selectProject = useCallback(
@@ -150,15 +151,60 @@ const RoutedApp = () => {
       const wasActive = active ? sameResource(active, resource) : false
       const next = close(resource)
       if (!wasActive) return
-      navigate(next ? resourcePath(next) : projectPath(activeProjectName))
+      navigate(
+        next
+          ? resourcePath(next)
+          : activeProjectName
+            ? projectPath(activeProjectName)
+            : '/projects',
+      )
     },
     [active, activeProjectName, close, navigate],
   )
 
+  const addProject = useCallback(
+    (path: string) => projectRegistry.addProject({ path }),
+    [projectRegistry.addProject],
+  )
+
+  const removeProject = useCallback(
+    async (projectName: string) => {
+      const index = projects.findIndex(project => project.name === projectName)
+      const remaining = projects.filter(project => project.name !== projectName)
+      const next = remaining[index] ?? remaining[index - 1] ?? null
+      const activeOwner = active && 'projectName' in active ? active.projectName : null
+      await projectRegistry.removeProject(projectName)
+      forgetProject(projectName)
+      if (projectName !== activeProjectName && activeOwner !== projectName) return
+      showWorkbench()
+      if (!next) {
+        navigate('/projects')
+        return
+      }
+      setActiveProject(next.name)
+      navigate(projectPath(next.name))
+    },
+    [
+      active,
+      activeProjectName,
+      forgetProject,
+      navigate,
+      projectRegistry.removeProject,
+      projects,
+      setActiveProject,
+      showWorkbench,
+    ],
+  )
+
   const openRuntime = useCallback(() => navigate(runtimePath()), [navigate])
   const closeUtility = useCallback(
-    () => navigate(activityPaths[lastActivity]),
-    [activityPaths, lastActivity, navigate],
+    () =>
+      navigate(
+        lastActivity === 'projects' && !fallbackProjectName
+          ? '/projects'
+          : activityPaths[lastActivity],
+      ),
+    [activityPaths, fallbackProjectName, lastActivity, navigate],
   )
 
   return (
@@ -176,7 +222,8 @@ const RoutedApp = () => {
       active={active}
       activeUtility={activeUtility}
       onProject={selectProject}
-      onAddProject={projectRegistry.addProject}
+      onAddProject={addProject}
+      onRemoveProject={removeProject}
       onProjectSection={selectProjectSection}
       onWorkbench={openWorkbench}
       onOpen={openResource}

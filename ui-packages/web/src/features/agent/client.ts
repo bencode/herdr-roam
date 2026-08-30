@@ -40,16 +40,6 @@ const agentRuntimeSnapshotSchema = z.object({
   ]),
   stale: z.boolean(),
   items: z.array(agentSummarySchema).readonly(),
-  observedDirectories: z
-    .array(
-      z.object({
-        path: z.string().min(1),
-        suggestedName: z.string().min(1),
-        agentCount: z.number().int().nonnegative(),
-        paneCount: z.number().int().nonnegative(),
-      }),
-    )
-    .readonly(),
 })
 
 const agentOutputSchema = z.object({

@@ -15,7 +15,7 @@ configuration directory. The default path is
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "projects": [
     {
       "name": "herdr-roam",
@@ -25,7 +25,8 @@ configuration directory. The default path is
       "name": "archive-herdr-roam",
       "path": "/Users/bencode/archive/herdr-roam"
     }
-  ]
+  ],
+  "ignoredProjectPaths": []
 }
 ```
 
@@ -33,23 +34,32 @@ The array order is the default Project Selector order. Names are 1–64
 characters, start with a lowercase letter or digit, use only lowercase letters,
 digits, `.`, `_`, and `-`, and are unique. Canonical absolute paths are unique. The server may
 build a transient lookup map after validation, but it preserves the array in
-the file. Moving a directory updates its path without changing its name.
-Renaming a registered project is outside the first version.
+the file. Moving or renaming a registered Project is outside this version; remove
+the old entry and add the new path instead.
 
-The browser sends a Project Name for project operations. It never sends an
-arbitrary absolute path to select a filesystem root. Runtime availability, Git
-state, and other derived values are not stored in this minimal registry.
+The browser sends a Project Name for project operations and an absolute path
+when the user explicitly adds a directory. The server canonicalizes the path,
+derives a URL-safe Project Name from its basename, and appends a numeric suffix
+on a name collision. Runtime availability and Git state are not stored.
 
-The server validates and canonicalizes a directory before registration, then
+The server validates and canonicalizes a directory before adding it, then
 writes the file through a temporary sibling and atomic rename. A missing file
 means an empty registry; an invalid file is reported without being replaced or
-silently treated as empty. Runtime-derived directory candidates are transient
-and are persisted only after explicit user confirmation.
+silently treated as empty. Version 1 remains readable and is normalized to
+version 2 on the next mutation.
 
-The Runtime screen combines the persisted registry with live directory
-candidates aggregated from Herdr Agents and Panes. The Project Selector consumes
-only registered Projects. When the registry is empty, Project routes redirect to
-Runtime so the first Project can be added explicitly.
+Roam also listens to the authoritative Herdr Agent snapshot. A distinct Agent
+working directory is resolved to its nearest Git root and added automatically.
+Pane directories and non-Git Agent directories are ignored. Removing a Project
+adds its canonical path to `ignoredProjectPaths`, preventing a still-running
+Agent from immediately restoring it; explicitly adding that path removes the
+ignore entry.
+
+The Project Selector is the only user-facing Project entry point. It lists one
+kind of persisted Project and contains Add and Manage modes without exposing
+automatic versus manual provenance. Runtime Settings contains Herdr diagnostics
+only. When the registry is empty, `/projects` renders the Project empty state
+instead of redirecting to Runtime.
 
 ## Canonical routes
 

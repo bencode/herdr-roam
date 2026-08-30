@@ -75,3 +75,9 @@ It does not persist drafts.
 
 Interrupting processes, ending Workspaces, Browser Attach, and historical
 Session discovery are deferred.
+
+Agent working directories also feed the independent Project Registry discovery
+bridge. Only the nearest Git root of an Agent cwd may be persisted as a Project;
+Pane directories are not queried or exposed in the Agent HTTP snapshot. Project
+discovery failures never replace an invalid Project configuration or disconnect
+the live Agent runtime.

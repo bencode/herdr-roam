@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createProjectRegistry, ProjectRegistryError } from './registry.js'
 
 const directories: string[] = []
@@ -17,51 +17,91 @@ afterEach(async () => {
 })
 
 describe('Project registry', () => {
-  it('creates a versioned config and restores its ordered Projects', async () => {
+  it('reads version 1 and writes version 2 with an inferred Project name', async () => {
+    const { root, configPath } = await fixture()
+    const existingPath = join(root, 'existing')
+    const projectPath = join(root, 'Herdr Roam')
+    await Promise.all([
+      mkdir(existingPath),
+      mkdir(projectPath),
+      mkdir(dirname(configPath), { recursive: true }),
+    ])
+    await writeFile(
+      configPath,
+      JSON.stringify({ version: 1, projects: [{ name: 'existing', path: existingPath }] }),
+    )
+    const registry = createProjectRegistry(configPath)
+
+    await expect(registry.snapshot()).resolves.toEqual({
+      configPath,
+      projects: [{ name: 'existing', path: existingPath }],
+    })
+    await expect(registry.add({ path: projectPath })).resolves.toEqual({
+      name: 'herdr-roam',
+      path: await realpath(projectPath),
+    })
+    expect(JSON.parse(await readFile(configPath, 'utf8'))).toEqual({
+      version: 2,
+      projects: [
+        { name: 'existing', path: existingPath },
+        { name: 'herdr-roam', path: await realpath(projectPath) },
+      ],
+      ignoredProjectPaths: [],
+    })
+  })
+
+  it('deduplicates paths and assigns deterministic suffixes to discovered Projects', async () => {
+    const { root, configPath } = await fixture()
+    const first = join(root, 'one', 'project')
+    const second = join(root, 'two', 'project')
+    await Promise.all([mkdir(first, { recursive: true }), mkdir(second, { recursive: true })])
+    const [canonicalFirst, canonicalSecond] = await Promise.all([realpath(first), realpath(second)])
+    const registry = createProjectRegistry(configPath)
+
+    await registry.discover([second, first, first])
+    await expect(registry.snapshot()).resolves.toEqual({
+      configPath,
+      projects: [
+        { name: 'project', path: canonicalFirst },
+        { name: 'project-2', path: canonicalSecond },
+      ],
+    })
+    await expect(registry.add({ path: first })).resolves.toEqual({
+      name: 'project',
+      path: canonicalFirst,
+    })
+  })
+
+  it('keeps removed Projects ignored until they are manually added again', async () => {
     const { root, configPath } = await fixture()
     const projectPath = join(root, 'project')
     await mkdir(projectPath)
     const canonicalPath = await realpath(projectPath)
     const registry = createProjectRegistry(configPath)
+    const listener = vi.fn()
+    registry.subscribe(listener)
+    await registry.discover([projectPath])
 
-    await expect(registry.snapshot()).resolves.toEqual({ configPath, projects: [] })
-    await expect(registry.add({ name: 'herdr-roam', path: projectPath })).resolves.toEqual({
-      name: 'herdr-roam',
+    await expect(registry.remove('project')).resolves.toEqual({
+      name: 'project',
       path: canonicalPath,
     })
-    await expect(createProjectRegistry(configPath).snapshot()).resolves.toEqual({
+    await registry.discover([projectPath])
+    await expect(registry.snapshot()).resolves.toEqual({ configPath, projects: [] })
+    await registry.add({ path: projectPath })
+    await expect(registry.snapshot()).resolves.toEqual({
       configPath,
-      projects: [{ name: 'herdr-roam', path: canonicalPath }],
+      projects: [{ name: 'project', path: canonicalPath }],
     })
-    expect(await readFile(configPath, 'utf8')).toBe(
-      `${JSON.stringify(
-        { version: 1, projects: [{ name: 'herdr-roam', path: canonicalPath }] },
-        null,
-        2,
-      )}\n`,
-    )
+    expect(listener).toHaveBeenCalledTimes(3)
   })
 
-  it('rejects duplicate names and canonical paths', async () => {
-    const { root, configPath } = await fixture()
-    const projectPath = join(root, 'project')
-    await mkdir(projectPath)
-    const registry = createProjectRegistry(configPath)
-    await registry.add({ name: 'first', path: projectPath })
-
-    await expect(registry.add({ name: 'first', path: root })).rejects.toMatchObject({
-      code: 'project_name_taken',
-    })
-    await expect(registry.add({ name: 'second', path: projectPath })).rejects.toMatchObject({
-      code: 'project_path_taken',
-    })
-  })
-
-  it('reports invalid configuration without replacing it', async () => {
+  it('reports missing Projects and invalid configuration without replacing the file', async () => {
     const { configPath } = await fixture()
     await mkdir(dirname(configPath), { recursive: true })
-    await writeFile(configPath, '{ invalid')
     const registry = createProjectRegistry(configPath)
+    await expect(registry.remove('missing')).rejects.toMatchObject({ code: 'project_not_found' })
+    await writeFile(configPath, '{ invalid')
 
     await expect(registry.snapshot()).rejects.toBeInstanceOf(ProjectRegistryError)
     await expect(registry.snapshot()).rejects.toMatchObject({ code: 'project_config_invalid' })

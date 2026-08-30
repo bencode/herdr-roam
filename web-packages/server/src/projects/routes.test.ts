@@ -12,11 +12,14 @@ const registry = (values: Partial<ProjectRegistryApi> = {}): ProjectRegistryApi 
   snapshot: vi.fn().mockResolvedValue(snapshot),
   get: vi.fn().mockResolvedValue(null),
   add: vi.fn().mockResolvedValue(snapshot.projects[0]),
+  discover: vi.fn().mockResolvedValue(undefined),
+  remove: vi.fn().mockResolvedValue(snapshot.projects[0]),
+  subscribe: vi.fn().mockReturnValue(() => undefined),
   ...values,
 })
 
 describe('Project routes', () => {
-  it('returns the registry and adds a validated Project', async () => {
+  it('returns the registry and adds a Project from an absolute path', async () => {
     const service = registry()
     const routes = createProjectRoutes(service)
     await expect((await routes.request('/')).json()).resolves.toEqual(snapshot)
@@ -24,13 +27,21 @@ describe('Project routes', () => {
     const response = await routes.request('/', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name: 'herdr-roam', path: '/work/herdr-roam' }),
+      body: JSON.stringify({ path: '/work/herdr-roam' }),
     })
     expect(response.status).toBe(201)
-    expect(service.add).toHaveBeenCalledWith({
-      name: 'herdr-roam',
-      path: '/work/herdr-roam',
+    expect(service.add).toHaveBeenCalledWith({ path: '/work/herdr-roam' })
+  })
+
+  it('removes a Project by name', async () => {
+    const service = registry()
+    const response = await createProjectRoutes(service).request('/herdr-roam', {
+      method: 'DELETE',
     })
+
+    expect(response.status).toBe(200)
+    expect(service.remove).toHaveBeenCalledWith('herdr-roam')
+    await expect(response.json()).resolves.toMatchObject({ project: snapshot.projects[0] })
   })
 
   it('maps registry failures without hiding the configuration path', async () => {

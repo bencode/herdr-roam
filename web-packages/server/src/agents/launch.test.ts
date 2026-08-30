@@ -23,7 +23,6 @@ const rawAgent = (values: Partial<RawAgent> = {}): RawAgent => ({
 
 const client = (values: Partial<HerdrClient> = {}): HerdrClient => ({
   listAgents: vi.fn().mockResolvedValue([]),
-  listPanes: vi.fn().mockResolvedValue([]),
   readAgent: vi.fn().mockResolvedValue(''),
   promptAgent: vi.fn().mockResolvedValue(undefined),
   createWorkspace: vi.fn().mockResolvedValue({

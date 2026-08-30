@@ -27,22 +27,9 @@ export const rawAgentSchema = z.object({
 
 export type RawAgent = z.infer<typeof rawAgentSchema>
 
-export const rawPaneSchema = z.object({
-  pane_id: z.string().min(1),
-  cwd: z.string().nullable().optional(),
-  foreground_cwd: z.string().nullable().optional(),
-})
-
-export type RawPane = z.infer<typeof rawPaneSchema>
-
 export const agentListResultSchema = z.object({
   type: z.literal('agent_list'),
   agents: z.array(rawAgentSchema),
-})
-
-export const paneListResultSchema = z.object({
-  type: z.literal('pane_list'),
-  panes: z.array(rawPaneSchema),
 })
 
 export const paneReadResultSchema = z.object({

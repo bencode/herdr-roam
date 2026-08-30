@@ -115,6 +115,13 @@ references only, not copied Session, Issue, File, or Skill content.
 Canonical Project routes and restoration behavior are defined in
 [Project Registry and Routing](../architecture/project-registry-and-routing.md).
 
+The Project selector presents one flat list of remembered Projects. Herdr Agent
+working directories are automatically resolved to Git roots and remembered;
+the selector also contains Add Project and Manage Projects modes for explicit
+paths and removal. The UI does not expose registered, observed, or candidate
+states. With no Projects, `/projects` remains open and teaches the user to add
+one from the selector.
+
 ## Runtime Detection and Ownership
 
 Herdr and at least one authenticated agent CLI are product prerequisites. Roam
@@ -178,6 +185,7 @@ Server ownership
 
 Changing this setting affects server lifecycle ownership only. It does not
 change Agent creation, project behavior, or the rest of the Web interface.
+Project selection and management do not appear on this page.
 
 ## Project Workbench
 

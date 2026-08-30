@@ -1,4 +1,4 @@
-import type { Project, ProjectCreateRequest } from '@herdr-roam/shared'
+import type { Project } from '@herdr-roam/shared'
 import { PanelLeft } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Group, Panel, Separator, useDefaultLayout, usePanelRef } from 'react-resizable-panels'
@@ -50,7 +50,8 @@ type Props = {
   readonly active: ResourceRef | null
   readonly activeUtility: UtilityRef | null
   readonly onProject: (projectName: string) => void
-  readonly onAddProject: (request: ProjectCreateRequest) => Promise<void>
+  readonly onAddProject: (path: string) => Promise<Project>
+  readonly onRemoveProject: (projectName: string) => Promise<void>
   readonly onProjectSection: (section: ProjectSection) => void
   readonly onWorkbench: () => void
   readonly onOpen: (resource: ResourceRef) => void
@@ -72,6 +73,7 @@ export const AppShell = ({
   activeUtility,
   onProject,
   onAddProject,
+  onRemoveProject,
   onProjectSection,
   onWorkbench,
   onOpen,
@@ -168,7 +170,11 @@ export const AppShell = ({
               <ProjectSelect
                 projects={projects}
                 value={activeProjectName}
+                error={projectError}
+                configPath={projectConfigPath}
                 onValueChange={onProject}
+                onAdd={onAddProject}
+                onRemove={onRemoveProject}
               />
               <button
                 type="button"
@@ -232,14 +238,10 @@ export const AppShell = ({
           />
           <ResourceHost
             project={projects.find(project => project.name === activeProjectName) ?? null}
-            projects={projects}
-            projectConfigPath={projectConfigPath}
-            projectError={projectError}
             tabs={tabs}
             active={active}
             activeUtility={activeUtility}
             onOpen={onOpen}
-            onAddProject={onAddProject}
           />
         </Panel>
       </Group>

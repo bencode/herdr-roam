@@ -26,7 +26,6 @@ vi.mock('../runtime-provider', () => ({
     snapshot: {
       source: { state: 'connected', version: '0.8.2', protocol: 20 },
       stale: false,
-      observedDirectories: [],
       items: [mocks.agent],
     },
     transportError: null,

@@ -12,10 +12,9 @@ export type {
   AgentSummary,
 } from './api/agent.js'
 export type {
-  ObservedProjectDirectory,
   Project,
   ProjectApiError,
-  ProjectCreateReceipt,
   ProjectCreateRequest,
+  ProjectMutationReceipt,
   ProjectRegistrySnapshot,
 } from './api/project.js'

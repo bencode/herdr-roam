@@ -26,6 +26,7 @@ export type WorkbenchSnapshot = {
 type WorkbenchStore = WorkbenchSnapshot & {
   readonly open: (resource: ResourceRef) => void
   readonly close: (resource: ResourceRef) => ResourceRef | null
+  readonly forgetProject: (projectName: string) => void
   readonly rememberActivity: (dimension: GlobalDimension, pathname: string) => void
   readonly showWorkbench: () => void
   readonly setActiveProject: (projectName: string) => void
@@ -144,6 +145,9 @@ const nextAfterClose = (tabs: readonly ResourceRef[], closing: ResourceRef): Res
   return remaining[index] ?? remaining[index - 1] ?? null
 }
 
+const belongsToProject = (resource: ResourceRef, projectName: string): boolean =>
+  'projectName' in resource && resource.projectName === projectName
+
 const snapshotOf = (state: WorkbenchSnapshot): WorkbenchSnapshot => ({
   version: 3,
   activeProjectName: state.activeProjectName,
@@ -186,6 +190,17 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => ({
     set(next)
     persist(next)
     return candidate
+  },
+  forgetProject: projectName => {
+    const current = get()
+    const tabs = current.tabs.filter(tab => !belongsToProject(tab, projectName))
+    const lastActive =
+      current.lastActive && belongsToProject(current.lastActive, projectName)
+        ? null
+        : current.lastActive
+    const next = { ...snapshotOf(current), tabs, lastActive }
+    set(next)
+    persist(next)
   },
   rememberActivity: (dimension, pathname) => {
     const canonical = validActivityPath(pathname, dimension)

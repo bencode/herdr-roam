@@ -1,4 +1,5 @@
 import { Activity } from 'react'
+import type { Project } from '@herdr-roam/shared'
 import { AgentTab } from '../../features/agent/agent-tab'
 import { FileTab } from '../../features/file/file-tab'
 import { IssueTab } from '../../features/issue/issue-tab'
@@ -29,24 +30,16 @@ const ResourceContent = ({
 
 export const ResourceHost = ({
   project,
-  projects,
-  projectConfigPath,
-  projectError,
   tabs,
   active,
   activeUtility,
   onOpen,
-  onAddProject,
 }: {
   readonly project: Project | null
-  readonly projects: readonly Project[]
-  readonly projectConfigPath: string | null
-  readonly projectError: string | null
   readonly tabs: readonly ResourceRef[]
   readonly active: ResourceRef | null
   readonly activeUtility: UtilityRef | null
   readonly onOpen: (resource: ResourceRef) => void
-  readonly onAddProject: (request: ProjectCreateRequest) => Promise<void>
 }) => (
   <main className="relative min-h-0 min-w-0 flex-1 bg-surface">
     <Activity
@@ -54,7 +47,18 @@ export const ResourceHost = ({
       name="workbench"
     >
       <div className="absolute inset-0 overflow-hidden">
-        {project && <WorkbenchHome project={project} onOpen={onOpen} />}
+        {project ? (
+          <WorkbenchHome project={project} onOpen={onOpen} />
+        ) : (
+          <div className="grid h-full place-items-center p-8 text-center">
+            <div>
+              <h1 className="m-0 text-lg">Add a project to start</h1>
+              <p className="mt-2 mb-0 text-sm text-muted">
+                Open the project menu in the sidebar and add an absolute directory path.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </Activity>
     {tabs.map(resource => (
@@ -70,14 +74,8 @@ export const ResourceHost = ({
     ))}
     <Activity mode={activeUtility === 'runtime' ? 'visible' : 'hidden'} name="runtime-settings">
       <div className="absolute inset-0 overflow-hidden">
-        <RuntimeSettings
-          projects={projects}
-          configPath={projectConfigPath}
-          projectError={projectError}
-          onAddProject={onAddProject}
-        />
+        <RuntimeSettings />
       </div>
     </Activity>
   </main>
 )
-import type { Project, ProjectCreateRequest } from '@herdr-roam/shared'

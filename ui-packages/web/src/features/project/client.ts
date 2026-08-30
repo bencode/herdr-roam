@@ -1,7 +1,7 @@
 import type {
   ProjectApiError,
-  ProjectCreateReceipt,
   ProjectCreateRequest,
+  ProjectMutationReceipt,
   ProjectRegistrySnapshot,
 } from '@herdr-roam/shared'
 import { z } from 'zod'
@@ -16,8 +16,7 @@ const errorSchema = z.object({
   error: z.object({
     code: z.enum([
       'invalid_project',
-      'project_name_taken',
-      'project_path_taken',
+      'project_not_found',
       'project_directory_unavailable',
       'project_config_invalid',
       'project_config_unavailable',
@@ -74,9 +73,14 @@ const parsedResponse = async <Value>(
   try {
     return parse(body)
   } catch (error) {
-    throw new ProjectClientError('invalid_response', 'The server returned invalid Project data.', null, {
-      cause: error,
-    })
+    throw new ProjectClientError(
+      'invalid_response',
+      'The server returned invalid Project data.',
+      null,
+      {
+        cause: error,
+      },
+    )
   }
 }
 
@@ -97,7 +101,7 @@ export const fetchProjects = async (): Promise<ProjectRegistrySnapshot> => {
 
 export const createProject = async (
   request: ProjectCreateRequest,
-): Promise<ProjectCreateReceipt> => {
+): Promise<ProjectMutationReceipt> => {
   try {
     return await parsedResponse(
       await fetch('/api/projects', {
@@ -110,4 +114,42 @@ export const createProject = async (
   } catch (error) {
     return networkError(error)
   }
+}
+
+export const removeProject = async (projectName: string): Promise<ProjectMutationReceipt> => {
+  try {
+    return await parsedResponse(
+      await fetch(`/api/projects/${encodeURIComponent(projectName)}`, { method: 'DELETE' }),
+      receiptSchema.parse,
+    )
+  } catch (error) {
+    return networkError(error)
+  }
+}
+
+export const subscribeProjectSnapshots = (
+  onSnapshot: (snapshot: ProjectRegistrySnapshot) => void,
+  onError: (error: ProjectClientError) => void,
+): (() => void) => {
+  const source = new EventSource('/api/projects/events')
+  source.addEventListener('snapshot', event => {
+    try {
+      onSnapshot(snapshotSchema.parse(JSON.parse(event.data)))
+    } catch (error) {
+      onError(
+        new ProjectClientError(
+          'invalid_response',
+          'The Project event stream returned invalid data.',
+          null,
+          {
+            cause: error,
+          },
+        ),
+      )
+    }
+  })
+  source.addEventListener('error', () => {
+    onError(new ProjectClientError('network_error', 'Project updates are reconnecting.'))
+  })
+  return () => source.close()
 }

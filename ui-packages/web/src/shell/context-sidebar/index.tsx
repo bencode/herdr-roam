@@ -51,13 +51,17 @@ export const ContextSidebar = (props: Props) => {
         mode={props.dimension === 'projects' ? 'visible' : 'hidden'}
       >
         <div className="flex min-h-0 flex-1 flex-col">
-          <ProjectPanel
-            key={props.activeProjectName}
-            activeProjectName={props.activeProjectName}
-            section={props.projectSection}
-            onSection={props.onProjectSection}
-            onOpen={props.onOpen}
-          />
+          {props.activeProjectName ? (
+            <ProjectPanel
+              key={props.activeProjectName}
+              activeProjectName={props.activeProjectName}
+              section={props.projectSection}
+              onSection={props.onProjectSection}
+              onOpen={props.onOpen}
+            />
+          ) : (
+            <p className="m-0 px-4 py-5 text-xs text-muted">No project selected.</p>
+          )}
         </div>
       </Activity>
       <Activity name="agents-sidebar" mode={props.dimension === 'agents' ? 'visible' : 'hidden'}>

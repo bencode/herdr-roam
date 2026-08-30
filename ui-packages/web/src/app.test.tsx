@@ -5,19 +5,24 @@ import { vi } from 'vitest'
 import { App } from './app'
 import { defaultWorkbenchSnapshot, useWorkbenchStore } from './workbench/store'
 
+const projectMocks = vi.hoisted(() => ({
+  projects: [
+    { name: 'herdr-roam', path: '/work/herdr-roam' },
+    { name: 'cc-mission-control', path: '/work/cc-mission-control' },
+    { name: 'archive-herdr-roam', path: '/archive/herdr-roam' },
+  ],
+}))
+
 vi.mock('./features/project/use-project-registry', () => ({
   useProjectRegistry: () => ({
     status: 'ready' as const,
     snapshot: {
       configPath: '/tmp/herdr-roam/config.json',
-      projects: [
-        { name: 'herdr-roam', path: '/work/herdr-roam' },
-        { name: 'cc-mission-control', path: '/work/cc-mission-control' },
-        { name: 'archive-herdr-roam', path: '/archive/herdr-roam' },
-      ],
+      projects: projectMocks.projects,
     },
     error: null,
-    addProject: vi.fn(),
+    addProject: vi.fn().mockResolvedValue({ name: 'new-project', path: '/work/new-project' }),
+    removeProject: vi.fn().mockResolvedValue({ name: 'herdr-roam', path: '/work/herdr-roam' }),
   }),
 }))
 
@@ -25,7 +30,6 @@ vi.mock('./features/agent/client', () => ({
   fetchAgentSnapshot: vi.fn().mockResolvedValue({
     source: { state: 'connected', version: '0.8.2', protocol: 20 },
     stale: false,
-    observedDirectories: [],
     items: [
       {
         id: 'terminal-codex',
@@ -45,7 +49,6 @@ vi.mock('./features/agent/runtime-provider', () => {
   const snapshot = {
     source: { state: 'connected' as const, version: '0.8.2', protocol: 20 },
     stale: false,
-    observedDirectories: [],
     items: [
       {
         id: 'terminal-codex',
@@ -83,8 +86,27 @@ const HistoryBack = () => {
 
 describe('workbench application', () => {
   beforeEach(() => {
+    projectMocks.projects = [
+      { name: 'herdr-roam', path: '/work/herdr-roam' },
+      { name: 'cc-mission-control', path: '/work/cc-mission-control' },
+      { name: 'archive-herdr-roam', path: '/archive/herdr-roam' },
+    ]
     localStorage.clear()
     useWorkbenchStore.setState(defaultWorkbenchSnapshot)
+  })
+
+  it('keeps an empty registry in Projects instead of redirecting to Runtime', async () => {
+    projectMocks.projects = []
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <App />
+        <CurrentPath />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => expect(screen.getByTestId('current-path')).toHaveTextContent('/projects'))
+    expect(screen.getByRole('heading', { name: 'Add a project to start' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Active project' })).toHaveTextContent('Add project')
   })
 
   it('opens and deduplicates Session tabs from the project sidebar', async () => {
@@ -253,7 +275,7 @@ describe('workbench application', () => {
     )
     const sidebar = within(screen.getByTestId('context-sidebar'))
     expect(sidebar.getByRole('img', { name: 'Roam' })).toBeVisible()
-    expect(sidebar.getByRole('combobox', { name: 'Active project' })).toBeVisible()
+    expect(sidebar.getByRole('button', { name: 'Active project' })).toBeVisible()
 
     selectProjectResource(sidebar, 'Issues')
     fireEvent.change(sidebar.getByRole('textbox', { name: 'Search issues' }), {
@@ -285,7 +307,7 @@ describe('workbench application', () => {
         'true',
       ),
     )
-    expect(screen.getByRole('combobox', { name: 'Active project' })).toHaveTextContent('herdr-roam')
+    expect(screen.getByRole('button', { name: 'Active project' })).toHaveTextContent('herdr-roam')
   })
 
   it('opens Runtime as a transient route-backed tab and returns to the previous resource', async () => {

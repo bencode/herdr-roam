@@ -46,6 +46,18 @@ describe('workbench store', () => {
     })
   })
 
+  it('forgets Project-owned tabs without closing global Agents', () => {
+    const { useWorkbenchStore } = storeModule
+    useWorkbenchStore.getState().open(session)
+    useWorkbenchStore.getState().open(issue)
+    useWorkbenchStore.getState().open(agent)
+
+    useWorkbenchStore.getState().forgetProject('herdr-roam')
+
+    expect(useWorkbenchStore.getState().tabs).toEqual([issue, agent])
+    expect(useWorkbenchStore.getState().lastActive).toEqual(agent)
+  })
+
   it('remembers one canonical path per Activity', () => {
     const { useWorkbenchStore } = storeModule
     useWorkbenchStore.getState().rememberActivity('projects', '/projects/herdr-roam/issues/hr-018')

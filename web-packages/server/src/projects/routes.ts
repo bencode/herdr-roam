@@ -1,19 +1,16 @@
 import type {
   ProjectApiError,
-  ProjectCreateReceipt,
   ProjectCreateRequest,
+  ProjectMutationReceipt,
+  ProjectRegistrySnapshot,
 } from '@herdr-roam/shared'
 import { Hono } from 'hono'
+import { streamSSE } from 'hono/streaming'
 import { z } from 'zod'
-import {
-  ProjectRegistryError,
-  type ProjectRegistryApi,
-} from './registry.js'
+import { SSE_HEARTBEAT_MS } from '../config.js'
+import { ProjectRegistryError, type ProjectRegistryApi } from './registry.js'
 
-const createRequestSchema: z.ZodType<ProjectCreateRequest> = z.object({
-  name: z.string(),
-  path: z.string(),
-})
+const createRequestSchema: z.ZodType<ProjectCreateRequest> = z.object({ path: z.string() })
 
 const errorBody = (
   code: ProjectApiError['error']['code'],
@@ -21,12 +18,19 @@ const errorBody = (
   configPath?: string,
 ): ProjectApiError => ({ error: { code, message, ...(configPath ? { configPath } : {}) } })
 
-const registryErrorStatus = (error: ProjectRegistryError): 400 | 409 | 500 =>
-  error.code === 'invalid_project' || error.code === 'project_directory_unavailable'
-    ? 400
-    : error.code === 'project_name_taken' || error.code === 'project_path_taken'
-      ? 409
+const registryErrorStatus = (error: ProjectRegistryError): 400 | 404 | 500 =>
+  error.code === 'project_not_found'
+    ? 404
+    : error.code === 'invalid_project' || error.code === 'project_directory_unavailable'
+      ? 400
       : 500
+
+const registryFailure = (error: ProjectRegistryError) => ({
+  body: errorBody(error.code, error.message, error.configPath),
+  status: registryErrorStatus(error),
+})
+
+const snapshotData = (snapshot: ProjectRegistrySnapshot): string => JSON.stringify(snapshot)
 
 export const createProjectRoutes = (registry: ProjectRegistryApi): Hono => {
   const routes = new Hono()
@@ -36,14 +40,52 @@ export const createProjectRoutes = (registry: ProjectRegistryApi): Hono => {
       return context.json(await registry.snapshot())
     } catch (error) {
       if (error instanceof ProjectRegistryError) {
-        return context.json(
-          errorBody(error.code, error.message, error.configPath),
-          registryErrorStatus(error),
-        )
+        const failure = registryFailure(error)
+        return context.json(failure.body, failure.status)
       }
       console.error('Project registry read failed', error)
       return context.json(errorBody('internal_error', 'Projects could not be loaded.'), 500)
     }
+  })
+
+  routes.get('/events', async context => {
+    let initial: ProjectRegistrySnapshot
+    try {
+      initial = await registry.snapshot()
+    } catch (error) {
+      if (error instanceof ProjectRegistryError) {
+        const failure = registryFailure(error)
+        return context.json(failure.body, failure.status)
+      }
+      console.error('Project event stream setup failed', error)
+      return context.json(errorBody('internal_error', 'Project updates are unavailable.'), 500)
+    }
+    return streamSSE(context, async stream => {
+      let finished = false
+      const writeSnapshot = async (snapshot: ProjectRegistrySnapshot) => {
+        if (finished) return
+        try {
+          await stream.writeSSE({ event: 'snapshot', data: snapshotData(snapshot) })
+        } catch (error) {
+          console.error('Project SSE write failed', error)
+        }
+      }
+      await writeSnapshot(initial)
+      const unsubscribe = registry.subscribe(snapshot => void writeSnapshot(snapshot))
+      const heartbeat = setInterval(() => {
+        void stream.writeSSE({ event: 'heartbeat', data: '' }).catch(error => {
+          console.error('Project SSE heartbeat failed', error)
+        })
+      }, SSE_HEARTBEAT_MS)
+      await new Promise<void>(resolve => {
+        stream.onAbort(() => {
+          finished = true
+          clearInterval(heartbeat)
+          unsubscribe()
+          resolve()
+        })
+      })
+    })
   })
 
   routes.post('/', async context => {
@@ -52,26 +94,44 @@ export const createProjectRoutes = (registry: ProjectRegistryApi): Hono => {
       body = await context.req.json()
     } catch (error) {
       if (!(error instanceof SyntaxError)) console.error('Project request body read failed', error)
-      return context.json(errorBody('invalid_project', 'Project name and path are required.'), 400)
+      return context.json(
+        errorBody('invalid_project', 'An absolute Project path is required.'),
+        400,
+      )
     }
     const parsed = createRequestSchema.safeParse(body)
     if (!parsed.success) {
-      return context.json(errorBody('invalid_project', 'Project name and path are required.'), 400)
+      return context.json(
+        errorBody('invalid_project', 'An absolute Project path is required.'),
+        400,
+      )
     }
     try {
       const project = await registry.add(parsed.data)
-      const snapshot = await registry.snapshot()
-      const response: ProjectCreateReceipt = { ...snapshot, project }
+      const response: ProjectMutationReceipt = { ...(await registry.snapshot()), project }
       return context.json(response, 201)
     } catch (error) {
       if (error instanceof ProjectRegistryError) {
-        return context.json(
-          errorBody(error.code, error.message, error.configPath),
-          registryErrorStatus(error),
-        )
+        const failure = registryFailure(error)
+        return context.json(failure.body, failure.status)
       }
       console.error('Project registration failed', error)
-      return context.json(errorBody('internal_error', 'Project could not be registered.'), 500)
+      return context.json(errorBody('internal_error', 'Project could not be added.'), 500)
+    }
+  })
+
+  routes.delete('/:projectName', async context => {
+    try {
+      const project = await registry.remove(context.req.param('projectName'))
+      const response: ProjectMutationReceipt = { ...(await registry.snapshot()), project }
+      return context.json(response)
+    } catch (error) {
+      if (error instanceof ProjectRegistryError) {
+        const failure = registryFailure(error)
+        return context.json(failure.body, failure.status)
+      }
+      console.error('Project removal failed', error)
+      return context.json(errorBody('internal_error', 'Project could not be removed.'), 500)
     }
   })
 
