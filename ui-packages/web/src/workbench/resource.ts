@@ -1,7 +1,9 @@
 export type GlobalDimension = 'projects' | 'agents' | 'skills'
+export type ProjectSection = 'sessions' | 'issues' | 'loops' | 'files'
 export type UtilityRef = 'runtime'
 
 export type ResourceRef =
+  | { readonly type: 'agent'; readonly agentId: string }
   | { readonly type: 'session'; readonly projectName: string; readonly sessionId: string }
   | { readonly type: 'issue'; readonly projectName: string; readonly issueId: string }
   | { readonly type: 'file'; readonly projectName: string; readonly path: string }
@@ -23,6 +25,7 @@ export const isResourceRef = (value: unknown): value is ResourceRef => {
   const record = recordOf(value)
   if (!record) return false
   const type = stringField(record, 'type')
+  if (type === 'agent') return Boolean(stringField(record, 'agentId'))
   if (type === 'session')
     return Boolean(stringField(record, 'projectName') && stringField(record, 'sessionId'))
   if (type === 'issue')
@@ -37,6 +40,7 @@ export const isResourceRef = (value: unknown): value is ResourceRef => {
 }
 
 export const resourceKey = (resource: ResourceRef): string => {
+  if (resource.type === 'agent') return `agent:${resource.agentId}`
   if (resource.type === 'session') return `session:${resource.projectName}:${resource.sessionId}`
   if (resource.type === 'issue') return `issue:${resource.projectName}:${resource.issueId}`
   if (resource.type === 'file') return `file:${resource.projectName}:${resource.path}`

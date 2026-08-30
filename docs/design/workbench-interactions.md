@@ -74,19 +74,26 @@ the work area.
 ```
 
 The Activity Bar contains Projects, Agents, and Skills at the top. Herdr Runtime
-status and Settings sit at the bottom. Their icon buttons have accessible labels
-and tooltips. The project panel begins with one compact row for Sessions, Issues,
-Loops, and Files, followed by the selected resource browser.
+status and Settings sit at the bottom. Each global Activity is a route-backed
+navigation link with an inset selected surface, an accessible label, and
+`aria-current`. The project panel begins with one compact row for Sessions,
+Issues, Loops, and Files, followed by the selected resource browser. Those four
+resource browsers also have collection routes, so their selection survives a
+reload.
 
-Switching to Agents or Skills does not clear the active project. React Activity
-keeps each contextual panel mounted, so returning restores its previous resource
-selection, search, and scroll position. The Settings button and the persistent
-Herdr status both open a temporary Runtime utility tab without changing the
-active project. A compact `PanelLeft` control in the project header collapses
-the sidebar to the Activity Bar and restores its previous width. While collapsed,
-the ROAM mark remains visible and changes into the expand control on hover or
-keyboard focus. Selecting a global Activity also expands the sidebar, and the
-collapsed state survives reload.
+Switching to Agents or Skills does not clear the active project. Each Activity
+remembers its last canonical path in browser storage; returning to Projects can
+therefore restore the exact Session, Issue, File, or Project collection that was
+previously active. React Activity keeps each contextual panel mounted during the
+page lifetime, preserving its search and scroll position as well. A full reload
+restores route-backed selection but not search or scroll state. The Settings
+button and the persistent Herdr status both open a temporary Runtime utility tab
+without changing Activity navigation memory or the active project. A compact
+`PanelLeft` control in the project header collapses the sidebar to the Activity
+Bar and restores its previous width. While collapsed, the ROAM mark remains
+visible and changes into the expand control on hover or keyboard focus. Selecting
+a global Activity also expands the sidebar, and the collapsed state survives
+reload.
 
 ### Workbench tabs
 
@@ -240,30 +247,29 @@ selected agent.
 
 ```text
 ┌──────────────────────────┬────────────────────────────────────────────────────────────┐
-│ ROAM              Herdr● │ codex-api                                  working · 12m   │
-│                          ├────────────────────────────────────────────────────────────┤
-│ Projects [Agents]        │ herdr-roam · Codex · API review                            │
-│ Sessions Skills          │                                                            │
-│                          │ [Inspector] [Terminal]       Copy attach command  Interrupt │
-│ Working 3  Blocked 1     │────────────────────────────────────────────────────────────│
-│ Done 1     Idle 2        │ Recent terminal output                                     │
-│                          │                                                            │
-│ ● codex-api             │ • Read server routes                                       │
-│   herdr-roam     working │ • Found two compatibility risks                            │
-│                          │ • Writing docs/api-review.md                                │
-│ ◉ claude-ui             │                                                            │
-│   storefront     blocked │                                                            │
-│                          │                                                            │
-│ ◌ codex-tests           │ ┌────────────────────────────────────────────────────────┐ │
-│   core             done  │ │ Send a Prompt...                                      │ │
-│                          │ └────────────────────────────────────────────────────────┘ │
+│ ROAM                    ● │ ● codex-api  idle · Codex       Copy attach  Details      │
+│                          │   /work/herdr-roam                                      │
+│ Projects [Agents] Skills ├────────────────────────────────────────────────────────────┤
+│ Blocked                1 │                                                            │
+│ ◉ claude-ui              │ • Read server routes                                      │
+│                          │ • Found two compatibility risks                            │
+│ Idle                   2 │ • Updated docs/api-review.md                               │
+│ ● codex-api             │                                                            │
+│   Codex · /work/api      ├────────────────────────────────────────────────────────────┤
+│                          │ ❯ Send a follow-up…                                        │
+│                          │                                               done · ↵ send │
 └──────────────────────────┴────────────────────────────────────────────────────────────┘
 ```
 
-The Inspector reads Herdr's plain or ANSI terminal output and sends ordinary
-Prompts through the Herdr agent API. It is not a reconstructed chat transcript.
+The implemented Inspector reads recent unwrapped ANSI terminal output on a
+fixed dark surface without a separate output heading. It sends bounded Prompts
+through Herdr only while the Agent is `idle` or `done`: Enter sends and
+Shift+Enter inserts a newline. It does not reconstruct a chat transcript.
+Details open on demand instead of permanently reducing the reading surface.
+Agent Tabs use `/agents/:agentId`; they remain independent of the active
+Project.
 
-## Browser Terminal Attach
+## Deferred Browser Terminal Attach
 
 Terminal is an explicit secondary mode inside Agent detail. It replaces the
 Inspector in the main pane and loads a terminal renderer only while attached.

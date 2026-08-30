@@ -37,7 +37,7 @@ one.
 The server:
 
 - discovers and connects to the default local Herdr server;
-- starts the default Herdr server in Roam-managed mode when it is absent;
+- connects to the default Herdr server and reports when it is absent;
 - translates Herdr runtime concepts into project, agent, and conversation views;
 - reads bounded project, session, and skill resources;
 - creates the Herdr runtime location required to start an agent from the Web;
@@ -45,15 +45,14 @@ The server:
 - reads and updates configured Git-backed Issue stores;
 - provides read APIs and a small set of explicit control operations;
 - streams state changes to the browser;
-- proxies a direct terminal stream only during explicit Browser Attach;
+- may later proxy a direct terminal stream during explicit Browser Attach;
 - serves only local clients by default.
 
 ### Browser application
 
 The browser presents Project, Agent, Session, Issue, Loop, File, and Skill views
 inside one tabbed work area. It does not access the filesystem or Herdr socket
-directly. The default Agent surface is a text Inspector; a terminal renderer is
-loaded only after explicit Browser Attach.
+directly. The current Agent surface is a read-only text Inspector.
 
 ## Herdr Discovery
 
@@ -65,13 +64,10 @@ If the binary is missing, Roam reports an explicit prerequisite error with
 diagnostics and Retry. It does not provide an installer, execute package-manager
 commands, or teach Herdr setup.
 
-Roam-managed mode connects to a running default server or starts the headless
-server when none is running. Roam reconnects after its own restart and does not
-stop running agents when the Web process exits. Externally managed mode connects
-to a user-managed default server and never starts or stops it. Roam-managed is
-the default; changing ownership is an explicit global Runtime setting, not a
-first-run step. The first version supports one local server and does not expose
-remote connection profiles.
+The current runtime slice connects to a running default server and reconnects
+when that connection is lost. It does not start or stop Herdr. Runtime ownership
+and managed startup remain later control capabilities. The first version
+supports one local server and does not expose remote connection profiles.
 
 Roam can create a Herdr Workspace rooted at the selected directory, use its root
 Pane, start a supported native agent, and submit the initial Prompt. These
@@ -99,16 +95,17 @@ and explicit takeover when another client controls the terminal; it never
 takes over silently. Copying an attach command does not launch an external
 terminal process.
 
-Public API routes and payload shapes will be defined with the feature that first
-uses them. The shared package owns the resulting browser/server contracts and
-runtime validation is applied at external boundaries.
+Public API routes and payload shapes are defined with the feature that first
+uses them. The shared package owns only resulting browser/server wire contracts;
+Herdr transport types and browser state remain beside their consumers. Runtime
+validation is applied at external boundaries.
 
 ## Repository Structure
 
 ```text
 herdr-roam/
 ├── packages/
-│   └── shared/             # Cross-runtime domain types and API contracts
+│   └── shared/             # Browser/server wire contracts
 ├── web-packages/
 │   └── server/             # Hono API, Herdr adapter, and bounded file access
 ├── ui-packages/
@@ -131,7 +128,7 @@ already contain the source data Herdr Roam reads.
 - **Server:** Hono on Node.js.
 - **Boundary validation:** Zod.
 - **Live updates:** Server-Sent Events.
-- **Browser Attach:** an on-demand terminal renderer over a bidirectional
+- **Future Browser Attach:** an on-demand terminal renderer over a bidirectional
   transport.
 - **Quality tooling:** Biome and Vitest.
 

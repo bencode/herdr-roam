@@ -13,6 +13,9 @@ decisions and technical boundaries that guide its first implementation.
 - [Project registry and routing](architecture/project-registry-and-routing.md)
   defines stable Project Names, the local registry contract, canonical URLs,
   and Tab restoration.
+- [Herdr Agent runtime](architecture/herdr-agent-runtime.md) documents the
+  implemented Agent connection, inspection and Prompt API, and persistence
+  boundary.
 - [Workbench interactions](design/workbench-interactions.md) records the
   desktop information architecture, ASCII wireframes, and primary interaction
   flows.

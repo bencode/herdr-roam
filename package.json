@@ -5,8 +5,9 @@
   "type": "module",
   "packageManager": "pnpm@10.14.0",
   "scripts": {
-    "dev": "pnpm --filter @herdr-roam/web dev",
+    "dev": "pnpm --parallel --filter @herdr-roam/server --filter @herdr-roam/web dev",
     "build": "pnpm -r build",
+    "start": "pnpm --filter @herdr-roam/server start",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "lint": "biome lint ."

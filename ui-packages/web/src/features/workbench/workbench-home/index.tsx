@@ -1,11 +1,12 @@
 import { ArrowUp, CircleDot, Play, Radio } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '../../../lib/cn'
-import type { AgentStatus } from '../../../mock/data'
-import { agents, projectByName, sessions } from '../../../mock/data'
+import type { SessionStatus } from '../../../mock/data'
+import { projectByName, sessions } from '../../../mock/data'
 import type { ResourceRef } from '../../../workbench/resource'
+import { useAgentRuntime } from '../../agent/runtime-provider'
 
-const statusClasses: Readonly<Record<AgentStatus, string>> = {
+const statusClasses: Readonly<Record<SessionStatus, string>> = {
   working: 'bg-primary',
   blocked: 'bg-warning',
   idle: 'bg-primary',
@@ -21,7 +22,7 @@ export const WorkbenchHome = ({
 }) => {
   const project = projectByName(projectName)
   const projectSessions = sessions.filter(session => session.projectName === projectName)
-  const projectAgents = agents.filter(agent => agent.projectName === projectName)
+  const { snapshot } = useAgentRuntime()
   const [prompt, setPrompt] = useState('')
 
   const startMockSession = () => {
@@ -39,8 +40,8 @@ export const WorkbenchHome = ({
           Start work in {project?.name ?? projectName}
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted leading-6">
-          This layout milestone uses local fixtures. Starting work opens a representative Session;
-          Herdr is not connected yet.
+          Project resources remain local fixtures in this milestone. Live Agent status comes from
+          the default Herdr server.
         </p>
 
         <form
@@ -95,16 +96,16 @@ export const WorkbenchHome = ({
           </section>
           <section>
             <h2 className="mt-0 mb-3 flex items-center gap-2 font-[650] text-sm">
-              <CircleDot className="w-4 text-primary" /> Runtime snapshot
+              <CircleDot className="w-4 text-primary" /> Global runtime
             </h2>
             <dl className="m-0 grid grid-cols-[6.875rem_1fr] gap-y-3 border-border border-t py-4 text-sm [&_dd]:m-0 [&_dt]:text-muted">
               <dt>Agents</dt>
-              <dd>{projectAgents.length} visible</dd>
+              <dd>{snapshot.items.length} globally visible</dd>
               <dt>Working</dt>
-              <dd>{projectAgents.filter(agent => agent.status === 'working').length}</dd>
+              <dd>{snapshot.items.filter(agent => agent.status === 'working').length}</dd>
               <dt>Runtime</dt>
               <dd className="flex items-center gap-2">
-                <Play className="w-3 text-success" /> Mock data
+                <Play className="w-3 text-success" /> {snapshot.source.state}
               </dd>
             </dl>
           </section>

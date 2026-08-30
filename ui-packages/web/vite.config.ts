@@ -7,6 +7,10 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 4310,
+    proxy: {
+      '/api': 'http://127.0.0.1:4311',
+      '/healthz': 'http://127.0.0.1:4311',
+    },
   },
   build: {
     rollupOptions: {

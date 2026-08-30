@@ -1,4 +1,4 @@
-import type { Agent, FileResource, Issue, Loop, Project, Session } from './data'
+import type { FileResource, Issue, Loop, Project, Session } from './data'
 
 export const projects: readonly Project[] = [
   {
@@ -72,41 +72,6 @@ export const sessions: readonly Session[] = [
   session('docs-polish', 'Product documentation consistency pass', 'Claude', 'done', '6d'),
   session('mission-review', 'Mission board review', 'Claude', 'idle', '2h', 'cc-mission-control'),
   session('archive-notes', 'Archive migration notes', 'Codex', 'done', '8d', 'cc-mission-control'),
-]
-
-export const agents: readonly Agent[] = [
-  {
-    id: 'agent-product-scan',
-    name: 'codex-product',
-    provider: 'Codex',
-    projectName: 'herdr-roam',
-    status: 'working',
-    sessionId: 'product-scan',
-  },
-  {
-    id: 'agent-api-review',
-    name: 'claude-api',
-    provider: 'Claude',
-    projectName: 'herdr-roam',
-    status: 'blocked',
-    sessionId: 'api-review',
-  },
-  {
-    id: 'agent-file-tree',
-    name: 'codex-files',
-    provider: 'Codex',
-    projectName: 'herdr-roam',
-    status: 'working',
-    sessionId: 'file-tree-audit',
-  },
-  {
-    id: 'agent-mission-review',
-    name: 'claude-mission',
-    provider: 'Claude',
-    projectName: 'cc-mission-control',
-    status: 'idle',
-    sessionId: 'mission-review',
-  },
 ]
 
 type IssueSpec = readonly [

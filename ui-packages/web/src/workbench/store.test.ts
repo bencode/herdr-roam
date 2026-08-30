@@ -1,15 +1,18 @@
-import { defaultWorkbenchSnapshot, useWorkbenchStore } from './store'
-
 const session = { type: 'session', projectName: 'herdr-roam', sessionId: 'scan' } as const
 const issue = { type: 'issue', projectName: 'other-project', issueId: 'hr-018' } as const
+const agent = { type: 'agent', agentId: 'terminal-codex' } as const
 
 describe('workbench store', () => {
-  beforeEach(() => {
+  let storeModule: typeof import('./store')
+
+  beforeEach(async () => {
     localStorage.clear()
-    useWorkbenchStore.setState(defaultWorkbenchSnapshot)
+    vi.resetModules()
+    storeModule = await import('./store')
   })
 
   it('deduplicates resources while preserving cross-project tabs', () => {
+    const { useWorkbenchStore } = storeModule
     useWorkbenchStore.getState().open(session)
     useWorkbenchStore.getState().open(issue)
     useWorkbenchStore.getState().open(session)
@@ -18,6 +21,7 @@ describe('workbench store', () => {
   })
 
   it('selects the right neighbor when closing the active tab', () => {
+    const { useWorkbenchStore } = storeModule
     useWorkbenchStore.getState().open(session)
     useWorkbenchStore.getState().open(issue)
     useWorkbenchStore.getState().open(session)
@@ -26,12 +30,59 @@ describe('workbench store', () => {
   })
 
   it('persists only the versioned workbench snapshot', () => {
-    useWorkbenchStore.getState().open(session)
-    expect(JSON.parse(localStorage.getItem('herdr-roam.workbench.v2') ?? '')).toEqual({
-      version: 2,
+    const { useWorkbenchStore } = storeModule
+    useWorkbenchStore.getState().open(agent)
+    expect(JSON.parse(localStorage.getItem('herdr-roam.workbench.v3') ?? '')).toEqual({
+      version: 3,
       activeProjectName: 'herdr-roam',
-      tabs: [session],
-      lastActive: session,
+      tabs: [agent],
+      lastActive: agent,
+      lastActivity: 'projects',
+      activityPaths: {
+        projects: '/projects/herdr-roam',
+        agents: '/agents',
+        skills: '/skills',
+      },
     })
+  })
+
+  it('remembers one canonical path per Activity', () => {
+    const { useWorkbenchStore } = storeModule
+    useWorkbenchStore.getState().rememberActivity('projects', '/projects/herdr-roam/issues/hr-018')
+    useWorkbenchStore.getState().rememberActivity('agents', '/agents/terminal-codex')
+
+    expect(useWorkbenchStore.getState().lastActivity).toBe('agents')
+    expect(useWorkbenchStore.getState().activityPaths).toEqual({
+      projects: '/projects/herdr-roam/issues/hr-018',
+      agents: '/agents/terminal-codex',
+      skills: '/skills',
+    })
+  })
+
+  it('migrates v2 tabs and the last active resource into v3 navigation memory', async () => {
+    localStorage.setItem(
+      'herdr-roam.workbench.v2',
+      JSON.stringify({
+        version: 2,
+        activeProjectName: 'herdr-roam',
+        tabs: [agent],
+        lastActive: agent,
+      }),
+    )
+    vi.resetModules()
+    const { useWorkbenchStore } = await import('./store')
+
+    expect(useWorkbenchStore.getState()).toMatchObject({
+      version: 3,
+      tabs: [agent],
+      lastActive: agent,
+      lastActivity: 'agents',
+      activityPaths: {
+        projects: '/projects/herdr-roam',
+        agents: '/agents/terminal-codex',
+        skills: '/skills',
+      },
+    })
+    expect(localStorage.getItem('herdr-roam.workbench.v3')).not.toBeNull()
   })
 })

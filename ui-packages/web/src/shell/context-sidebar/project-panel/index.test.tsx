@@ -1,9 +1,19 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { useState } from 'react'
+import type { ProjectSection } from '../../../workbench/resource'
 import { ProjectPanel } from '.'
 
-const ProjectPanelHarness = ({ projectName = 'herdr-roam' }: { readonly projectName?: string }) => (
-  <ProjectPanel activeProjectName={projectName} onOpen={() => undefined} />
-)
+const ProjectPanelHarness = ({ projectName = 'herdr-roam' }: { readonly projectName?: string }) => {
+  const [section, setSection] = useState<ProjectSection>('sessions')
+  return (
+    <ProjectPanel
+      activeProjectName={projectName}
+      section={section}
+      onSection={setSection}
+      onOpen={() => undefined}
+    />
+  )
+}
 
 const selectResource = (name: string) => fireEvent.click(screen.getByRole('button', { name }))
 

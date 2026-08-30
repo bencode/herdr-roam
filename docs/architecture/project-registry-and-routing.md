@@ -46,19 +46,34 @@ with the server foundation.
 /
 /projects
 /projects/:projectName
+/projects/:projectName/sessions
 /projects/:projectName/sessions/:sessionId
+/projects/:projectName/issues
 /projects/:projectName/issues/:issueId
+/projects/:projectName/loops
+/projects/:projectName/files
 /projects/:projectName/files/:path...
 /projects/:projectName/skills/:skillId
+/agents
+/agents/:agentId
+/skills
 /skills/:skillId
 /settings/runtime
 ```
 
-`/` restores the last active resource or opens the active Project. `/projects`
-opens the active Project. A project resource route identifies the owner of the
+`/` restores the last global Activity and that Activity's last canonical path.
+`/projects` restores the Projects Activity's last path. The collection routes
+select the corresponding Activity or Project resource browser without inventing
+a persisted content tab. A project resource route identifies the owner of the
 resource; activating a cross-project resource does not silently change the
-Project selected for browsing. Only opening a Project Workbench or selecting a
-Project changes the active Project.
+Project selected for browsing. Only opening a Project Workbench, opening a
+Project collection route, or selecting a Project changes the active Project.
+
+The Activity is normally derived from the resource type. Project Sessions,
+Issues, Loops, and Files belong to Projects; Agents belong to Agents; and both
+user and project Skills belong to Skills. Consequently,
+`/projects/:projectName/skills/:skillId` selects the Skills Activity despite its
+project-scoped canonical path.
 
 Each path segment is URI encoded independently. The old
 `/projects/:projectName/workbench` form is not a compatibility route because
@@ -75,3 +90,11 @@ The Project Workbench is pinned and is not part of the resource array. Runtime
 Settings is a route-backed temporary utility tab and is also not persisted.
 Local view state such as a Session draft or Markdown mode is retained while the
 React Activity remains mounted, but it is not copied into persistent tab data.
+
+The browser stores one last canonical path for each of Projects, Agents, and
+Skills, plus the last selected Activity. The current URL wins on reload and
+updates this navigation memory. Switching Activities navigates to the saved path
+for the destination, so returning to Projects restores the exact collection or
+detail route. Runtime Settings does not overwrite Activity navigation memory.
+Only canonical pathnames are stored; query strings, hashes, search terms, scroll
+positions, and copied resource content are not persisted.

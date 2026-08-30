@@ -1,9 +1,15 @@
 import { PanelLeft } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Group, Panel, Separator, useDefaultLayout, usePanelRef } from 'react-resizable-panels'
+import { useAgentRuntime } from '../../features/agent/runtime-provider'
 import { cn } from '../../lib/cn'
 import { projects } from '../../mock/data'
-import type { GlobalDimension, ResourceRef, UtilityRef } from '../../workbench/resource'
+import type {
+  GlobalDimension,
+  ProjectSection,
+  ResourceRef,
+  UtilityRef,
+} from '../../workbench/resource'
 import { ActivityBar } from '../activity-bar'
 import { BrandMark } from '../brand-mark'
 import { ContextSidebar } from '../context-sidebar'
@@ -34,10 +40,14 @@ const writeSidebarWidth = (width: number): void => {
 
 type Props = {
   readonly activeProjectName: string
+  readonly activeDimension: GlobalDimension
+  readonly activityPaths: Readonly<Record<GlobalDimension, string>>
+  readonly projectSection: ProjectSection
   readonly tabs: readonly ResourceRef[]
   readonly active: ResourceRef | null
   readonly activeUtility: UtilityRef | null
   readonly onProject: (projectName: string) => void
+  readonly onProjectSection: (section: ProjectSection) => void
   readonly onWorkbench: () => void
   readonly onOpen: (resource: ResourceRef) => void
   readonly onClose: (resource: ResourceRef) => void
@@ -47,17 +57,21 @@ type Props = {
 
 export const AppShell = ({
   activeProjectName,
+  activeDimension,
+  activityPaths,
+  projectSection,
   tabs,
   active,
   activeUtility,
   onProject,
+  onProjectSection,
   onWorkbench,
   onOpen,
   onClose,
   onRuntime,
   onCloseUtility,
 }: Props) => {
-  const [dimension, setDimension] = useState<GlobalDimension>('projects')
+  const { snapshot } = useAgentRuntime()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const sidebarRef = usePanelRef()
   const expandedWidth = useRef(readSidebarWidth())
@@ -81,8 +95,7 @@ export const AppShell = ({
     writeSidebarWidth(width)
   }
 
-  const selectDimension = (next: GlobalDimension) => {
-    setDimension(next)
+  const selectDimension = () => {
     if (sidebarCollapsed) setCollapsed(false)
   }
 
@@ -162,7 +175,8 @@ export const AppShell = ({
           </header>
           <div className="flex min-h-0 min-w-0 flex-1">
             <ActivityBar
-              active={dimension}
+              active={activeDimension}
+              paths={activityPaths}
               runtimeActive={activeUtility === 'runtime'}
               onChange={selectDimension}
               onRuntime={onRuntime}
@@ -173,13 +187,24 @@ export const AppShell = ({
               data-testid="sidebar-context"
             >
               <ContextSidebar
-                dimension={dimension}
+                dimension={activeDimension}
                 activeProjectName={activeProjectName}
+                projectSection={projectSection}
+                onProjectSection={onProjectSection}
                 onOpen={onOpen}
               />
               <footer className="flex h-10.5 flex-none items-center gap-2 border-border border-t px-2.75 text-[0.6875rem] text-muted">
-                <span>4 agents</span>
-                <span className="text-warning">1 blocked</span>
+                {snapshot.items.length > 0 || snapshot.source.state === 'connected' ? (
+                  <>
+                    <span>{snapshot.items.length} agents</span>
+                    <span className="text-warning">
+                      {snapshot.items.filter(agent => agent.status === 'blocked').length} blocked
+                    </span>
+                    {snapshot.stale && <span className="text-faint">stale</span>}
+                  </>
+                ) : (
+                  <span className="text-danger">Runtime unavailable</span>
+                )}
               </footer>
             </div>
           </div>

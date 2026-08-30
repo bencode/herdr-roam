@@ -1,20 +1,12 @@
 import type { ResourceRef } from '../workbench/resource'
-import { agents, files, issues, loops, projects, sessions } from './project-data'
+import { files, issues, loops, projects, sessions } from './project-data'
 
 export type Project = {
   readonly name: string
   readonly path: string
   readonly issuesConfigured: boolean
 }
-export type AgentStatus = 'working' | 'blocked' | 'idle' | 'done'
-export type Agent = {
-  readonly id: string
-  readonly name: string
-  readonly provider: 'Codex' | 'Claude'
-  readonly projectName: string
-  readonly status: AgentStatus
-  readonly sessionId: string
-}
+export type SessionStatus = 'working' | 'blocked' | 'idle' | 'done'
 export type SessionMessage = {
   readonly id: string
   readonly author: 'You' | 'Codex' | 'Claude'
@@ -25,7 +17,7 @@ export type Session = {
   readonly title: string
   readonly projectName: string
   readonly provider: 'Codex' | 'Claude'
-  readonly status: AgentStatus
+  readonly status: SessionStatus
   readonly updated: string
   readonly messages: readonly SessionMessage[]
   readonly artifact?: ResourceRef
@@ -66,7 +58,7 @@ export type SkillResource = {
   readonly resources: readonly string[]
 }
 
-export { agents, files, issues, loops, projects, sessions }
+export { files, issues, loops, projects, sessions }
 
 export const skills: readonly SkillResource[] = [
   {
@@ -106,6 +98,7 @@ export const skillById = (skillId: string): SkillResource | undefined =>
   skills.find(skill => skill.id === skillId)
 
 export const resourceTitle = (resource: ResourceRef): string => {
+  if (resource.type === 'agent') return resource.agentId
   if (resource.type === 'session')
     return sessionById(resource.projectName, resource.sessionId)?.title ?? resource.sessionId
   if (resource.type === 'issue') return resource.issueId.toUpperCase()

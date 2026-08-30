@@ -1,11 +1,13 @@
 import { CircleDot, Search } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { cn } from '../../../lib/cn'
-import type { AgentStatus, Issue, Loop, LoopStatus, Session } from '../../../mock/data'
+import type { Issue, Loop, LoopStatus, Session, SessionStatus } from '../../../mock/data'
 import { issues, loops, projectByName, sessions } from '../../../mock/data'
-import type { ResourceRef } from '../../../workbench/resource'
+import type { ProjectSection, ResourceRef } from '../../../workbench/resource'
 
-const statusClasses: Readonly<Record<AgentStatus | LoopStatus, string>> = {
+export type { ProjectSection } from '../../../workbench/resource'
+
+const statusClasses: Readonly<Record<SessionStatus | LoopStatus, string>> = {
   working: 'bg-primary',
   blocked: 'bg-warning',
   idle: 'bg-primary',
@@ -19,8 +21,6 @@ const issueStatusClasses: Readonly<Record<Issue['status'], string>> = {
   open: 'text-primary',
   closed: 'text-success',
 }
-
-export type ProjectSection = 'sessions' | 'issues' | 'loops' | 'files'
 
 type BrowserFrameProps = {
   readonly title: string
@@ -65,7 +65,7 @@ const matches = (query: string, ...values: readonly string[]): boolean => {
   return normalized === '' || values.some(value => value.toLowerCase().includes(normalized))
 }
 
-const Status = ({ value }: { readonly value: AgentStatus }) => (
+const Status = ({ value }: { readonly value: SessionStatus }) => (
   <i
     className={cn('mt-[0.3rem] size-1.5 flex-none rounded-full', statusClasses[value])}
     role="img"

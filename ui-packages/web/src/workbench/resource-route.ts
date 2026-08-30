@@ -1,12 +1,24 @@
-import type { ResourceRef, UtilityRef } from './resource'
+import type { GlobalDimension, ProjectSection, ResourceRef, UtilityRef } from './resource'
 
 export type RouteTarget =
   | { readonly kind: 'root' }
   | { readonly kind: 'projects' }
   | { readonly kind: 'workbench'; readonly projectName: string }
+  | {
+      readonly kind: 'project-section'
+      readonly projectName: string
+      readonly section: ProjectSection
+    }
+  | { readonly kind: 'agent-list' }
+  | { readonly kind: 'skill-list' }
   | { readonly kind: 'resource'; readonly resource: ResourceRef }
   | { readonly kind: 'utility'; readonly utility: UtilityRef }
   | { readonly kind: 'unknown' }
+
+const projectSections: readonly ProjectSection[] = ['sessions', 'issues', 'loops', 'files']
+
+const isProjectSection = (value: string | undefined): value is ProjectSection =>
+  projectSections.some(section => section === value)
 
 const decode = (value: string): string | null => {
   try {
@@ -22,15 +34,24 @@ const encodePath = (path: string): string => path.split('/').map(encoded).join('
 
 export const projectPath = (projectName: string): string => `/projects/${encoded(projectName)}`
 
+export const projectSectionPath = (projectName: string, section: ProjectSection): string =>
+  `${projectPath(projectName)}/${section}`
+
+export const activityRootPath = (dimension: GlobalDimension, projectName: string): string => {
+  if (dimension === 'projects') return projectPath(projectName)
+  return `/${dimension}`
+}
+
 export const runtimePath = (): string => '/settings/runtime'
 
 export const resourcePath = (resource: ResourceRef): string => {
+  if (resource.type === 'agent') return `/agents/${encoded(resource.agentId)}`
   if (resource.type === 'session')
-    return `${projectPath(resource.projectName)}/sessions/${encoded(resource.sessionId)}`
+    return `${projectSectionPath(resource.projectName, 'sessions')}/${encoded(resource.sessionId)}`
   if (resource.type === 'issue')
-    return `${projectPath(resource.projectName)}/issues/${encoded(resource.issueId)}`
+    return `${projectSectionPath(resource.projectName, 'issues')}/${encoded(resource.issueId)}`
   if (resource.type === 'file')
-    return `${projectPath(resource.projectName)}/files/${encodePath(resource.path)}`
+    return `${projectSectionPath(resource.projectName, 'files')}/${encodePath(resource.path)}`
   if (resource.scope === 'project')
     return `${projectPath(resource.projectName)}/skills/${encoded(resource.skillId)}`
   return `/skills/${encoded(resource.skillId)}`
@@ -42,17 +63,20 @@ const projectTarget = (parts: readonly string[]): RouteTarget | null => {
   const projectName = decode(parts[1] ?? '')
   if (!projectName) return { kind: 'unknown' }
   if (parts.length === 2) return { kind: 'workbench', projectName }
+  const section = parts[2]
+  if (isProjectSection(section) && parts.length === 3)
+    return { kind: 'project-section', projectName, section }
   const id = parts[3] ? decode(parts[3]) : null
-  if (parts[2] === 'sessions' && id && parts.length === 4)
+  if (section === 'sessions' && id && parts.length === 4)
     return { kind: 'resource', resource: { type: 'session', projectName, sessionId: id } }
-  if (parts[2] === 'issues' && id && parts.length === 4)
+  if (section === 'issues' && id && parts.length === 4)
     return { kind: 'resource', resource: { type: 'issue', projectName, issueId: id } }
-  if (parts[2] === 'skills' && id && parts.length === 4)
+  if (section === 'skills' && id && parts.length === 4)
     return {
       kind: 'resource',
       resource: { type: 'skill', scope: 'project', projectName, skillId: id },
     }
-  if (parts[2] !== 'files' || parts.length < 4) return { kind: 'unknown' }
+  if (section !== 'files' || parts.length < 4) return { kind: 'unknown' }
   const decodedParts = parts.slice(3).map(decode)
   if (decodedParts.some(part => part === null)) return { kind: 'unknown' }
   return {
@@ -62,11 +86,21 @@ const projectTarget = (parts: readonly string[]): RouteTarget | null => {
 }
 
 const skillTarget = (parts: readonly string[]): RouteTarget | null => {
-  if (parts[0] !== 'skills' || parts.length !== 2) return null
+  if (parts[0] !== 'skills') return null
+  if (parts.length === 1) return { kind: 'skill-list' }
+  if (parts.length !== 2) return { kind: 'unknown' }
   const skillId = decode(parts[1] ?? '')
   return skillId
     ? { kind: 'resource', resource: { type: 'skill', scope: 'user', skillId } }
     : { kind: 'unknown' }
+}
+
+const agentTarget = (parts: readonly string[]): RouteTarget | null => {
+  if (parts[0] !== 'agents') return null
+  if (parts.length === 1) return { kind: 'agent-list' }
+  if (parts.length !== 2) return { kind: 'unknown' }
+  const agentId = decode(parts[1] ?? '')
+  return agentId ? { kind: 'resource', resource: { type: 'agent', agentId } } : { kind: 'unknown' }
 }
 
 export const parseResourcePath = (pathname: string): RouteTarget => {
@@ -74,5 +108,38 @@ export const parseResourcePath = (pathname: string): RouteTarget => {
   if (parts.length === 0) return { kind: 'root' }
   if (parts.length === 2 && parts[0] === 'settings' && parts[1] === 'runtime')
     return { kind: 'utility', utility: 'runtime' }
-  return projectTarget(parts) ?? skillTarget(parts) ?? { kind: 'unknown' }
+  return projectTarget(parts) ?? agentTarget(parts) ?? skillTarget(parts) ?? { kind: 'unknown' }
+}
+
+export const routeDimension = (target: RouteTarget): GlobalDimension | null => {
+  if (target.kind === 'agent-list') return 'agents'
+  if (target.kind === 'skill-list') return 'skills'
+  if (target.kind === 'workbench' || target.kind === 'project-section') return 'projects'
+  if (target.kind !== 'resource') return null
+  if (target.resource.type === 'agent') return 'agents'
+  if (target.resource.type === 'skill') return 'skills'
+  return 'projects'
+}
+
+export const routeProjectSection = (target: RouteTarget): ProjectSection | null => {
+  if (target.kind === 'workbench') return 'sessions'
+  if (target.kind === 'project-section') return target.section
+  if (target.kind !== 'resource') return null
+  if (target.resource.type === 'session') return 'sessions'
+  if (target.resource.type === 'issue') return 'issues'
+  if (target.resource.type === 'file') return 'files'
+  return null
+}
+
+export const canonicalPath = (target: RouteTarget): string | null => {
+  if (target.kind === 'root') return '/'
+  if (target.kind === 'projects') return '/projects'
+  if (target.kind === 'workbench') return projectPath(target.projectName)
+  if (target.kind === 'project-section')
+    return projectSectionPath(target.projectName, target.section)
+  if (target.kind === 'agent-list') return '/agents'
+  if (target.kind === 'skill-list') return '/skills'
+  if (target.kind === 'resource') return resourcePath(target.resource)
+  if (target.kind === 'utility') return runtimePath()
+  return null
 }

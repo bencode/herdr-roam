@@ -1,12 +1,67 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { MemoryRouter, useLocation } from 'react-router-dom'
+import type { ReactNode } from 'react'
+import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
+import { vi } from 'vitest'
 import { App } from './app'
 import { defaultWorkbenchSnapshot, useWorkbenchStore } from './workbench/store'
+
+vi.mock('./features/agent/client', () => ({
+  fetchAgentSnapshot: vi.fn().mockResolvedValue({
+    source: { state: 'connected', version: '0.8.2', protocol: 20 },
+    stale: false,
+    items: [
+      {
+        id: 'terminal-codex',
+        name: 'codex-product',
+        provider: 'codex',
+        status: 'working',
+        cwd: '/work/herdr-roam',
+        attachTarget: 'w1:p1',
+      },
+    ],
+  }),
+  subscribeAgentSnapshots: vi.fn(() => () => undefined),
+  fetchAgentOutput: vi.fn().mockResolvedValue({ agentId: 'terminal-codex', text: 'Recent output' }),
+}))
+
+vi.mock('./features/agent/runtime-provider', () => {
+  const snapshot = {
+    source: { state: 'connected' as const, version: '0.8.2', protocol: 20 },
+    stale: false,
+    items: [
+      {
+        id: 'terminal-codex',
+        name: 'codex-product',
+        provider: 'codex',
+        status: 'working' as const,
+        cwd: '/work/herdr-roam',
+        attachTarget: 'w1:p1',
+      },
+    ],
+  }
+  return {
+    AgentRuntimeProvider: ({ children }: { readonly children: ReactNode }) => children,
+    useAgentRuntime: () => ({
+      snapshot,
+      transportError: null,
+      agentById: (agentId: string) => snapshot.items.find(agent => agent.id === agentId),
+    }),
+  }
+})
 
 const selectProjectResource = (sidebar: ReturnType<typeof within>, resource: string) =>
   fireEvent.click(sidebar.getByRole('button', { name: resource }))
 
 const CurrentPath = () => <output data-testid="current-path">{useLocation().pathname}</output>
+
+const HistoryBack = () => {
+  const navigate = useNavigate()
+  return (
+    <button type="button" onClick={() => navigate(-1)}>
+      History back
+    </button>
+  )
+}
 
 describe('workbench application', () => {
   beforeEach(() => {
@@ -85,7 +140,7 @@ describe('workbench application', () => {
     fireEvent.click(sidebar.getByRole('button', { name: /Clarify runtime ownership/ }))
     selectProjectResource(sidebar, 'Files')
     fireEvent.click(sidebar.getByRole('button', { name: 'vision-and-scope.md' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Skills' }))
+    fireEvent.click(screen.getByRole('link', { name: 'Skills' }))
     fireEvent.click(sidebar.getByRole('button', { name: /herdr-roam-issues/ }))
     await waitFor(() => {
       expect(screen.getByRole('tab', { name: 'HR-018' })).toBeInTheDocument()
@@ -106,12 +161,70 @@ describe('workbench application', () => {
       target: { value: 'runtime' },
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Agents' }))
+    fireEvent.click(screen.getByRole('link', { name: 'Agents' }))
     expect(sidebar.getByRole('textbox', { name: 'Search agents' })).toBeVisible()
-    fireEvent.click(screen.getByRole('button', { name: 'Projects' }))
+    fireEvent.click(screen.getByRole('link', { name: 'Projects' }))
 
     expect(sidebar.getByRole('button', { name: 'Issues' })).toHaveAttribute('aria-pressed', 'true')
     expect(sidebar.getByRole('textbox', { name: 'Search issues' })).toHaveValue('runtime')
+  })
+
+  it('restores the exact Project route after visiting another Activity', async () => {
+    render(
+      <MemoryRouter initialEntries={['/projects/herdr-roam/issues/hr-018']}>
+        <App />
+        <CurrentPath />
+      </MemoryRouter>,
+    )
+
+    await screen.findByRole('tab', { name: 'HR-018' })
+    expect(screen.getByRole('link', { name: 'Projects' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: 'Issues' })).toHaveAttribute('aria-pressed', 'true')
+
+    fireEvent.click(screen.getByRole('link', { name: 'Agents' }))
+    await waitFor(() => expect(screen.getByTestId('current-path')).toHaveTextContent('/agents'))
+    expect(screen.getByRole('link', { name: 'Agents' })).toHaveAttribute('aria-current', 'page')
+
+    fireEvent.click(screen.getByRole('link', { name: 'Projects' }))
+    await waitFor(() =>
+      expect(screen.getByTestId('current-path')).toHaveTextContent(
+        '/projects/herdr-roam/issues/hr-018',
+      ),
+    )
+    expect(screen.getByRole('button', { name: 'Issues' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('derives Skills selection from a project Skill route', async () => {
+    render(
+      <MemoryRouter initialEntries={['/projects/herdr-roam/skills/frontend-design']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    await screen.findByRole('tab', { name: /frontend-design/ })
+    expect(screen.getByRole('link', { name: 'Skills' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('textbox', { name: 'Search skills' })).toBeVisible()
+  })
+
+  it('updates Activity and Project section state through browser history', async () => {
+    render(
+      <MemoryRouter initialEntries={['/projects/herdr-roam/files']}>
+        <App />
+        <CurrentPath />
+        <HistoryBack />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('button', { name: 'Files' })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(screen.getByRole('link', { name: 'Agents' }))
+    await waitFor(() => expect(screen.getByTestId('current-path')).toHaveTextContent('/agents'))
+    fireEvent.click(screen.getByRole('button', { name: 'History back' }))
+
+    await waitFor(() =>
+      expect(screen.getByTestId('current-path')).toHaveTextContent('/projects/herdr-roam/files'),
+    )
+    expect(screen.getByRole('link', { name: 'Projects' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: 'Files' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('collapses to the Activity rail and expands from a global activity without losing state', () => {
@@ -134,9 +247,9 @@ describe('workbench application', () => {
     expect(screen.queryByRole('button', { name: 'Collapse sidebar' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeVisible()
 
-    fireEvent.click(sidebar.getByRole('button', { name: 'Agents' }))
+    fireEvent.click(sidebar.getByRole('link', { name: 'Agents' }))
     expect(sidebar.getByRole('textbox', { name: 'Search agents' })).toBeVisible()
-    fireEvent.click(sidebar.getByRole('button', { name: 'Projects' }))
+    fireEvent.click(sidebar.getByRole('link', { name: 'Projects' }))
     expect(sidebar.getByRole('button', { name: 'Issues' })).toHaveAttribute('aria-pressed', 'true')
     expect(sidebar.getByRole('textbox', { name: 'Search issues' })).toHaveValue('runtime')
   })
@@ -188,5 +301,25 @@ describe('workbench application', () => {
       'aria-selected',
       'true',
     )
+  })
+
+  it('opens a real Agent as an independent route-backed tab', async () => {
+    render(
+      <MemoryRouter initialEntries={['/projects/herdr-roam']}>
+        <App />
+        <CurrentPath />
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(screen.getByRole('link', { name: 'Agents' }))
+    fireEvent.click(await screen.findByRole('button', { name: /codex-product/ }))
+
+    expect(screen.getByTestId('current-path')).toHaveTextContent('/agents/terminal-codex')
+    expect(screen.getByRole('tab', { name: /codex-product/ })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Copy attach command' })).toBeVisible()
+    expect(await screen.findByText('Recent output')).toBeVisible()
+    expect(useWorkbenchStore.getState().tabs).toEqual([
+      { type: 'agent', agentId: 'terminal-codex' },
+    ])
   })
 })

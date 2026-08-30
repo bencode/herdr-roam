@@ -1,7 +1,9 @@
-import { Box, CircleDot, FileText, Home, MessageSquare, Server, X } from 'lucide-react'
+import type { AgentStatus } from '@herdr-roam/shared'
+import { Bot, Box, CircleDot, FileText, Home, MessageSquare, Server, X } from 'lucide-react'
 import { useLayoutEffect, useRef } from 'react'
+import { useAgentRuntime } from '../../features/agent/runtime-provider'
 import { cn } from '../../lib/cn'
-import type { AgentStatus } from '../../mock/data'
+import type { SessionStatus } from '../../mock/data'
 import { resourceTitle, sessionById } from '../../mock/data'
 import {
   type ResourceRef,
@@ -13,11 +15,12 @@ import {
 const WORKBENCH_KEY = 'workbench'
 const RUNTIME_KEY = 'utility:runtime'
 
-const statusClasses: Readonly<Record<AgentStatus, string>> = {
+const statusClasses: Readonly<Record<AgentStatus | SessionStatus, string>> = {
   working: 'bg-primary',
   blocked: 'bg-warning',
-  idle: 'bg-primary',
+  idle: 'bg-muted',
   done: 'bg-success',
+  unknown: 'bg-faint',
 }
 
 const tabShellClass =
@@ -30,6 +33,7 @@ const closeClass =
   'grid size-6 flex-none place-items-center self-center rounded-sm border-0 bg-transparent text-muted opacity-0 hover:bg-hover hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 group-[.bg-surface]:opacity-100 [&>svg]:w-3'
 
 const ResourceIcon = ({ resource }: { readonly resource: ResourceRef }) => {
+  if (resource.type === 'agent') return <Bot />
   if (resource.type === 'session') return <MessageSquare />
   if (resource.type === 'issue') return <CircleDot />
   if (resource.type === 'file') return <FileText />
@@ -57,6 +61,7 @@ export const TabBar = ({
   onActivate,
   onClose,
 }: Props) => {
+  const { agentById } = useAgentRuntime()
   const refs = useRef(new Map<string, HTMLButtonElement>())
   const visibleRefs = useRef(new Map<string, HTMLElement>())
   const keys = [
@@ -136,15 +141,20 @@ export const TabBar = ({
           const key = resourceKey(resource)
           const selected = active ? sameResource(active, resource) : false
           const owner =
-            resource.type === 'skill'
+            resource.type === 'agent'
+              ? 'Herdr'
+              : resource.type === 'skill'
               ? resource.scope === 'project'
                 ? resource.projectName
                 : 'user'
               : resource.projectName
+          const agent = resource.type === 'agent' ? agentById(resource.agentId) : undefined
           const session =
             resource.type === 'session'
               ? sessionById(resource.projectName, resource.sessionId)
               : undefined
+          const title = agent?.name ?? resourceTitle(resource)
+          const status = agent?.status ?? session?.status
           return (
             <div
               key={key}
@@ -167,23 +177,23 @@ export const TabBar = ({
                 }}
                 onClick={() => onActivate(resource)}
                 onKeyDown={event => keyboard(event, key)}
-                title={`${resourceTitle(resource)} · ${owner}`}
+                title={`${title} · ${owner}`}
               >
-                {session && (
+                {status && (
                   <i
-                    className={cn('size-1.5 flex-none rounded-full', statusClasses[session.status])}
+                    className={cn('size-1.5 flex-none rounded-full', statusClasses[status])}
                     role="img"
-                    aria-label={session.status}
+                    aria-label={status}
                   />
                 )}
-                {!session && <ResourceIcon resource={resource} />}
-                <span>{resourceTitle(resource)}</span>
+                {!status && <ResourceIcon resource={resource} />}
+                <span>{title}</span>
               </button>
               <button
                 type="button"
                 className={closeClass}
                 onClick={() => onClose(resource)}
-                aria-label={`Close ${resourceTitle(resource)}`}
+                aria-label={`Close ${title}`}
               >
                 <X />
               </button>

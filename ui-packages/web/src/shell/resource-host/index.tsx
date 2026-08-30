@@ -1,4 +1,5 @@
 import { Activity } from 'react'
+import { AgentTab } from '../../features/agent/agent-tab'
 import { FileTab } from '../../features/file/file-tab'
 import { IssueTab } from '../../features/issue/issue-tab'
 import { RuntimeSettings } from '../../features/runtime/runtime-settings'
@@ -19,6 +20,7 @@ const ResourceContent = ({
   readonly resource: ResourceRef
   readonly onOpen: (resource: ResourceRef) => void
 }) => {
+  if (resource.type === 'agent') return <AgentTab resource={resource} />
   if (resource.type === 'session') return <SessionTab resource={resource} onOpen={onOpen} />
   if (resource.type === 'issue') return <IssueTab resource={resource} onOpen={onOpen} />
   if (resource.type === 'file') return <FileTab resource={resource} />

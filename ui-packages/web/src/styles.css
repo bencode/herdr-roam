@@ -17,6 +17,8 @@
   --success: light-dark(oklch(0.55 0.12 150), oklch(0.7 0.13 150));
   --warning: light-dark(oklch(0.67 0.13 75), oklch(0.77 0.13 75));
   --danger: light-dark(oklch(0.57 0.17 28), oklch(0.7 0.16 28));
+  --terminal-bg: oklch(0.145 0.012 250);
+  --terminal-fg: oklch(0.91 0.006 250);
   --radius: 0.375rem;
   --shadow-popover: light-dark(
     0 4px 8px oklch(0.15 0.01 250 / 0.12),
@@ -49,6 +51,11 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
+  --color-terminal-bg: var(--terminal-bg);
+  --color-terminal-fg: var(--terminal-fg);
+  --font-mono:
+    ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, "Cascadia Mono", "Liberation Mono",
+    Consolas, "PingFang SC", "Microsoft YaHei", monospace;
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 3px);
@@ -94,6 +101,14 @@ select:focus-visible {
 button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
+}
+
+.terminal-output {
+  font-variant-ligatures: none;
+}
+
+.prompt-composer-field:focus-visible {
+  outline: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
