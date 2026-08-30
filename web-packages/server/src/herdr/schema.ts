@@ -21,6 +21,8 @@ export const rawAgentSchema = z.object({
   name: z.string().nullable().optional(),
   terminal_title_stripped: z.string().nullable().optional(),
   title: z.string().nullable().optional(),
+  launch_pending: z.boolean().optional(),
+  interactive_ready: z.boolean().optional(),
 })
 
 export type RawAgent = z.infer<typeof rawAgentSchema>
@@ -51,6 +53,25 @@ export const paneReadResultSchema = z.object({
 export const agentPromptedResultSchema = z.object({
   type: z.literal('agent_prompted'),
   agent: z.object({}).passthrough(),
+})
+
+export const agentInfoResultSchema = z.object({
+  type: z.literal('agent_info'),
+  agent: rawAgentSchema,
+})
+
+export const agentStartedResultSchema = z.object({
+  type: z.literal('agent_started'),
+  agent: rawAgentSchema,
+  argv: z.array(z.string()),
+})
+
+export const workspaceCreatedResultSchema = z.object({
+  type: z.literal('workspace_created'),
+  workspace: z.object({ workspace_id: z.string().min(1) }).passthrough(),
+  root_pane: z
+    .object({ pane_id: z.string().min(1), terminal_id: z.string().min(1) })
+    .passthrough(),
 })
 
 export const subscriptionStartedSchema = z.object({

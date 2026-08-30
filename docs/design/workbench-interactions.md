@@ -202,13 +202,14 @@ Sessions and summarizes recent project activity without becoming a dashboard.
 └────┴───────────────────────┴──────────────────────────────────────────────────────────┘
 ```
 
-Starting work creates the required Herdr runtime location, starts the selected
-native agent, submits the Prompt, and opens the new Session. Workspace and Pane
-creation remain hidden implementation details.
+Starting work creates the required Herdr Workspace, starts the selected native
+Agent, submits the Prompt, and opens its live Agent Inspector. Workspace and
+Pane creation remain hidden implementation details. This flow does not create a
+synthetic Session or infer conversation history from terminal output.
 
-If the selected agent CLI is missing or not authenticated, Roam keeps the draft
-Prompt and reports the failed prerequisite instead of starting a broken
-Session.
+If creation fails, Roam keeps the draft Prompt. A Workspace created before the
+failure is preserved with a terminal attach command so the user can diagnose or
+continue natively.
 
 ## Session Conversation
 
@@ -247,7 +248,7 @@ selected agent.
 
 ```text
 ┌──────────────────────────┬────────────────────────────────────────────────────────────┐
-│ ROAM                    ● │ ● codex-api  idle · Codex       Copy attach  Details      │
+│ ROAM                    ● │ ● codex-api  idle · Codex  Focus in Herdr  Copy attach    │
 │                          │   /work/herdr-roam                                      │
 │ Projects [Agents] Skills ├────────────────────────────────────────────────────────────┤
 │ Blocked                1 │                                                            │
@@ -263,11 +264,12 @@ selected agent.
 
 The implemented Inspector reads recent unwrapped ANSI terminal output on a
 fixed dark surface without a separate output heading. It sends bounded Prompts
-through Herdr only while the Agent is `idle` or `done`: Enter sends and
+through Herdr while the Agent is `working`, `idle`, or `done`: Enter sends and
 Shift+Enter inserts a newline. It does not reconstruct a chat transcript.
 Details open on demand instead of permanently reducing the reading surface.
 Agent Tabs use `/agents/:agentId`; they remain independent of the active
-Project.
+Project. `Focus in Herdr` selects the Agent's native Pane without simulating
+terminal control in Roam.
 
 ## Deferred Browser Terminal Attach
 

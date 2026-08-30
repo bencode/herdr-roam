@@ -45,9 +45,12 @@ export const AgentRuntimeProvider = ({ children }: { readonly children: ReactNod
         setTransportError(
           error instanceof AgentClientError
             ? error
-            : new AgentClientError('network_error', 'The Agent snapshot could not be loaded.', {
-                cause: error,
-              }),
+            : new AgentClientError(
+                'network_error',
+                'The Agent snapshot could not be loaded.',
+                null,
+                { cause: error },
+              ),
         )
       }
       if (!active) return

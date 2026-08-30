@@ -1,11 +1,11 @@
 import type { Project } from '@herdr-roam/shared'
-import { ArrowUp, CircleDot, Play, Radio } from 'lucide-react'
-import { useState } from 'react'
+import { CircleDot, Play, Radio } from 'lucide-react'
 import { cn } from '../../../lib/cn'
 import type { SessionStatus } from '../../../mock/data'
 import { sessions } from '../../../mock/data'
 import type { ResourceRef } from '../../../workbench/resource'
 import { useAgentRuntime } from '../../agent/runtime-provider'
+import { AgentLauncher } from './agent-launcher'
 
 const statusClasses: Readonly<Record<SessionStatus, string>> = {
   working: 'bg-primary',
@@ -24,15 +24,6 @@ export const WorkbenchHome = ({
   const projectName = project.name
   const projectSessions = sessions.filter(session => session.projectName === projectName)
   const { snapshot } = useAgentRuntime()
-  const [prompt, setPrompt] = useState('')
-
-  const startMockSession = () => {
-    const session = projectSessions[0]
-    if (!session || prompt.trim() === '') return
-    onOpen({ type: 'session', projectName, sessionId: session.id })
-    setPrompt('')
-  }
-
   return (
     <div className="h-full overflow-auto bg-surface px-[clamp(1.5rem,4vw,2.5rem)] py-10">
       <div className="mx-auto w-full max-w-3xl">
@@ -41,37 +32,9 @@ export const WorkbenchHome = ({
           Start work in {project.name}
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted leading-6">
-          Project resources remain local fixtures in this milestone. Live Agent status comes from
-          the default Herdr server.
+          Start a native Agent in this directory, then continue from its live Inspector.
         </p>
-
-        <form
-          className="mt-8 rounded-lg border border-border bg-background p-3"
-          onSubmit={event => {
-            event.preventDefault()
-            startMockSession()
-          }}
-        >
-          <textarea
-            className="block min-h-20 w-full resize-none border-0 bg-transparent p-1 text-sm outline-0 placeholder:text-faint"
-            value={prompt}
-            onChange={event => setPrompt(event.target.value)}
-            placeholder="Describe the work…"
-            aria-label="Describe the work"
-          />
-          <div className="mt-2 flex items-center gap-3 text-faint text-xs">
-            <span>Codex</span>
-            <span>{project.path}</span>
-            <button
-              type="submit"
-              className="ml-auto grid size-8 place-items-center rounded-md border-0 bg-primary text-white"
-              disabled={prompt.trim() === ''}
-              aria-label="Start mock Session"
-            >
-              <ArrowUp className="size-4" />
-            </button>
-          </div>
-        </form>
+        <AgentLauncher project={project} onOpen={onOpen} />
 
         <div className="mt-10 grid gap-8 min-[64rem]:grid-cols-2">
           <section>

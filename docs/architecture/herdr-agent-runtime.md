@@ -2,8 +2,9 @@
 
 ## Status
 
-Implemented as the first real runtime slice. It supports inspection and bounded
-Prompt submission but does not establish Project or Session ownership.
+Implemented as a live Agent runtime. It supports Project-scoped Agent creation,
+inspection, Prompt submission, and native Herdr focus without inventing Session
+or conversation ownership.
 
 ## Boundary
 
@@ -21,9 +22,11 @@ demand and is never persisted.
 
 ```text
 GET /api/agents
+POST /api/agents
 GET /api/agents/events
 GET /api/agents/:agentId/output
 POST /api/agents/:agentId/prompts
+POST /api/agents/:agentId/focus
 ```
 
 `/api/agents` returns the complete current snapshot, including Herdr connection
@@ -33,11 +36,19 @@ specific pane target, so Roam also refreshes the authoritative list every two
 seconds. The browser replaces its in-memory snapshot rather than reproducing
 Herdr's state machine.
 
+The Agent creation endpoint accepts a registered Project Name, `codex` or
+`claude`, and a non-blank initial Prompt. The server resolves the trusted
+Project path, creates one Herdr Workspace rooted there, starts the Agent in its
+root Pane, waits for the expected named Agent to become interactive, submits the
+Prompt, and returns its stable terminal ID. Agent names are deterministic and
+receive a numeric suffix on conflict. A failure after Workspace creation keeps
+that Workspace and returns its Pane, Terminal, and attach command for recovery.
+
 The Prompt endpoint accepts non-blank text, resolves the Agent's current
-`pane_id`, and calls Herdr `agent.prompt` without waiting for the resulting
-turn. Only `idle` and `done` Agents accept Prompts. A working, blocked, unknown,
-stale, missing, or disconnected Agent returns an explicit error rather than
-queuing input or acquiring terminal control.
+`pane_id`, and calls Herdr `agent.prompt` without waiting for a turn. `working`,
+`idle`, and `done` Agents accept Prompts; `blocked` and `unknown` Agents require
+native interaction or a reliable status. Roam does not interpret `agent.wait`
+as a conversation-turn boundary.
 
 `terminal_id` is the public Agent ID. `pane_id` remains the runtime target used
 for output reads and the copied `herdr agent attach <target>` command. CWD is
@@ -62,5 +73,5 @@ preserves a draft while its Tab is mounted, sends with Enter, inserts a newline
 with Shift+Enter, and clears the draft only after the server accepts the Prompt.
 It does not persist drafts.
 
-Starting agents, interrupting processes, Browser Attach, Project mapping, and
-historical Session discovery are deferred.
+Interrupting processes, ending Workspaces, Browser Attach, and historical
+Session discovery are deferred.

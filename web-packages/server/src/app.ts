@@ -15,7 +15,7 @@ export const createApp = (
   const app = new Hono()
 
   app.get('/healthz', context => context.json({ status: 'ok' as const }))
-  app.route('/api/agents', createAgentRoutes(service))
+  app.route('/api/agents', createAgentRoutes(service, projects))
   app.route('/api/projects', createProjectRoutes(projects))
 
   if (webRoot) {

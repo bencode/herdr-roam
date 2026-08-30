@@ -1,6 +1,10 @@
 export type {
   AgentApiError,
   AgentOutput,
+  AgentLaunchReceipt,
+  AgentLaunchRecovery,
+  AgentLaunchRequest,
+  AgentProvider,
   AgentPromptReceipt,
   AgentPromptRequest,
   AgentRuntimeSnapshot,

@@ -1,8 +1,9 @@
 import type { AgentStatus, AgentSummary } from '@herdr-roam/shared'
-import { Check, Copy, Info, TerminalSquare, X } from 'lucide-react'
+import { Check, Copy, Crosshair, Info, TerminalSquare, X } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
 import { cn } from '../../../lib/cn'
 import type { ResourceRef } from '../../../workbench/resource'
+import { focusAgentInHerdr } from '../client'
 import { useAgentRuntime } from '../runtime-provider'
 import { PromptComposer } from './prompt-composer'
 import { TerminalOutput } from './terminal-output'
@@ -78,6 +79,7 @@ export const AgentTab = ({
   const [copied, setCopied] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
+  const [focusing, setFocusing] = useState(false)
   const detailsId = useId()
 
   useEffect(() => {
@@ -114,6 +116,20 @@ export const AgentTab = ({
     }
   }
 
+  const focusInHerdr = async () => {
+    if (!runtimeAvailable || focusing) return
+    setFocusing(true)
+    setActionError(null)
+    try {
+      await focusAgentInHerdr(resource.agentId)
+    } catch (error) {
+      console.error('Agent focus failed', error)
+      setActionError(error instanceof Error ? error.message : 'The Agent could not be focused.')
+    } finally {
+      setFocusing(false)
+    }
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <header className="flex min-h-14 flex-none items-center gap-3 border-border border-b px-5">
@@ -143,11 +159,20 @@ export const AgentTab = ({
         )}
         <button
           type="button"
-          aria-label="Copy attach command"
           className={cn(
             'flex h-8 flex-none items-center gap-1.5 rounded-md px-2.5 text-xs text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3.5',
             !actionError && 'ml-auto',
           )}
+          disabled={!runtimeAvailable || focusing}
+          onClick={() => void focusInHerdr()}
+        >
+          <Crosshair aria-hidden="true" />
+          {focusing ? 'Focusing…' : 'Focus in Herdr'}
+        </button>
+        <button
+          type="button"
+          aria-label="Copy attach command"
+          className="flex h-8 flex-none items-center gap-1.5 rounded-md px-2.5 text-xs text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3.5"
           onClick={() => void copyAttachCommand()}
         >
           {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}

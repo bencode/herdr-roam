@@ -3,13 +3,16 @@ import { createConnection, type Socket } from 'node:net'
 import { HERDR_MAX_MESSAGE_BYTES, HERDR_REQUEST_TIMEOUT_MS } from '../config.js'
 import {
   agentListResultSchema,
+  agentInfoResultSchema,
   agentPromptedResultSchema,
+  agentStartedResultSchema,
   errorResponseSchema,
   eventEnvelopeSchema,
   paneListResultSchema,
   paneReadResultSchema,
   subscriptionStartedSchema,
   successResponseSchema,
+  workspaceCreatedResultSchema,
   type RawAgent,
   type RawPane,
 } from './schema.js'
@@ -25,6 +28,18 @@ export type HerdrClient = {
   readonly listPanes: () => Promise<readonly RawPane[]>
   readonly readAgent: (target: string) => Promise<string>
   readonly promptAgent: (target: string, text: string) => Promise<void>
+  readonly createWorkspace: (
+    cwd: string,
+    label: string,
+  ) => Promise<{ readonly workspaceId: string; readonly paneId: string; readonly terminalId: string }>
+  readonly startAgent: (
+    name: string,
+    kind: string,
+    paneId: string,
+    timeoutMs: number,
+  ) => Promise<RawAgent>
+  readonly getAgent: (target: string) => Promise<RawAgent>
+  readonly focusAgent: (target: string) => Promise<RawAgent>
   readonly subscribe: (
     onEvent: () => void,
     onDisconnect: (error: Error) => void,
@@ -220,6 +235,40 @@ export const createHerdrClient = (socketPath: string): HerdrClient => ({
         text,
       }),
     )
+  },
+  createWorkspace: async (cwd, label) => {
+    const result = workspaceCreatedResultSchema.parse(
+      await request(socketPath, 'workspace.create', { cwd, label, focus: false, env: {} }),
+    )
+    return {
+      workspaceId: result.workspace.workspace_id,
+      paneId: result.root_pane.pane_id,
+      terminalId: result.root_pane.terminal_id,
+    }
+  },
+  startAgent: async (name, kind, paneId, timeoutMs) => {
+    const result = agentStartedResultSchema.parse(
+      await request(socketPath, 'agent.start', {
+        name,
+        kind,
+        pane_id: paneId,
+        args: [],
+        timeout_ms: timeoutMs,
+      }),
+    )
+    return result.agent
+  },
+  getAgent: async target => {
+    const result = agentInfoResultSchema.parse(
+      await request(socketPath, 'agent.get', { target }),
+    )
+    return result.agent
+  },
+  focusAgent: async target => {
+    const result = agentInfoResultSchema.parse(
+      await request(socketPath, 'agent.focus', { target }),
+    )
+    return result.agent
   },
   subscribe: (onEvent, onDisconnect) => openSubscription(socketPath, onEvent, onDisconnect),
 })

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   output: vi.fn(),
   prompt: vi.fn(),
+  focus: vi.fn(),
   agent: {
     id: 'terminal-1',
     name: 'codex-product',
@@ -18,6 +19,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../client', () => ({
   fetchAgentOutput: mocks.output,
   submitAgentPrompt: mocks.prompt,
+  focusAgentInHerdr: mocks.focus,
 }))
 vi.mock('../runtime-provider', () => ({
   useAgentRuntime: () => ({
@@ -40,6 +42,7 @@ describe('Agent Inspector', () => {
     mocks.agent.status = 'idle'
     mocks.output.mockResolvedValue({ agentId: 'terminal-1', text: 'Recent terminal output' })
     mocks.prompt.mockResolvedValue({ agentId: 'terminal-1' })
+    mocks.focus.mockResolvedValue({ agentId: 'terminal-1' })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
@@ -72,6 +75,13 @@ describe('Agent Inspector', () => {
     expect(screen.queryByRole('heading', { name: 'Agent details' })).not.toBeInTheDocument()
   })
 
+  it('focuses the selected Agent in Herdr', async () => {
+    render(<AgentTab resource={{ type: 'agent', agentId: 'terminal-1' }} />)
+    expect(await screen.findByText('Recent terminal output')).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'Focus in Herdr' }))
+    await waitFor(() => expect(mocks.focus).toHaveBeenCalledWith('terminal-1'))
+  })
+
   it('submits a Prompt and clears the draft after success', async () => {
     render(<AgentTab resource={{ type: 'agent', agentId: 'terminal-1' }} />)
     expect(await screen.findByText('Recent terminal output')).toBeVisible()
@@ -89,7 +99,7 @@ describe('Agent Inspector', () => {
     expect(screen.getByText('Prompt submitted.')).toBeVisible()
   })
 
-  it('keeps a draft when submission fails and disables sending while working', async () => {
+  it('keeps a draft when submission fails and accepts a follow-up while working', async () => {
     mocks.prompt.mockRejectedValueOnce(new Error('Prompt rejected'))
     const { unmount } = render(
       <AgentTab resource={{ type: 'agent', agentId: 'terminal-1' }} />,
@@ -109,7 +119,7 @@ describe('Agent Inspector', () => {
       target: { value: 'Wait for this.' },
     })
     fireEvent.keyDown(screen.getByRole('textbox', { name: 'Send a Prompt' }), { key: 'Enter' })
-    expect(mocks.prompt).toHaveBeenCalledTimes(1)
-    expect(screen.getByText(/Agent is working/)).toBeVisible()
+    await waitFor(() => expect(mocks.prompt).toHaveBeenCalledTimes(2))
+    expect(mocks.prompt).toHaveBeenLastCalledWith('terminal-1', 'Wait for this.')
   })
 })

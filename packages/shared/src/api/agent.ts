@@ -1,6 +1,7 @@
 import type { ObservedProjectDirectory } from './project.js'
 
 export type AgentStatus = 'blocked' | 'working' | 'idle' | 'done' | 'unknown'
+export type AgentProvider = 'codex' | 'claude'
 
 export type AgentSummary = {
   readonly id: string
@@ -45,6 +46,27 @@ export type AgentPromptReceipt = {
   readonly agentId: string
 }
 
+export type AgentLaunchRequest = {
+  readonly projectName: string
+  readonly provider: AgentProvider
+  readonly prompt: string
+}
+
+export type AgentLaunchReceipt = {
+  readonly agent: AgentSummary
+  readonly workspaceId: string
+  readonly paneId: string
+}
+
+export type AgentLaunchRecovery = {
+  readonly phase: 'agent_start' | 'agent_ready' | 'initial_prompt'
+  readonly workspaceId: string
+  readonly paneId: string
+  readonly terminalId: string
+  readonly agentId?: string
+  readonly attachCommand: string
+}
+
 export type AgentApiError = {
   readonly error: {
     readonly code:
@@ -54,7 +76,15 @@ export type AgentApiError = {
       | 'invalid_prompt'
       | 'agent_not_ready'
       | 'agent_prompt_unavailable'
+      | 'agent_focus_unavailable'
+      | 'invalid_agent_launch'
+      | 'project_not_found'
+      | 'project_directory_unavailable'
+      | 'agent_launch_unavailable'
+      | 'agent_start_timeout'
+      | 'agent_kind_mismatch'
       | 'internal_error'
     readonly message: string
+    readonly recovery?: AgentLaunchRecovery
   }
 }

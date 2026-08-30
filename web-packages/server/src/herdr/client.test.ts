@@ -103,4 +103,73 @@ describe('Herdr socket client', () => {
       params: { target: 'w1:p1', text: 'Review the change.' },
     })
   })
+
+  it('creates a non-focusing Workspace rooted in the Project', async () => {
+    let received: ReceivedRequest | null = null
+    const socketPath = await socketServer(request => {
+      received = request
+      return `${JSON.stringify({
+        id: request.id,
+        result: {
+          type: 'workspace_created',
+          workspace: { workspace_id: 'workspace-1' },
+          root_pane: { pane_id: 'w1:p1', terminal_id: 'terminal-1' },
+        },
+      })}\n`
+    })
+
+    await expect(
+      createHerdrClient(socketPath).createWorkspace('/work/herdr-roam', 'codex-herdr-roam'),
+    ).resolves.toEqual({
+      workspaceId: 'workspace-1',
+      paneId: 'w1:p1',
+      terminalId: 'terminal-1',
+    })
+    expect(received).toMatchObject({
+      method: 'workspace.create',
+      params: {
+        cwd: '/work/herdr-roam',
+        label: 'codex-herdr-roam',
+        focus: false,
+        env: {},
+      },
+    })
+  })
+
+  it('starts a named Agent in the created Pane', async () => {
+    let received: ReceivedRequest | null = null
+    const socketPath = await socketServer(request => {
+      received = request
+      return `${JSON.stringify({
+        id: request.id,
+        result: {
+          type: 'agent_started',
+          agent: {
+            terminal_id: 'terminal-1',
+            agent_status: 'unknown',
+            workspace_id: 'workspace-1',
+            tab_id: 'tab-1',
+            pane_id: 'w1:p1',
+            name: 'codex-herdr-roam',
+            launch_pending: true,
+          },
+          argv: ['codex'],
+        },
+      })}\n`
+    })
+
+    await expect(
+      createHerdrClient(socketPath).startAgent('codex-herdr-roam', 'codex', 'w1:p1', 30_000),
+    ).resolves.toMatchObject({ name: 'codex-herdr-roam', launch_pending: true })
+    expect(received).toMatchObject({
+      method: 'agent.start',
+      params: {
+        name: 'codex-herdr-roam',
+        kind: 'codex',
+        pane_id: 'w1:p1',
+        args: [],
+        timeout_ms: 30_000,
+      },
+    })
+  })
 })

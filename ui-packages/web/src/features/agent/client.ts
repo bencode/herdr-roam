@@ -1,5 +1,8 @@
 import type {
   AgentApiError,
+  AgentLaunchReceipt,
+  AgentLaunchRecovery,
+  AgentLaunchRequest,
   AgentOutput,
   AgentPromptReceipt,
   AgentRuntimeSnapshot,
@@ -58,6 +61,21 @@ const agentPromptReceiptSchema = z.object({
   agentId: z.string().min(1),
 })
 
+const agentLaunchRecoverySchema = z.object({
+  phase: z.enum(['agent_start', 'agent_ready', 'initial_prompt']),
+  workspaceId: z.string().min(1),
+  paneId: z.string().min(1),
+  terminalId: z.string().min(1),
+  agentId: z.string().min(1).optional(),
+  attachCommand: z.string().min(1),
+})
+
+const agentLaunchReceiptSchema = z.object({
+  agent: agentSummarySchema,
+  workspaceId: z.string().min(1),
+  paneId: z.string().min(1),
+})
+
 const agentApiErrorSchema = z.object({
   error: z.object({
     code: z.enum([
@@ -67,19 +85,34 @@ const agentApiErrorSchema = z.object({
       'invalid_prompt',
       'agent_not_ready',
       'agent_prompt_unavailable',
+      'agent_focus_unavailable',
+      'invalid_agent_launch',
+      'project_not_found',
+      'project_directory_unavailable',
+      'agent_launch_unavailable',
+      'agent_start_timeout',
+      'agent_kind_mismatch',
       'internal_error',
     ]),
     message: z.string().min(1),
+    recovery: agentLaunchRecoverySchema.optional(),
   }),
 })
 
 export class AgentClientError extends Error {
   readonly code: AgentApiError['error']['code'] | 'invalid_response' | 'network_error'
+  readonly recovery: AgentLaunchRecovery | null
 
-  constructor(code: AgentClientError['code'], message: string, options?: ErrorOptions) {
+  constructor(
+    code: AgentClientError['code'],
+    message: string,
+    recovery: AgentLaunchRecovery | null = null,
+    options?: ErrorOptions,
+  ) {
     super(message, options)
     this.name = 'AgentClientError'
     this.code = code
+    this.recovery = recovery
   }
 }
 
@@ -87,7 +120,7 @@ const responseJson = async (response: Response): Promise<unknown> => {
   try {
     return await response.json()
   } catch (error) {
-    throw new AgentClientError('invalid_response', 'The server returned invalid JSON.', {
+    throw new AgentClientError('invalid_response', 'The server returned invalid JSON.', null, {
       cause: error,
     })
   }
@@ -101,14 +134,18 @@ const parsedResponse = async <Value>(
   if (!response.ok) {
     const apiError = agentApiErrorSchema.safeParse(body)
     if (apiError.success) {
-      throw new AgentClientError(apiError.data.error.code, apiError.data.error.message)
+      throw new AgentClientError(
+        apiError.data.error.code,
+        apiError.data.error.message,
+        apiError.data.error.recovery ?? null,
+      )
     }
     throw new AgentClientError('invalid_response', `The server returned HTTP ${response.status}.`)
   }
   try {
     return parse(body)
   } catch (error) {
-    throw new AgentClientError('invalid_response', 'The server returned an invalid Agent payload.', {
+    throw new AgentClientError('invalid_response', 'The server returned an invalid Agent payload.', null, {
       cause: error,
     })
   }
@@ -119,7 +156,7 @@ export const fetchAgentSnapshot = async (): Promise<AgentRuntimeSnapshot> => {
     return await parsedResponse(await fetch('/api/agents'), agentRuntimeSnapshotSchema.parse)
   } catch (error) {
     if (error instanceof AgentClientError) throw error
-    throw new AgentClientError('network_error', 'Herdr Roam could not be reached.', { cause: error })
+    throw new AgentClientError('network_error', 'Herdr Roam could not be reached.', null, { cause: error })
   }
 }
 
@@ -131,7 +168,7 @@ export const fetchAgentOutput = async (agentId: string): Promise<AgentOutput> =>
     )
   } catch (error) {
     if (error instanceof AgentClientError) throw error
-    throw new AgentClientError('network_error', 'Recent output could not be requested.', {
+    throw new AgentClientError('network_error', 'Recent output could not be requested.', null, {
       cause: error,
     })
   }
@@ -152,7 +189,41 @@ export const submitAgentPrompt = async (
     )
   } catch (error) {
     if (error instanceof AgentClientError) throw error
-    throw new AgentClientError('network_error', 'The Prompt could not be submitted.', {
+    throw new AgentClientError('network_error', 'The Prompt could not be submitted.', null, {
+      cause: error,
+    })
+  }
+}
+
+export const launchProjectAgent = async (
+  request: AgentLaunchRequest,
+): Promise<AgentLaunchReceipt> => {
+  try {
+    return await parsedResponse(
+      await fetch('/api/agents', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(request),
+      }),
+      agentLaunchReceiptSchema.parse,
+    )
+  } catch (error) {
+    if (error instanceof AgentClientError) throw error
+    throw new AgentClientError('network_error', 'The Agent could not be started.', null, {
+      cause: error,
+    })
+  }
+}
+
+export const focusAgentInHerdr = async (agentId: string): Promise<AgentPromptReceipt> => {
+  try {
+    return await parsedResponse(
+      await fetch(`/api/agents/${encodeURIComponent(agentId)}/focus`, { method: 'POST' }),
+      agentPromptReceiptSchema.parse,
+    )
+  } catch (error) {
+    if (error instanceof AgentClientError) throw error
+    throw new AgentClientError('network_error', 'The Agent could not be focused.', null, {
       cause: error,
     })
   }
@@ -168,7 +239,7 @@ export const subscribeAgentSnapshots = (
       onSnapshot(agentRuntimeSnapshotSchema.parse(JSON.parse(event.data)))
     } catch (error) {
       onError(
-        new AgentClientError('invalid_response', 'The Agent event stream returned invalid data.', {
+        new AgentClientError('invalid_response', 'The Agent event stream returned invalid data.', null, {
           cause: error,
         }),
       )

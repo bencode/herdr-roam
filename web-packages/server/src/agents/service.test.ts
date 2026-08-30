@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   listPanes: vi.fn(),
   readAgent: vi.fn(),
   promptAgent: vi.fn(),
+  focusAgent: vi.fn(),
   subscribe: vi.fn(),
   event: null as (() => void) | null,
   disconnect: null as ((error: Error) => void) | null,
@@ -25,6 +26,10 @@ vi.mock('../herdr/client.js', async importOriginal => {
       listPanes: mocks.listPanes,
       readAgent: mocks.readAgent,
       promptAgent: mocks.promptAgent,
+      focusAgent: mocks.focusAgent,
+      createWorkspace: vi.fn(),
+      startAgent: vi.fn(),
+      getAgent: vi.fn(),
       subscribe: mocks.subscribe,
     }),
   }
@@ -61,6 +66,7 @@ describe('Agent service', () => {
       },
     )
     mocks.promptAgent.mockResolvedValue(undefined)
+    mocks.focusAgent.mockResolvedValue(undefined)
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
   })
 
@@ -117,7 +123,9 @@ describe('Agent service', () => {
     service.stop()
   })
 
-  it.each(['idle', 'done'] as const)('submits Prompts when the Agent is %s', async status => {
+  it.each(['idle', 'done', 'working'] as const)(
+    'submits Prompts when the Agent is %s',
+    async status => {
     mocks.listAgents.mockResolvedValueOnce([
       {
         terminal_id: 'terminal-1',
@@ -135,9 +143,20 @@ describe('Agent service', () => {
     await expect(service.prompt('terminal-1', 'Review the change.')).resolves.toBeUndefined()
     expect(mocks.promptAgent).toHaveBeenCalledWith('w1:p1', 'Review the change.')
     service.stop()
-  })
+    },
+  )
 
-  it('rejects Prompts while the Agent is not ready', async () => {
+  it('rejects Prompts while the Agent is blocked', async () => {
+    mocks.listAgents.mockResolvedValueOnce([
+      {
+        terminal_id: 'terminal-1',
+        agent_status: 'blocked',
+        workspace_id: 'w1',
+        tab_id: 't1',
+        pane_id: 'w1:p1',
+        name: 'codex-product',
+      },
+    ])
     const service = createAgentService()
     service.start()
     await vi.waitFor(() => expect(service.snapshot().source.state).toBe('connected'))
@@ -146,6 +165,16 @@ describe('Agent service', () => {
       code: 'agent_not_ready',
     })
     expect(mocks.promptAgent).not.toHaveBeenCalled()
+    service.stop()
+  })
+
+  it('focuses the live Agent through its Pane target', async () => {
+    const service = createAgentService()
+    service.start()
+    await vi.waitFor(() => expect(service.snapshot().source.state).toBe('connected'))
+
+    await expect(service.focus('terminal-1')).resolves.toBeUndefined()
+    expect(mocks.focusAgent).toHaveBeenCalledWith('w1:p1')
     service.stop()
   })
 })

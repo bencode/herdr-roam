@@ -9,7 +9,7 @@ const readinessMessage = (
   unavailableMessage: string,
 ): string => {
   if (!runtimeAvailable) return unavailableMessage
-  if (status === 'working') return 'Agent is working. You can draft a follow-up while you wait.'
+  if (status === 'working') return 'working · ↵ send follow-up'
   if (status === 'blocked') return 'Agent is blocked. Use terminal Attach to respond.'
   if (status === 'unknown') return 'Agent readiness is unknown. Wait for a reliable status.'
   return `${status} · ↵ send`
@@ -32,7 +32,7 @@ export const PromptComposer = ({
   const fieldRef = useRef<HTMLTextAreaElement>(null)
   const fieldId = useId()
   const statusId = useId()
-  const ready = runtimeAvailable && (status === 'idle' || status === 'done')
+  const ready = runtimeAvailable && (status === 'idle' || status === 'done' || status === 'working')
   const canSubmit = ready && draft.trim().length > 0 && !submitting
 
   useLayoutEffect(() => {

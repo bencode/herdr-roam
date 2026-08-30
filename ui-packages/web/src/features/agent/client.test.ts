@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchAgentOutput, fetchAgentSnapshot, submitAgentPrompt } from './client'
+import {
+  focusAgentInHerdr,
+  fetchAgentOutput,
+  fetchAgentSnapshot,
+  launchProjectAgent,
+  submitAgentPrompt,
+} from './client'
 
 afterEach(() => vi.restoreAllMocks())
 
@@ -59,5 +65,36 @@ describe('Agent API client', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ text: 'Review the change.' }),
     })
+  })
+
+  it('launches and focuses Agents through explicit mutations', async () => {
+    const receipt = {
+      agent: {
+        id: 'terminal-1',
+        name: 'codex-herdr-roam',
+        provider: 'codex',
+        status: 'idle',
+        cwd: '/work/herdr-roam',
+        attachTarget: 'w1:p1',
+      },
+      workspaceId: 'workspace-1',
+      paneId: 'w1:p1',
+    }
+    const fetch = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify(receipt), { status: 201 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ agentId: 'terminal-1' }), { status: 200 }),
+      )
+
+    await expect(
+      launchProjectAgent({
+        projectName: 'herdr-roam',
+        provider: 'codex',
+        prompt: 'Review the change.',
+      }),
+    ).resolves.toEqual(receipt)
+    await expect(focusAgentInHerdr('terminal-1')).resolves.toEqual({ agentId: 'terminal-1' })
+    expect(fetch).toHaveBeenLastCalledWith('/api/agents/terminal-1/focus', { method: 'POST' })
   })
 })
