@@ -1,8 +1,9 @@
+import type { Project } from '@herdr-roam/shared'
 import { ArrowUp, CircleDot, Play, Radio } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '../../../lib/cn'
 import type { SessionStatus } from '../../../mock/data'
-import { projectByName, sessions } from '../../../mock/data'
+import { sessions } from '../../../mock/data'
 import type { ResourceRef } from '../../../workbench/resource'
 import { useAgentRuntime } from '../../agent/runtime-provider'
 
@@ -14,13 +15,13 @@ const statusClasses: Readonly<Record<SessionStatus, string>> = {
 }
 
 export const WorkbenchHome = ({
-  projectName,
+  project,
   onOpen,
 }: {
-  readonly projectName: string
+  readonly project: Project
   readonly onOpen: (resource: ResourceRef) => void
 }) => {
-  const project = projectByName(projectName)
+  const projectName = project.name
   const projectSessions = sessions.filter(session => session.projectName === projectName)
   const { snapshot } = useAgentRuntime()
   const [prompt, setPrompt] = useState('')
@@ -35,9 +36,9 @@ export const WorkbenchHome = ({
   return (
     <div className="h-full overflow-auto bg-surface px-[clamp(1.5rem,4vw,2.5rem)] py-10">
       <div className="mx-auto w-full max-w-3xl">
-        <p className="mt-0 mb-2 font-mono text-primary text-xs">{project?.path ?? projectName}</p>
+        <p className="mt-0 mb-2 font-mono text-primary text-xs">{project.path}</p>
         <h1 className="m-0 text-balance font-[650] text-2xl tracking-[-0.025em]">
-          Start work in {project?.name ?? projectName}
+          Start work in {project.name}
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted leading-6">
           Project resources remain local fixtures in this milestone. Live Agent status comes from
@@ -60,7 +61,7 @@ export const WorkbenchHome = ({
           />
           <div className="mt-2 flex items-center gap-3 text-faint text-xs">
             <span>Codex</span>
-            <span>{project?.path}</span>
+            <span>{project.path}</span>
             <button
               type="submit"
               className="ml-auto grid size-8 place-items-center rounded-md border-0 bg-primary text-white"

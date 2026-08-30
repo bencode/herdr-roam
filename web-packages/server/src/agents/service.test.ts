@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   discover: vi.fn(),
   listAgents: vi.fn(),
+  listPanes: vi.fn(),
   readAgent: vi.fn(),
   promptAgent: vi.fn(),
   subscribe: vi.fn(),
@@ -21,6 +22,7 @@ vi.mock('../herdr/client.js', async importOriginal => {
     ...original,
     createHerdrClient: () => ({
       listAgents: mocks.listAgents,
+      listPanes: mocks.listPanes,
       readAgent: mocks.readAgent,
       promptAgent: mocks.promptAgent,
       subscribe: mocks.subscribe,
@@ -47,6 +49,9 @@ describe('Agent service', () => {
         pane_id: 'w1:p1',
         name: 'codex-product',
       },
+    ])
+    mocks.listPanes.mockResolvedValue([
+      { pane_id: 'w1:p1', cwd: '/work/herdr-roam' },
     ])
     mocks.subscribe.mockImplementation(
       (onEvent: () => void, onDisconnect: (error: Error) => void) => {

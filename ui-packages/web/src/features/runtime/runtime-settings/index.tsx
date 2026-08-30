@@ -1,7 +1,19 @@
+import type { Project, ProjectCreateRequest } from '@herdr-roam/shared'
 import { Server } from 'lucide-react'
 import { useAgentRuntime } from '../../agent/runtime-provider'
+import { ProjectRegistry } from './project-registry'
 
-export const RuntimeSettings = () => {
+export const RuntimeSettings = ({
+  projects,
+  configPath,
+  projectError,
+  onAddProject,
+}: {
+  readonly projects: readonly Project[]
+  readonly configPath: string | null
+  readonly projectError: string | null
+  readonly onAddProject: (request: ProjectCreateRequest) => Promise<void>
+}) => {
   const { snapshot, transportError } = useAgentRuntime()
   const rows = [
     ['Herdr', snapshot.source.state],
@@ -21,7 +33,7 @@ export const RuntimeSettings = () => {
     <header className="h-10 flex-none border-border border-b px-4 py-2.75 text-[0.8125rem]">
       Settings / Runtime
     </header>
-    <main className="mx-auto w-[min(42rem,calc(100%-3rem))] py-10">
+    <main className="mx-auto min-h-0 w-[min(42rem,calc(100%-3rem))] flex-1 overflow-auto py-10">
       <h1 className="m-0 flex items-center gap-2.5 text-2xl">
         <Server className="w-4.5 text-primary" aria-hidden="true" /> Runtime
       </h1>
@@ -48,6 +60,13 @@ export const RuntimeSettings = () => {
         </p>
       )}
       {transportError && <small className="text-danger">{transportError.message}</small>}
+      <ProjectRegistry
+        projects={projects}
+        observedDirectories={snapshot.observedDirectories}
+        configPath={configPath}
+        loadError={projectError}
+        onAdd={onAddProject}
+      />
     </main>
     </div>
   )

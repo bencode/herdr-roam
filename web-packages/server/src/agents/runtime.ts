@@ -6,7 +6,7 @@ import {
   type HerdrDiscovery,
 } from '../herdr/discovery.js'
 import { createHerdrClient, type HerdrClient } from '../herdr/client.js'
-import { mapAgents, sameAgentSnapshot } from './mapper.js'
+import { mapAgents, mapObservedDirectories, sameAgentSnapshot } from './mapper.js'
 
 type Listener = (snapshot: AgentRuntimeSnapshot) => void
 
@@ -40,6 +40,7 @@ const initialSnapshot = (): AgentRuntimeSnapshot => ({
   },
   stale: false,
   items: [],
+  observedDirectories: [],
 })
 
 const discoveryFailure = (error: unknown, hasItems: boolean): AgentRuntimeSnapshot['source'] => {
@@ -87,12 +88,14 @@ export const createAgentRuntime = (): AgentRuntime => {
     }
     state.refreshing = true
     try {
-      const items = mapAgents(await client.listAgents())
+      const [agents, panes] = await Promise.all([client.listAgents(), client.listPanes()])
+      const items = mapAgents(agents)
       if (connectionId !== state.connectionId) return
       setSnapshot({
         source: { state: 'connected', version: discovery.version, protocol: discovery.protocol },
         stale: false,
         items,
+        observedDirectories: mapObservedDirectories(agents, panes),
       })
     } finally {
       state.refreshing = false
@@ -123,10 +126,13 @@ export const createAgentRuntime = (): AgentRuntime => {
     state.client = null
     state.discovery = null
     const items = state.current.items
+    const observedDirectories = state.current.observedDirectories
+    const hasSnapshot = items.length > 0 || observedDirectories.length > 0
     setSnapshot({
-      source: discoveryFailure(error, items.length > 0),
-      stale: items.length > 0,
+      source: discoveryFailure(error, hasSnapshot),
+      stale: hasSnapshot,
       items,
+      observedDirectories,
     })
     const index = Math.min(state.reconnectAttempt, RECONNECT_DELAYS_MS.length - 1)
     const delay = RECONNECT_DELAYS_MS[index] ?? RECONNECT_DELAYS_MS.at(-1) ?? 5_000

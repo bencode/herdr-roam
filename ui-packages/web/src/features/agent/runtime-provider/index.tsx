@@ -20,6 +20,7 @@ const initialSnapshot: AgentRuntimeSnapshot = {
   },
   stale: false,
   items: [],
+  observedDirectories: [],
 }
 
 const AgentRuntimeContext = createContext<AgentRuntimeValue | null>(null)

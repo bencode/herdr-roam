@@ -68,6 +68,25 @@ describe('Herdr socket client', () => {
     await expect(createHerdrClient(socketPath).listAgents()).rejects.toBeInstanceOf(HerdrApiError)
   })
 
+  it('lists Pane working directories for Project discovery', async () => {
+    let received: ReceivedRequest | null = null
+    const socketPath = await socketServer(request => {
+      received = request
+      return `${JSON.stringify({
+        id: request.id,
+        result: {
+          type: 'pane_list',
+          panes: [{ pane_id: 'w1:p1', cwd: '/work/herdr-roam' }],
+        },
+      })}\n`
+    })
+
+    await expect(createHerdrClient(socketPath).listPanes()).resolves.toEqual([
+      { pane_id: 'w1:p1', cwd: '/work/herdr-roam' },
+    ])
+    expect(received).toMatchObject({ method: 'pane.list', params: {} })
+  })
+
   it('submits an agent prompt to the requested target', async () => {
     let received: ReceivedRequest | null = null
     const socketPath = await socketServer(request => {

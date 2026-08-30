@@ -1,3 +1,5 @@
+import type { ObservedProjectDirectory } from './project.js'
+
 export type AgentStatus = 'blocked' | 'working' | 'idle' | 'done' | 'unknown'
 
 export type AgentSummary = {
@@ -27,6 +29,7 @@ export type AgentRuntimeSnapshot = {
       }
   readonly stale: boolean
   readonly items: readonly AgentSummary[]
+  readonly observedDirectories: readonly ObservedProjectDirectory[]
 }
 
 export type AgentOutput = {

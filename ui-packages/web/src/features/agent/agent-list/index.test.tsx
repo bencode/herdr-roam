@@ -5,6 +5,7 @@ const runtime = vi.hoisted(() => ({
   snapshot: {
     source: { state: 'connected' as const, version: '0.8.2', protocol: 20 },
     stale: false,
+    observedDirectories: [],
     items: [
       {
         id: 'idle-1',

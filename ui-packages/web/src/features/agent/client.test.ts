@@ -11,6 +11,7 @@ describe('Agent API client', () => {
           JSON.stringify({
             source: { state: 'connected', version: '0.8.2', protocol: 20 },
             stale: false,
+            observedDirectories: [],
             items: [],
           }),
           { status: 200 },

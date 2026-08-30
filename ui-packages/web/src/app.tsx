@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AgentRuntimeProvider } from './features/agent/runtime-provider'
-import { projectByName, projects } from './mock/data'
+import { useProjectRegistry } from './features/project/use-project-registry'
 import { AppShell } from './shell/app-shell'
 import { type ProjectSection, type ResourceRef, sameResource } from './workbench/resource'
 import {
@@ -19,6 +19,8 @@ import { useWorkbenchStore } from './workbench/store'
 const RoutedApp = () => {
   const location = useLocation()
   const navigate = useNavigate()
+  const projectRegistry = useProjectRegistry()
+  const projects = projectRegistry.snapshot?.projects ?? []
   const tabs = useWorkbenchStore(state => state.tabs)
   const activeProjectName = useWorkbenchStore(state => state.activeProjectName)
   const lastActivity = useWorkbenchStore(state => state.lastActivity)
@@ -39,12 +41,22 @@ const RoutedApp = () => {
   )
   const projectSection =
     routeProjectSection(target) ?? routeProjectSection(rememberedProjectTarget) ?? 'sessions'
-  const fallbackProjectName = projectByName(activeProjectName)
+  const fallbackProjectName = projects.some(project => project.name === activeProjectName)
     ? activeProjectName
-    : (projects[0]?.name ?? 'herdr-roam')
+    : (projects[0]?.name ?? '')
 
   useEffect(() => {
-    if (fallbackProjectName !== activeProjectName) setActiveProject(fallbackProjectName)
+    if (projectRegistry.status === 'loading') return
+    if (fallbackProjectName && fallbackProjectName !== activeProjectName) {
+      setActiveProject(fallbackProjectName)
+    }
+    if (
+      (projectRegistry.status === 'error' || projects.length === 0) &&
+      target.kind !== 'utility'
+    ) {
+      navigate(runtimePath(), { replace: true })
+      return
+    }
     if (target.kind === 'root') {
       navigate(activityPaths[lastActivity], { replace: true })
       return
@@ -64,7 +76,7 @@ const RoutedApp = () => {
       return
     }
     if (target.kind === 'workbench' || target.kind === 'project-section') {
-      if (!projectByName(target.projectName)) {
+      if (!projects.some(project => project.name === target.projectName)) {
         console.error('unknown project route', target.projectName)
         navigate(projectPath(fallbackProjectName), { replace: true })
         return
@@ -82,7 +94,7 @@ const RoutedApp = () => {
       return
     }
     const owner = 'projectName' in target.resource ? target.resource.projectName : null
-    if (owner && !projectByName(owner)) {
+    if (owner && !projects.some(project => project.name === owner)) {
       console.error('unknown resource project', owner)
       navigate(projectPath(fallbackProjectName), { replace: true })
       return
@@ -102,6 +114,8 @@ const RoutedApp = () => {
     setActiveProject,
     showWorkbench,
     target,
+    projectRegistry.status,
+    projects,
   ])
 
   const openResource = useCallback(
@@ -149,7 +163,12 @@ const RoutedApp = () => {
 
   return (
     <AppShell
+      projects={projects}
       activeProjectName={activeProjectName}
+      projectConfigPath={
+        projectRegistry.snapshot?.configPath ?? projectRegistry.error?.configPath ?? null
+      }
+      projectError={projectRegistry.error?.message ?? null}
       activeDimension={activeDimension}
       activityPaths={activityPaths}
       projectSection={projectSection}
@@ -157,6 +176,7 @@ const RoutedApp = () => {
       active={active}
       activeUtility={activeUtility}
       onProject={selectProject}
+      onAddProject={projectRegistry.addProject}
       onProjectSection={selectProjectSection}
       onWorkbench={openWorkbench}
       onOpen={openResource}

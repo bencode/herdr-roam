@@ -5,10 +5,27 @@ import { vi } from 'vitest'
 import { App } from './app'
 import { defaultWorkbenchSnapshot, useWorkbenchStore } from './workbench/store'
 
+vi.mock('./features/project/use-project-registry', () => ({
+  useProjectRegistry: () => ({
+    status: 'ready' as const,
+    snapshot: {
+      configPath: '/tmp/herdr-roam/config.json',
+      projects: [
+        { name: 'herdr-roam', path: '/work/herdr-roam' },
+        { name: 'cc-mission-control', path: '/work/cc-mission-control' },
+        { name: 'archive-herdr-roam', path: '/archive/herdr-roam' },
+      ],
+    },
+    error: null,
+    addProject: vi.fn(),
+  }),
+}))
+
 vi.mock('./features/agent/client', () => ({
   fetchAgentSnapshot: vi.fn().mockResolvedValue({
     source: { state: 'connected', version: '0.8.2', protocol: 20 },
     stale: false,
+    observedDirectories: [],
     items: [
       {
         id: 'terminal-codex',
@@ -28,6 +45,7 @@ vi.mock('./features/agent/runtime-provider', () => {
   const snapshot = {
     source: { state: 'connected' as const, version: '0.8.2', protocol: 20 },
     stale: false,
+    observedDirectories: [],
     items: [
       {
         id: 'terminal-codex',

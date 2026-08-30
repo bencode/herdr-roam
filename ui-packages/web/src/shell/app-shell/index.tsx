@@ -1,9 +1,9 @@
+import type { Project, ProjectCreateRequest } from '@herdr-roam/shared'
 import { PanelLeft } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Group, Panel, Separator, useDefaultLayout, usePanelRef } from 'react-resizable-panels'
 import { useAgentRuntime } from '../../features/agent/runtime-provider'
 import { cn } from '../../lib/cn'
-import { projects } from '../../mock/data'
 import type {
   GlobalDimension,
   ProjectSection,
@@ -39,7 +39,10 @@ const writeSidebarWidth = (width: number): void => {
 }
 
 type Props = {
+  readonly projects: readonly Project[]
   readonly activeProjectName: string
+  readonly projectConfigPath: string | null
+  readonly projectError: string | null
   readonly activeDimension: GlobalDimension
   readonly activityPaths: Readonly<Record<GlobalDimension, string>>
   readonly projectSection: ProjectSection
@@ -47,6 +50,7 @@ type Props = {
   readonly active: ResourceRef | null
   readonly activeUtility: UtilityRef | null
   readonly onProject: (projectName: string) => void
+  readonly onAddProject: (request: ProjectCreateRequest) => Promise<void>
   readonly onProjectSection: (section: ProjectSection) => void
   readonly onWorkbench: () => void
   readonly onOpen: (resource: ResourceRef) => void
@@ -56,7 +60,10 @@ type Props = {
 }
 
 export const AppShell = ({
+  projects,
   activeProjectName,
+  projectConfigPath,
+  projectError,
   activeDimension,
   activityPaths,
   projectSection,
@@ -64,6 +71,7 @@ export const AppShell = ({
   active,
   activeUtility,
   onProject,
+  onAddProject,
   onProjectSection,
   onWorkbench,
   onOpen,
@@ -223,11 +231,15 @@ export const AppShell = ({
             onClose={onClose}
           />
           <ResourceHost
-            projectName={activeProjectName}
+            project={projects.find(project => project.name === activeProjectName) ?? null}
+            projects={projects}
+            projectConfigPath={projectConfigPath}
+            projectError={projectError}
             tabs={tabs}
             active={active}
             activeUtility={activeUtility}
             onOpen={onOpen}
+            onAddProject={onAddProject}
           />
         </Panel>
       </Group>

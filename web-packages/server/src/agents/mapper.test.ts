@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RawAgent } from '../herdr/schema.js'
-import { mapAgent } from './mapper.js'
+import { mapAgent, mapObservedDirectories } from './mapper.js'
 
 const raw = (values: Partial<RawAgent> = {}): RawAgent => ({
   terminal_id: 'terminal-1',
@@ -36,5 +36,25 @@ describe('Agent mapper', () => {
     expect(
       mapAgent(raw({ agent_status: 'unknown', terminal_title_stripped: 'Fallback title' })),
     ).toMatchObject({ name: 'Fallback title', status: 'unknown' })
+  })
+
+  it('aggregates Agent and Pane working directories without inventing Projects', () => {
+    expect(
+      mapObservedDirectories(
+        [raw({ cwd: '/work/herdr-roam' })],
+        [
+          { pane_id: 'w1:p1', cwd: '/work/herdr-roam' },
+          { pane_id: 'w1:p2', foreground_cwd: '/work/herdr' },
+        ],
+      ),
+    ).toEqual([
+      {
+        path: '/work/herdr-roam',
+        suggestedName: 'herdr-roam',
+        agentCount: 1,
+        paneCount: 1,
+      },
+      { path: '/work/herdr', suggestedName: 'herdr', agentCount: 0, paneCount: 1 },
+    ])
   })
 })

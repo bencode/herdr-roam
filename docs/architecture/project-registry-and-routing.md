@@ -7,8 +7,11 @@ The name is both the browser/server lookup key and the value used in URLs. A
 Project Name uses lowercase letters, numbers, `.`, `_`, and `-`. It is not a
 display label derived on every startup and it does not receive a random suffix.
 
-The future Roam server owns a versioned `config.json` in Roam's local
-application configuration directory:
+The Roam server owns a versioned `config.json` in Roam's local application
+configuration directory. The default path is
+`~/Library/Application Support/herdr-roam/config.json` on macOS,
+`${XDG_CONFIG_HOME:-~/.config}/herdr-roam/config.json` on Linux, and
+`%APPDATA%\herdr-roam\config.json` on Windows:
 
 ```json
 {
@@ -26,8 +29,9 @@ application configuration directory:
 }
 ```
 
-The array order is the default Project Selector order. Names are unique after
-case normalization, and canonical absolute paths are unique. The server may
+The array order is the default Project Selector order. Names are 1–64
+characters, start with a lowercase letter or digit, use only lowercase letters,
+digits, `.`, `_`, and `-`, and are unique. Canonical absolute paths are unique. The server may
 build a transient lookup map after validation, but it preserves the array in
 the file. Moving a directory updates its path without changing its name.
 Renaming a registered project is outside the first version.
@@ -36,9 +40,16 @@ The browser sends a Project Name for project operations. It never sends an
 arbitrary absolute path to select a filesystem root. Runtime availability, Git
 state, and other derived values are not stored in this minimal registry.
 
-This milestone defines the contract and matching browser fixtures only. The
-server-side configuration reader, writer, and Project API will be implemented
-with the server foundation.
+The server validates and canonicalizes a directory before registration, then
+writes the file through a temporary sibling and atomic rename. A missing file
+means an empty registry; an invalid file is reported without being replaced or
+silently treated as empty. Runtime-derived directory candidates are transient
+and are persisted only after explicit user confirmation.
+
+The Runtime screen combines the persisted registry with live directory
+candidates aggregated from Herdr Agents and Panes. The Project Selector consumes
+only registered Projects. When the registry is empty, Project routes redirect to
+Runtime so the first Project can be added explicitly.
 
 ## Canonical routes
 

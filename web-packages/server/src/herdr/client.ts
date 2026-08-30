@@ -6,10 +6,12 @@ import {
   agentPromptedResultSchema,
   errorResponseSchema,
   eventEnvelopeSchema,
+  paneListResultSchema,
   paneReadResultSchema,
   subscriptionStartedSchema,
   successResponseSchema,
   type RawAgent,
+  type RawPane,
 } from './schema.js'
 
 type Request = {
@@ -20,6 +22,7 @@ type Request = {
 
 export type HerdrClient = {
   readonly listAgents: () => Promise<readonly RawAgent[]>
+  readonly listPanes: () => Promise<readonly RawPane[]>
   readonly readAgent: (target: string) => Promise<string>
   readonly promptAgent: (target: string, text: string) => Promise<void>
   readonly subscribe: (
@@ -111,6 +114,7 @@ const request = (
 const subscriptions = [
   'pane.created',
   'pane.closed',
+  'pane.updated',
   'pane.moved',
   'pane.exited',
   'pane.agent_detected',
@@ -193,6 +197,10 @@ export const createHerdrClient = (socketPath: string): HerdrClient => ({
   listAgents: async () => {
     const result = agentListResultSchema.parse(await request(socketPath, 'agent.list', {}))
     return result.agents
+  },
+  listPanes: async () => {
+    const result = paneListResultSchema.parse(await request(socketPath, 'pane.list', {}))
+    return result.panes
   },
   readAgent: async target => {
     const result = paneReadResultSchema.parse(

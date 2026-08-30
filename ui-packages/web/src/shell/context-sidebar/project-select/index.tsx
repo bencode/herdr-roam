@@ -1,6 +1,6 @@
+import type { Project } from '@herdr-roam/shared'
 import * as SelectPrimitive from '@radix-ui/react-select'
 import { Check, ChevronDown } from 'lucide-react'
-import type { Project } from '../../../mock/data'
 
 type Props = {
   readonly projects: readonly Project[]
@@ -9,6 +9,17 @@ type Props = {
 }
 
 export const ProjectSelect = ({ projects, value, onValueChange }: Props) => {
+  if (projects.length === 0) {
+    return (
+      <button
+        type="button"
+        className="h-7.5 min-w-0 flex-1 truncate rounded-sm border-0 bg-transparent px-2 text-left text-muted"
+        disabled
+      >
+        No projects
+      </button>
+    )
+  }
   return (
     <div className="min-w-0 flex-1">
       <SelectPrimitive.Root value={value} onValueChange={onValueChange}>

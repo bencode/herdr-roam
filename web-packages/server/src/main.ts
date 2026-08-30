@@ -4,14 +4,16 @@ import { fileURLToPath } from 'node:url'
 import { serve } from '@hono/node-server'
 import { createAgentService } from './agents/service.js'
 import { createApp } from './app.js'
-import { serverConfig } from './config.js'
+import { projectConfigPath, serverConfig } from './config.js'
+import { createProjectRegistry } from './projects/registry.js'
 
 const moduleDirectory = dirname(fileURLToPath(import.meta.url))
 const webRoot = resolve(moduleDirectory, '../../../ui-packages/web/dist')
 const agentService = createAgentService()
+const projectRegistry = createProjectRegistry(projectConfigPath)
 agentService.start()
 
-const app = createApp(agentService, existsSync(webRoot) ? webRoot : undefined)
+const app = createApp(agentService, projectRegistry, existsSync(webRoot) ? webRoot : undefined)
 const server = serve({
   fetch: app.fetch,
   hostname: serverConfig.host,
