@@ -1,10 +1,12 @@
 import type { AgentStatus, AgentSummary } from '@herdr-roam/shared'
-import { Check, Copy, Crosshair, Info, TerminalSquare, X } from 'lucide-react'
+import { Check, Copy, Crosshair, Info, TerminalSquare } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
 import { cn } from '../../../lib/cn'
 import type { ResourceRef } from '../../../workbench/resource'
 import { focusAgentInHerdr } from '../client'
+import { agentDirectoryLabel, agentProviderLabel } from '../presentation'
 import { useAgentRuntime } from '../runtime-provider'
+import { AgentDetails } from './details'
 import { PromptComposer } from './prompt-composer'
 import { TerminalOutput } from './terminal-output'
 
@@ -15,48 +17,6 @@ const statusClasses: Readonly<Record<AgentStatus, string>> = {
   done: 'bg-success',
   unknown: 'bg-faint',
 }
-
-const Details = ({
-  agent,
-  id,
-  onClose,
-}: {
-  readonly agent: AgentSummary
-  readonly id: string
-  readonly onClose: () => void
-}) => (
-  <aside className="w-64 flex-none border-border border-l bg-sidebar/40" id={id}>
-    <header className="flex h-11 items-center border-border border-b px-4">
-      <h2 className="m-0 text-sm font-medium">Agent details</h2>
-      <button
-        type="button"
-        aria-label="Close Agent details"
-        className="ml-auto grid size-7 place-items-center rounded-md text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3.5"
-        onClick={onClose}
-      >
-        <X aria-hidden="true" />
-      </button>
-    </header>
-    <dl className="m-0 grid gap-5 px-4 py-5 text-xs [&_dd]:m-0 [&_dd]:mt-1 [&_dd]:break-words [&_dt]:text-faint">
-      <div>
-        <dt>Status</dt>
-        <dd className="capitalize">{agent.status}</dd>
-      </div>
-      <div>
-        <dt>Provider</dt>
-        <dd>{agent.provider ?? 'Unknown'}</dd>
-      </div>
-      <div>
-        <dt>Directory</dt>
-        <dd className="font-mono text-[0.6875rem] leading-4">{agent.cwd ?? 'Unavailable'}</dd>
-      </div>
-      <div>
-        <dt>Runtime target</dt>
-        <dd className="font-mono text-[0.6875rem]">{agent.attachTarget}</dd>
-      </div>
-    </dl>
-  </aside>
-)
 
 const unavailableMessage = (
   current: AgentSummary | undefined,
@@ -76,7 +36,7 @@ export const AgentTab = ({
   const { snapshot, agentById } = useAgentRuntime()
   const current = agentById(resource.agentId)
   const [lastAgent, setLastAgent] = useState<AgentSummary | null>(current ?? null)
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState<'attach' | 'working-directory' | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [focusing, setFocusing] = useState(false)
@@ -103,16 +63,25 @@ export const AgentTab = ({
     Boolean(current) && snapshot.source.state === 'connected' && !snapshot.stale
   const runtimeMessage = unavailableMessage(current, snapshot.source, snapshot.stale)
   const attachCommand = `herdr agent attach ${agent.attachTarget}`
+  const providerLabel = agentProviderLabel(agent.provider)
+  const directoryLabel = agentDirectoryLabel(agent.cwd)
 
-  const copyAttachCommand = async () => {
+  const copyText = async (
+    text: string,
+    target: 'attach' | 'working-directory',
+    errorMessage: string,
+  ) => {
     try {
-      await navigator.clipboard.writeText(attachCommand)
-      setCopied(true)
+      await navigator.clipboard.writeText(text)
+      setCopied(target)
       setActionError(null)
-      setTimeout(() => setCopied(false), 1_500)
+      setTimeout(
+        () => setCopied(currentTarget => (currentTarget === target ? null : currentTarget)),
+        1_500,
+      )
     } catch (error) {
-      console.error('Attach command copy failed', error)
-      setActionError('The attach command could not be copied.')
+      console.error(`${target} copy failed`, error)
+      setActionError(errorMessage)
     }
   }
 
@@ -142,14 +111,17 @@ export const AgentTab = ({
           <div className="flex items-center gap-2">
             <h1 className="m-0 truncate text-sm font-semibold">{agent.name}</h1>
             <span className="text-xs capitalize text-muted">{agent.status}</span>
-            {agent.provider && (
+            {providerLabel && (
               <span className="rounded-full bg-raised px-2 py-0.5 text-[0.625rem] text-muted">
-                {agent.provider}
+                {providerLabel}
               </span>
             )}
           </div>
-          <p className="mt-1 mb-0 truncate font-mono text-[0.6875rem] text-faint">
-            {agent.cwd ?? 'Directory unavailable'}
+          <p
+            className="mt-1 mb-0 truncate text-[0.6875rem] text-faint"
+            title={agent.cwd ?? undefined}
+          >
+            {directoryLabel ?? 'Working directory unavailable'}
           </p>
         </div>
         {actionError && (
@@ -173,10 +145,12 @@ export const AgentTab = ({
           type="button"
           aria-label="Copy attach command"
           className="flex h-8 flex-none items-center gap-1.5 rounded-md px-2.5 text-xs text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3.5"
-          onClick={() => void copyAttachCommand()}
+          onClick={() =>
+            void copyText(attachCommand, 'attach', 'The attach command could not be copied.')
+          }
         >
-          {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
-          {copied ? 'Copied' : 'Copy attach'}
+          {copied === 'attach' ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+          {copied === 'attach' ? 'Copied' : 'Copy attach'}
         </button>
         <button
           type="button"
@@ -208,7 +182,20 @@ export const AgentTab = ({
           />
         </div>
         {detailsOpen && (
-          <Details agent={agent} id={detailsId} onClose={() => setDetailsOpen(false)} />
+          <AgentDetails
+            agent={agent}
+            id={detailsId}
+            copiedDirectory={copied === 'working-directory'}
+            onCopyDirectory={() => {
+              if (!agent.cwd) return
+              void copyText(
+                agent.cwd,
+                'working-directory',
+                'The working directory could not be copied.',
+              )
+            }}
+            onClose={() => setDetailsOpen(false)}
+          />
         )}
       </div>
     </div>

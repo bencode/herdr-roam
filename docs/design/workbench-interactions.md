@@ -36,13 +36,13 @@ Herdr Roam
 │       └── Files
 ├── Agents                 cross-project live runtime
 ├── Skills                 user skills and active-project skills
-└── Settings               application preferences
-    └── Runtime            Herdr ownership and diagnostics
+└── Settings               lightweight application preferences
+    └── Theme              system, light, or dark
 ```
 
 Projects, Agents, and Skills are global dimensions. Sessions, Issues, Loops,
-and Files live inside the active project. Settings is a utility destination
-rather than another resource dimension.
+and Files live inside the active project. Settings is a popover menu rather
+than another resource dimension or route-backed destination.
 
 These resources remain orthogonal. A Loop can create a Session, and a Session
 can use a Skill to read or write Issues, but one resource does not own the
@@ -68,13 +68,12 @@ the work area.
 │    │ ● API review      12m │                                                          │
 │    │                       │                                                          │
 │    │                       │                                                          │
-│ H  ├───────────────────────┤                                                          │
 │ ⚙  │ 4 agents · 1 blocked  │                                                          │
 └────┴───────────────────────┴──────────────────────────────────────────────────────────┘
 ```
 
-The Activity Bar contains Projects, Agents, and Skills at the top. Herdr Runtime
-status and Settings sit at the bottom. Each global Activity is a route-backed
+The Activity Bar contains Projects, Agents, and Skills at the top, with one
+Settings button at the bottom. Each global Activity is a route-backed
 navigation link with an inset selected surface, an accessible label, and
 `aria-current`. The project panel begins with one compact row for Sessions,
 Issues, Loops, and Files, followed by the selected resource browser. Those four
@@ -86,9 +85,9 @@ remembers its last canonical path in browser storage; returning to Projects can
 therefore restore the exact Session, Issue, File, or Project collection that was
 previously active. React Activity keeps each contextual panel mounted during the
 page lifetime, preserving its search and scroll position as well. A full reload
-restores route-backed selection but not search or scroll state. The Settings
-button and the persistent Herdr status both open a temporary Runtime utility tab
-without changing Activity navigation memory or the active project. A compact
+restores route-backed selection but not search or scroll state. Settings opens a
+small Theme menu without changing the route, Activity navigation memory, or
+active project. A compact
 `PanelLeft` control in the project header collapses the sidebar to the Activity
 Bar and restores its previous width. While collapsed, the ROAM mark remains
 visible and changes into the expand control on hover or keyboard focus. Selecting
@@ -139,7 +138,7 @@ Herdr workspaces, tabs, panes, or server commands to use the Web application.
 │                          │                                                            │
 │                          │ Check the runtime outside Roam, then retry.                 │
 │                          │                                                            │
-│                          │                  [Runtime settings]   [Diagnostics] [Retry] │
+│                          │                                            [Retry]         │
 └──────────────────────────┴────────────────────────────────────────────────────────────┘
 ```
 
@@ -161,31 +160,11 @@ Built-in Herdr integrations may improve state or Session identity. Managing
 those integrations is an advanced runtime concern and does not block basic
 startup.
 
-### Settings / Runtime
-
-Runtime ownership is a global preference. It is not shown as onboarding or as
-a choice that blocks normal startup. Roam-managed is applied by default; a user
-only visits this page to inspect diagnostics or change ownership.
-
-```text
-Settings / Runtime
-
-Herdr status       Connected · default server                    [Diagnostics]
-
-Server ownership
-
-(●) Roam-managed
-    Connect to the default Herdr server. Start it when it is not running.
-    Leave running agents alive when Roam exits.
-
-( ) Externally managed
-    Connect to a Herdr server started and managed by the user.
-    Never start or stop it from Roam.
-```
-
-Changing this setting affects server lifecycle ownership only. It does not
-change Agent creation, project behavior, or the rest of the Web interface.
-Project selection and management do not appear on this page.
+Runtime availability remains contextual: the sidebar summary reports aggregate
+availability, while the Agent list and Inspector explain connection failures or
+stale data where those conditions block an action. A dedicated Runtime page,
+diagnostics workflow, and server-ownership preference are deferred until the
+next product-design phase defines the problem they solve.
 
 ## Project Workbench
 

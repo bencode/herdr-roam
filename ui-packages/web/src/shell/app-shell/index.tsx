@@ -4,12 +4,7 @@ import { useRef, useState } from 'react'
 import { Group, Panel, Separator, useDefaultLayout, usePanelRef } from 'react-resizable-panels'
 import { useAgentRuntime } from '../../features/agent/runtime-provider'
 import { cn } from '../../lib/cn'
-import type {
-  GlobalDimension,
-  ProjectSection,
-  ResourceRef,
-  UtilityRef,
-} from '../../workbench/resource'
+import type { GlobalDimension, ProjectSection, ResourceRef } from '../../workbench/resource'
 import { ActivityBar } from '../activity-bar'
 import { BrandMark } from '../brand-mark'
 import { ContextSidebar } from '../context-sidebar'
@@ -48,7 +43,6 @@ type Props = {
   readonly projectSection: ProjectSection
   readonly tabs: readonly ResourceRef[]
   readonly active: ResourceRef | null
-  readonly activeUtility: UtilityRef | null
   readonly onProject: (projectName: string) => void
   readonly onAddProject: (path: string) => Promise<Project>
   readonly onRemoveProject: (projectName: string) => Promise<void>
@@ -56,8 +50,6 @@ type Props = {
   readonly onWorkbench: () => void
   readonly onOpen: (resource: ResourceRef) => void
   readonly onClose: (resource: ResourceRef) => void
-  readonly onRuntime: () => void
-  readonly onCloseUtility: () => void
 }
 
 export const AppShell = ({
@@ -70,7 +62,6 @@ export const AppShell = ({
   projectSection,
   tabs,
   active,
-  activeUtility,
   onProject,
   onAddProject,
   onRemoveProject,
@@ -78,8 +69,6 @@ export const AppShell = ({
   onWorkbench,
   onOpen,
   onClose,
-  onRuntime,
-  onCloseUtility,
 }: Props) => {
   const { snapshot } = useAgentRuntime()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -191,9 +180,7 @@ export const AppShell = ({
             <ActivityBar
               active={activeDimension}
               paths={activityPaths}
-              runtimeActive={activeUtility === 'runtime'}
               onChange={selectDimension}
-              onRuntime={onRuntime}
             />
             <div
               className={cn('flex min-h-0 min-w-0 flex-1 flex-col', sidebarCollapsed && 'hidden')}
@@ -229,10 +216,7 @@ export const AppShell = ({
           <TabBar
             tabs={tabs}
             active={active}
-            activeUtility={activeUtility}
             onWorkbench={onWorkbench}
-            onRuntime={onRuntime}
-            onCloseUtility={onCloseUtility}
             onActivate={onOpen}
             onClose={onClose}
           />
@@ -240,7 +224,6 @@ export const AppShell = ({
             project={projects.find(project => project.name === activeProjectName) ?? null}
             tabs={tabs}
             active={active}
-            activeUtility={activeUtility}
             onOpen={onOpen}
           />
         </Panel>

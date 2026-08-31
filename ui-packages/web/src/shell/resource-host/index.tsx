@@ -3,16 +3,10 @@ import type { Project } from '@herdr-roam/shared'
 import { AgentTab } from '../../features/agent/agent-tab'
 import { FileTab } from '../../features/file/file-tab'
 import { IssueTab } from '../../features/issue/issue-tab'
-import { RuntimeSettings } from '../../features/runtime/runtime-settings'
 import { SessionTab } from '../../features/session/session-tab'
 import { SkillTab } from '../../features/skill/skill-tab'
 import { WorkbenchHome } from '../../features/workbench/workbench-home'
-import {
-  type ResourceRef,
-  resourceKey,
-  sameResource,
-  type UtilityRef,
-} from '../../workbench/resource'
+import { type ResourceRef, resourceKey, sameResource } from '../../workbench/resource'
 
 const ResourceContent = ({
   resource,
@@ -32,20 +26,15 @@ export const ResourceHost = ({
   project,
   tabs,
   active,
-  activeUtility,
   onOpen,
 }: {
   readonly project: Project | null
   readonly tabs: readonly ResourceRef[]
   readonly active: ResourceRef | null
-  readonly activeUtility: UtilityRef | null
   readonly onOpen: (resource: ResourceRef) => void
 }) => (
   <main className="relative min-h-0 min-w-0 flex-1 bg-surface">
-    <Activity
-      mode={active === null && activeUtility === null ? 'visible' : 'hidden'}
-      name="workbench"
-    >
+    <Activity mode={active === null ? 'visible' : 'hidden'} name="workbench">
       <div className="absolute inset-0 overflow-hidden">
         {project ? (
           <WorkbenchHome project={project} onOpen={onOpen} />
@@ -72,10 +61,5 @@ export const ResourceHost = ({
         </div>
       </Activity>
     ))}
-    <Activity mode={activeUtility === 'runtime' ? 'visible' : 'hidden'} name="runtime-settings">
-      <div className="absolute inset-0 overflow-hidden">
-        <RuntimeSettings />
-      </div>
-    </Activity>
   </main>
 )

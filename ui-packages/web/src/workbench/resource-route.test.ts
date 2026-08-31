@@ -7,7 +7,6 @@ import {
   resourcePath,
   routeDimension,
   routeProjectSection,
-  runtimePath,
 } from './resource-route'
 
 describe('resource routes', () => {
@@ -87,16 +86,12 @@ describe('resource routes', () => {
     expect(canonicalPath(target)).toBe('/projects/herdr-roam/files/docs/guide.md')
   })
 
-  it('parses Runtime settings as a utility route', () => {
-    expect(runtimePath()).toBe('/settings/runtime')
-    expect(parseResourcePath(runtimePath())).toEqual({ kind: 'utility', utility: 'runtime' })
-  })
-
   it('returns unknown for unsupported and legacy routes', () => {
     expect(parseResourcePath('/projects/herdr-roam/workbench')).toEqual({ kind: 'unknown' })
     expect(parseResourcePath('/projects/herdr-roam/loops/not-supported')).toEqual({
       kind: 'unknown',
     })
     expect(parseResourcePath('/unrelated')).toEqual({ kind: 'unknown' })
+    expect(parseResourcePath('/settings/runtime')).toEqual({ kind: 'unknown' })
   })
 })

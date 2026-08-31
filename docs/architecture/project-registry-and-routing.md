@@ -57,9 +57,9 @@ ignore entry.
 
 The Project Selector is the only user-facing Project entry point. It lists one
 kind of persisted Project and contains Add and Manage modes without exposing
-automatic versus manual provenance. Runtime Settings contains Herdr diagnostics
-only. When the registry is empty, `/projects` renders the Project empty state
-instead of redirecting to Runtime.
+automatic versus manual provenance. When the registry is empty, `/projects`
+renders the Project empty state. Runtime availability does not change project
+registration or routing.
 
 ## Canonical routes
 
@@ -79,7 +79,6 @@ instead of redirecting to Runtime.
 /agents/:agentId
 /skills
 /skills/:skillId
-/settings/runtime
 ```
 
 `/` restores the last global Activity and that Activity's last canonical path.
@@ -107,15 +106,15 @@ The route builder derives the canonical URL from each reference. On reload, the
 browser restores the ordered set and uses the current URL to select the active
 resource. A deep-linked resource that is not already present is added once.
 
-The Project Workbench is pinned and is not part of the resource array. Runtime
-Settings is a route-backed temporary utility tab and is also not persisted.
-Local view state such as a Session draft or Markdown mode is retained while the
-React Activity remains mounted, but it is not copied into persistent tab data.
+The Project Workbench is pinned and is not part of the resource array. Settings
+is a non-route popover and is not represented in the resource array. Local view
+state such as a Session draft or Markdown mode is retained while the React
+Activity remains mounted, but it is not copied into persistent tab data.
 
 The browser stores one last canonical path for each of Projects, Agents, and
 Skills, plus the last selected Activity. The current URL wins on reload and
 updates this navigation memory. Switching Activities navigates to the saved path
 for the destination, so returning to Projects restores the exact collection or
-detail route. Runtime Settings does not overwrite Activity navigation memory.
-Only canonical pathnames are stored; query strings, hashes, search terms, scroll
-positions, and copied resource content are not persisted.
+detail route. Opening Settings does not overwrite Activity navigation memory.
+Only canonical pathnames are stored; query strings, hashes, search terms,
+scroll positions, and copied resource content are not persisted.

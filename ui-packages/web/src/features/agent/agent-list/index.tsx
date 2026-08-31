@@ -3,6 +3,7 @@ import { Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { cn } from '../../../lib/cn'
 import type { ResourceRef } from '../../../workbench/resource'
+import { agentDirectoryLabel, agentProviderLabel } from '../presentation'
 import { useAgentRuntime } from '../runtime-provider'
 
 const groups: readonly { readonly status: AgentStatus; readonly label: string }[] = [
@@ -65,7 +66,9 @@ export const AgentList = ({
           )}
         >
           {snapshot.source.message}
-          {transportError && <span className="mt-1 block text-faint">{transportError.message}</span>}
+          {transportError && (
+            <span className="mt-1 block text-faint">{transportError.message}</span>
+          )}
         </div>
       )}
       <div className="min-h-0 flex-1 overflow-auto px-1.75 pb-3.5">
@@ -80,6 +83,9 @@ export const AgentList = ({
               </h2>
               {agents.map(agent => {
                 const active = agent.id === activeAgentId
+                const context = [agentProviderLabel(agent.provider), agentDirectoryLabel(agent.cwd)]
+                  .filter(value => value !== null)
+                  .join(' · ')
                 return (
                   <button
                     type="button"
@@ -87,11 +93,10 @@ export const AgentList = ({
                     aria-current={active ? 'page' : undefined}
                     className={cn(
                       'flex w-full items-start gap-2.5 rounded-sm border-0 px-2 py-2 text-left [&>i]:mt-[0.32rem]',
-                      active
-                        ? 'bg-primary-soft text-foreground'
-                        : 'bg-transparent hover:bg-hover',
+                      active ? 'bg-primary-soft text-foreground' : 'bg-transparent hover:bg-hover',
                     )}
                     onClick={() => onOpen({ type: 'agent', agentId: agent.id })}
+                    title={agent.cwd ?? undefined}
                   >
                     <i
                       className={cn('size-1.5 flex-none rounded-full', statusClasses[agent.status])}
@@ -106,7 +111,7 @@ export const AgentList = ({
                           active ? 'text-muted' : 'text-faint',
                         )}
                       >
-                        {[agent.provider, agent.cwd].filter(Boolean).join(' · ') || 'Runtime agent'}
+                        {context || 'Runtime agent'}
                       </small>
                     </span>
                   </button>
@@ -117,7 +122,9 @@ export const AgentList = ({
         })}
         {filtered.length === 0 && (
           <p className="mx-2 mt-6 text-center text-xs text-faint">
-            {snapshot.items.length === 0 ? 'No agents are available.' : 'No agents match this search.'}
+            {snapshot.items.length === 0
+              ? 'No agents are available.'
+              : 'No agents match this search.'}
           </p>
         )}
       </div>

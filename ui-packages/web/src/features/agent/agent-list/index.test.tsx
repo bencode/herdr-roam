@@ -11,7 +11,7 @@ const runtime = vi.hoisted(() => ({
         name: 'claude-review',
         provider: 'claude',
         status: 'idle' as const,
-        cwd: '/work/review',
+        cwd: '/work/review/',
         attachTarget: 'w1:p2',
       },
       {
@@ -35,8 +35,15 @@ vi.mock('../runtime-provider', () => ({
 }))
 
 import { AgentList } from '.'
+import { agentDirectoryLabel } from '../presentation'
 
 describe('Agent list', () => {
+  it('derives concise directory labels across path formats', () => {
+    expect(agentDirectoryLabel('/work/review/')).toBe('review')
+    expect(agentDirectoryLabel('C:\\work\\review\\')).toBe('review')
+    expect(agentDirectoryLabel('/')).toBe('/')
+  })
+
   it('groups raw statuses in attention order and opens an Agent resource', () => {
     const onOpen = vi.fn()
     render(<AgentList activeAgentId="blocked-1" onOpen={onOpen} />)
@@ -48,6 +55,11 @@ describe('Agent list', () => {
     expect(screen.getByRole('button', { name: /claude-review/ })).not.toHaveAttribute(
       'aria-current',
     )
+    expect(activeAgent).toHaveTextContent('Codex · api')
+    expect(screen.getByRole('button', { name: /claude-review/ })).toHaveTextContent(
+      'Claude · review',
+    )
+    expect(activeAgent).toHaveAttribute('title', '/work/api')
     fireEvent.click(activeAgent)
     expect(onOpen).toHaveBeenCalledWith({ type: 'agent', agentId: 'blocked-1' })
   })
@@ -55,7 +67,7 @@ describe('Agent list', () => {
   it('searches name, provider, and cwd', () => {
     render(<AgentList activeAgentId={null} onOpen={() => undefined} />)
     fireEvent.change(screen.getByRole('textbox', { name: 'Search agents' }), {
-      target: { value: '/work/review' },
+      target: { value: '/work/review/' },
     })
     expect(screen.getByText('claude-review')).toBeVisible()
     expect(screen.queryByText('codex-api')).not.toBeInTheDocument()

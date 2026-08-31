@@ -95,7 +95,7 @@ describe('workbench application', () => {
     useWorkbenchStore.setState(defaultWorkbenchSnapshot)
   })
 
-  it('keeps an empty registry in Projects instead of redirecting to Runtime', async () => {
+  it('keeps an empty registry in Projects', async () => {
     projectMocks.projects = []
     render(
       <MemoryRouter initialEntries={['/']}>
@@ -310,7 +310,7 @@ describe('workbench application', () => {
     expect(screen.getByRole('button', { name: 'Active project' })).toHaveTextContent('herdr-roam')
   })
 
-  it('opens Runtime as a transient route-backed tab and returns to the previous resource', async () => {
+  it('opens Settings without changing the active resource route', async () => {
     render(
       <MemoryRouter initialEntries={['/projects/herdr-roam/sessions/product-scan']}>
         <App />
@@ -324,23 +324,20 @@ describe('workbench application', () => {
         'true',
       ),
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Herdr connected — Open Runtime settings' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(screen.getByRole('radiogroup', { name: 'Theme' })).toBeVisible()
+    fireEvent.click(screen.getByRole('radio', { name: 'Dark' }))
 
-    expect(await screen.findByRole('heading', { name: 'Runtime' })).toBeVisible()
-    expect(screen.getByTestId('current-path')).toHaveTextContent('/settings/runtime')
-    expect(screen.getByRole('tab', { name: 'Runtime' })).toHaveAttribute('aria-selected', 'true')
-    expect(useWorkbenchStore.getState().tabs).toHaveLength(1)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Close Runtime' }))
-    await waitFor(() =>
-      expect(screen.getByTestId('current-path')).toHaveTextContent(
-        '/projects/herdr-roam/sessions/product-scan',
-      ),
+    expect(screen.getByTestId('current-path')).toHaveTextContent(
+      '/projects/herdr-roam/sessions/product-scan',
     )
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark')
+    expect(useWorkbenchStore.getState().tabs).toHaveLength(1)
     expect(screen.getByRole('tab', { name: /Product scan/ })).toHaveAttribute(
       'aria-selected',
       'true',
     )
+    expect(screen.queryByRole('tab', { name: 'Runtime' })).not.toBeInTheDocument()
   })
 
   it('opens a real Agent as an independent route-backed tab', async () => {

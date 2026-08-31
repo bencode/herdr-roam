@@ -1,19 +1,13 @@
 import type { AgentStatus } from '@herdr-roam/shared'
-import { Bot, Box, CircleDot, FileText, Home, MessageSquare, Server, X } from 'lucide-react'
+import { Bot, Box, CircleDot, FileText, Home, MessageSquare, X } from 'lucide-react'
 import { useLayoutEffect, useRef } from 'react'
 import { useAgentRuntime } from '../../features/agent/runtime-provider'
 import { cn } from '../../lib/cn'
 import type { SessionStatus } from '../../mock/data'
 import { resourceTitle, sessionById } from '../../mock/data'
-import {
-  type ResourceRef,
-  resourceKey,
-  sameResource,
-  type UtilityRef,
-} from '../../workbench/resource'
+import { type ResourceRef, resourceKey, sameResource } from '../../workbench/resource'
 
 const WORKBENCH_KEY = 'workbench'
-const RUNTIME_KEY = 'utility:runtime'
 
 const statusClasses: Readonly<Record<AgentStatus | SessionStatus, string>> = {
   working: 'bg-primary',
@@ -43,34 +37,17 @@ const ResourceIcon = ({ resource }: { readonly resource: ResourceRef }) => {
 type Props = {
   readonly tabs: readonly ResourceRef[]
   readonly active: ResourceRef | null
-  readonly activeUtility: UtilityRef | null
   readonly onWorkbench: () => void
-  readonly onRuntime: () => void
-  readonly onCloseUtility: () => void
   readonly onActivate: (resource: ResourceRef) => void
   readonly onClose: (resource: ResourceRef) => void
 }
 
-export const TabBar = ({
-  tabs,
-  active,
-  activeUtility,
-  onWorkbench,
-  onRuntime,
-  onCloseUtility,
-  onActivate,
-  onClose,
-}: Props) => {
+export const TabBar = ({ tabs, active, onWorkbench, onActivate, onClose }: Props) => {
   const { agentById } = useAgentRuntime()
   const refs = useRef(new Map<string, HTMLButtonElement>())
   const visibleRefs = useRef(new Map<string, HTMLElement>())
-  const keys = [
-    WORKBENCH_KEY,
-    ...tabs.map(resourceKey),
-    ...(activeUtility === 'runtime' ? [RUNTIME_KEY] : []),
-  ]
-  const activeKey =
-    activeUtility === 'runtime' ? RUNTIME_KEY : active ? resourceKey(active) : WORKBENCH_KEY
+  const keys = [WORKBENCH_KEY, ...tabs.map(resourceKey)]
+  const activeKey = active ? resourceKey(active) : WORKBENCH_KEY
 
   useLayoutEffect(() => {
     visibleRefs.current.get(activeKey)?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
@@ -81,7 +58,6 @@ export const TabBar = ({
     if (!key) return
     refs.current.get(key)?.focus()
     if (key === WORKBENCH_KEY) onWorkbench()
-    else if (key === RUNTIME_KEY) onRuntime()
     else {
       const resource = tabs.find(tab => resourceKey(tab) === key)
       if (resource) onActivate(resource)
@@ -113,7 +89,7 @@ export const TabBar = ({
           className={cn(
             tabShellClass,
             'min-w-29.5 max-w-29.5 flex-none',
-            active === null && activeUtility === null && selectedTabClass,
+            active === null && selectedTabClass,
           )}
           ref={node => {
             if (node) visibleRefs.current.set(WORKBENCH_KEY, node)
@@ -123,8 +99,8 @@ export const TabBar = ({
           <button
             type="button"
             role="tab"
-            aria-selected={active === null && activeUtility === null}
-            tabIndex={active === null && activeUtility === null ? 0 : -1}
+            aria-selected={active === null}
+            tabIndex={active === null ? 0 : -1}
             className={tabClass}
             ref={node => {
               if (node) refs.current.set(WORKBENCH_KEY, node)
@@ -144,10 +120,10 @@ export const TabBar = ({
             resource.type === 'agent'
               ? 'Herdr'
               : resource.type === 'skill'
-              ? resource.scope === 'project'
-                ? resource.projectName
-                : 'user'
-              : resource.projectName
+                ? resource.scope === 'project'
+                  ? resource.projectName
+                  : 'user'
+                : resource.projectName
           const agent = resource.type === 'agent' ? agentById(resource.agentId) : undefined
           const session =
             resource.type === 'session'
@@ -200,40 +176,6 @@ export const TabBar = ({
             </div>
           )
         })}
-        {activeUtility === 'runtime' && (
-          <div
-            className={cn(tabShellClass, selectedTabClass)}
-            ref={node => {
-              if (node) visibleRefs.current.set(RUNTIME_KEY, node)
-              else visibleRefs.current.delete(RUNTIME_KEY)
-            }}
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected="true"
-              tabIndex={0}
-              className={tabClass}
-              ref={node => {
-                if (node) refs.current.set(RUNTIME_KEY, node)
-                else refs.current.delete(RUNTIME_KEY)
-              }}
-              onClick={onRuntime}
-              onKeyDown={event => keyboard(event, RUNTIME_KEY)}
-            >
-              <Server />
-              <span>Runtime</span>
-            </button>
-            <button
-              type="button"
-              className={closeClass}
-              onClick={onCloseUtility}
-              aria-label="Close Runtime"
-            >
-              <X />
-            </button>
-          </div>
-        )}
       </div>
     </div>
   )

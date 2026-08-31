@@ -1,4 +1,4 @@
-import type { GlobalDimension, ProjectSection, ResourceRef, UtilityRef } from './resource'
+import type { GlobalDimension, ProjectSection, ResourceRef } from './resource'
 
 export type RouteTarget =
   | { readonly kind: 'root' }
@@ -12,7 +12,6 @@ export type RouteTarget =
   | { readonly kind: 'agent-list' }
   | { readonly kind: 'skill-list' }
   | { readonly kind: 'resource'; readonly resource: ResourceRef }
-  | { readonly kind: 'utility'; readonly utility: UtilityRef }
   | { readonly kind: 'unknown' }
 
 const projectSections: readonly ProjectSection[] = ['sessions', 'issues', 'loops', 'files']
@@ -41,8 +40,6 @@ export const activityRootPath = (dimension: GlobalDimension, projectName: string
   if (dimension === 'projects') return projectPath(projectName)
   return `/${dimension}`
 }
-
-export const runtimePath = (): string => '/settings/runtime'
 
 export const resourcePath = (resource: ResourceRef): string => {
   if (resource.type === 'agent') return `/agents/${encoded(resource.agentId)}`
@@ -106,8 +103,6 @@ const agentTarget = (parts: readonly string[]): RouteTarget | null => {
 export const parseResourcePath = (pathname: string): RouteTarget => {
   const parts = pathname.split('/').filter(Boolean)
   if (parts.length === 0) return { kind: 'root' }
-  if (parts.length === 2 && parts[0] === 'settings' && parts[1] === 'runtime')
-    return { kind: 'utility', utility: 'runtime' }
   return projectTarget(parts) ?? agentTarget(parts) ?? skillTarget(parts) ?? { kind: 'unknown' }
 }
 
@@ -140,6 +135,5 @@ export const canonicalPath = (target: RouteTarget): string | null => {
   if (target.kind === 'agent-list') return '/agents'
   if (target.kind === 'skill-list') return '/skills'
   if (target.kind === 'resource') return resourcePath(target.resource)
-  if (target.kind === 'utility') return runtimePath()
   return null
 }

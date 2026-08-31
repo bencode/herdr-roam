@@ -176,13 +176,15 @@ layout rather than introducing a proprietary Skill format or database.
 Installation, catalog, grouping, and in-browser authoring behavior remain open
 product decisions.
 
-### Herdr runtime ownership
+### Herdr runtime prerequisites
 
 Herdr and at least one authenticated agent CLI are prerequisites. Roam detects
 and reports missing prerequisites but does not install or teach them. By
 default, Roam connects to the default Herdr server or starts it when absent.
-Advanced users can change the global Runtime setting so they own the Herdr
-server lifecycle themselves. Runtime ownership is not a first-run choice.
+Runtime availability is reported in the Agent list, Agent Inspector, and
+sidebar summary where it affects the current task. A dedicated Runtime surface
+and configurable server ownership remain deferred until their product purpose
+and required operations are defined.
 
 ## Information Architecture
 
@@ -198,12 +200,13 @@ Herdr Roam
 ├── Agents
 ├── Skills
 └── Settings
-    └── Runtime
+    └── Theme
 ```
 
 The default desktop shell uses a contextual sidebar and one main work surface.
-Settings is a utility destination rather than a fifth resource dimension;
-Runtime is also reachable from the persistent Herdr connection status.
+Settings is a lightweight application menu rather than a fifth resource
+dimension. It currently contains the theme preference and does not create a
+Workbench tab or change the current route.
 The detailed interaction model is documented in
 [Workbench Interactions](../design/workbench-interactions.md).
 

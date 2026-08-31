@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
     name: 'codex-product',
     provider: 'codex',
     status: 'idle' as AgentStatus,
-    cwd: '/work/herdr-roam',
+    cwd: '/work/herdr-roam' as string | null,
     attachTarget: 'w1:p1',
   },
 }))
@@ -39,6 +39,7 @@ describe('Agent Inspector', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.agent.status = 'idle'
+    mocks.agent.cwd = '/work/herdr-roam'
     mocks.output.mockResolvedValue({ agentId: 'terminal-1', text: 'Recent terminal output' })
     mocks.prompt.mockResolvedValue({ agentId: 'terminal-1' })
     mocks.focus.mockResolvedValue({ agentId: 'terminal-1' })
@@ -69,9 +70,28 @@ describe('Agent Inspector', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Details' }))
     expect(screen.getByRole('heading', { name: 'Agent details' })).toBeVisible()
+    expect(screen.getByText('Working directory')).toBeVisible()
+    expect(screen.getByText('Attach target')).toBeVisible()
+    expect(screen.getByText('/work/herdr-roam')).toBeVisible()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy working directory' }))
+    await waitFor(() =>
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('/work/herdr-roam'),
+    )
 
     fireEvent.click(screen.getByRole('button', { name: 'Close Agent details' }))
     expect(screen.queryByRole('heading', { name: 'Agent details' })).not.toBeInTheDocument()
+  })
+
+  it('uses a concise directory label and handles a missing directory', async () => {
+    mocks.agent.cwd = null
+    render(<AgentTab resource={{ type: 'agent', agentId: 'terminal-1' }} />)
+    expect(await screen.findByText('Recent terminal output')).toBeVisible()
+    expect(screen.getByText('Working directory unavailable')).toBeVisible()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }))
+    expect(screen.getByText('Unavailable')).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Copy working directory' })).not.toBeInTheDocument()
   })
 
   it('focuses the selected Agent in Herdr', async () => {
@@ -100,9 +120,7 @@ describe('Agent Inspector', () => {
 
   it('keeps a draft when submission fails and accepts a follow-up while working', async () => {
     mocks.prompt.mockRejectedValueOnce(new Error('Prompt rejected'))
-    const { unmount } = render(
-      <AgentTab resource={{ type: 'agent', agentId: 'terminal-1' }} />,
-    )
+    const { unmount } = render(<AgentTab resource={{ type: 'agent', agentId: 'terminal-1' }} />)
     expect(await screen.findByText('Recent terminal output')).toBeVisible()
     const composer = screen.getByRole('textbox', { name: 'Send a Prompt' })
     fireEvent.change(composer, { target: { value: 'Keep this draft.' } })

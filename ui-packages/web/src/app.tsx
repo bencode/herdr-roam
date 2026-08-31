@@ -12,7 +12,6 @@ import {
   resourcePath,
   routeDimension,
   routeProjectSection,
-  runtimePath,
 } from './workbench/resource-route'
 import { useWorkbenchStore } from './workbench/store'
 
@@ -33,7 +32,6 @@ const RoutedApp = () => {
   const setActiveProject = useWorkbenchStore(state => state.setActiveProject)
   const target = useMemo(() => parseResourcePath(location.pathname), [location.pathname])
   const active = target.kind === 'resource' ? target.resource : null
-  const activeUtility = target.kind === 'utility' ? target.utility : null
   const routeActivity = routeDimension(target)
   const activeDimension = routeActivity ?? lastActivity
   const rememberedProjectTarget = useMemo(
@@ -86,7 +84,6 @@ const RoutedApp = () => {
       rememberActivity('projects', canonical ?? projectPath(target.projectName))
       return
     }
-    if (target.kind === 'utility') return
     if (target.kind === 'agent-list' || target.kind === 'skill-list') {
       showWorkbench()
       const dimension = routeDimension(target)
@@ -196,17 +193,6 @@ const RoutedApp = () => {
     ],
   )
 
-  const openRuntime = useCallback(() => navigate(runtimePath()), [navigate])
-  const closeUtility = useCallback(
-    () =>
-      navigate(
-        lastActivity === 'projects' && !fallbackProjectName
-          ? '/projects'
-          : activityPaths[lastActivity],
-      ),
-    [activityPaths, fallbackProjectName, lastActivity, navigate],
-  )
-
   return (
     <AppShell
       projects={projects}
@@ -220,7 +206,6 @@ const RoutedApp = () => {
       projectSection={projectSection}
       tabs={tabs}
       active={active}
-      activeUtility={activeUtility}
       onProject={selectProject}
       onAddProject={addProject}
       onRemoveProject={removeProject}
@@ -228,8 +213,6 @@ const RoutedApp = () => {
       onWorkbench={openWorkbench}
       onOpen={openResource}
       onClose={closeResource}
-      onRuntime={openRuntime}
-      onCloseUtility={closeUtility}
     />
   )
 }

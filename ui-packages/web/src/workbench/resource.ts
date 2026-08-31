@@ -1,6 +1,5 @@
 export type GlobalDimension = 'projects' | 'agents' | 'skills'
 export type ProjectSection = 'sessions' | 'issues' | 'loops' | 'files'
-export type UtilityRef = 'runtime'
 
 export type ResourceRef =
   | { readonly type: 'agent'; readonly agentId: string }

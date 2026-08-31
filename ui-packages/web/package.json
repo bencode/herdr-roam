@@ -12,7 +12,6 @@
   "dependencies": {
     "@herdr-roam/shared": "workspace:*",
     "@radix-ui/react-popover": "^1.1.23",
-    "@radix-ui/react-select": "^2.3.7",
     "@tailwindcss/vite": "^4.1.16",
     "lucide-react": "^0.468.0",
     "react": "^19.2.0",
