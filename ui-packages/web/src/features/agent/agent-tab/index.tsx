@@ -1,14 +1,15 @@
-import type { AgentStatus, AgentSummary } from '@herdr-roam/shared'
-import { Check, Copy, Crosshair, Info, TerminalSquare } from 'lucide-react'
+import type { AgentStatus, AgentSummary, Project } from '@herdr-roam/shared'
+import { Check, Copy, Crosshair, Info, MessageSquare, TerminalSquare } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
 import { cn } from '../../../lib/cn'
+import { Button } from '../../../ui/button'
 import type { ResourceRef } from '../../../workbench/resource'
-import { focusAgentInHerdr } from '../client'
-import { agentDirectoryLabel, agentProviderLabel } from '../presentation'
+import { focusAgentInHerdr, stopAgent } from '../client'
+import { agentProviderLabel } from '../presentation'
 import { useAgentRuntime } from '../runtime-provider'
+import { AgentRuntimeSurface } from '../runtime-surface'
+import { AgentStopControl } from '../stop-control'
 import { AgentDetails } from './details'
-import { PromptComposer } from './prompt-composer'
-import { TerminalOutput } from './terminal-output'
 
 const statusClasses: Readonly<Record<AgentStatus, string>> = {
   blocked: 'bg-warning',
@@ -23,15 +24,19 @@ const unavailableMessage = (
   source: ReturnType<typeof useAgentRuntime>['snapshot']['source'],
   stale: boolean,
 ): string => {
-  if (!current) return 'This Agent is no longer present in Herdr.'
+  if (!current) return 'This Agent has stopped and is no longer present in Herdr.'
   if (source.state !== 'connected') return source.message
   return stale ? 'Agent runtime state is stale.' : ''
 }
 
 export const AgentTab = ({
   resource,
+  projects = [],
+  onOpen = () => undefined,
 }: {
   readonly resource: Extract<ResourceRef, { type: 'agent' }>
+  readonly projects?: readonly Project[]
+  readonly onOpen?: (resource: ResourceRef) => void
 }) => {
   const { snapshot, agentById } = useAgentRuntime()
   const current = agentById(resource.agentId)
@@ -40,6 +45,8 @@ export const AgentTab = ({
   const [actionError, setActionError] = useState<string | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [focusing, setFocusing] = useState(false)
+  const [stopping, setStopping] = useState(false)
+  const [stopAccepted, setStopAccepted] = useState(false)
   const detailsId = useId()
 
   useEffect(() => {
@@ -47,6 +54,34 @@ export const AgentTab = ({
   }, [current])
 
   const agent = current ?? lastAgent
+  const normalizedCwd = agent?.cwd?.replace(/\\/g, '/').replace(/\/$/, '') ?? null
+  const sessionProject = normalizedCwd
+    ? projects
+        .filter(project => {
+          const root = project.path.replace(/\\/g, '/').replace(/\/$/, '')
+          return normalizedCwd === root || normalizedCwd.startsWith(`${root}/`)
+        })
+        .toSorted((left, right) => right.path.length - left.path.length)[0]
+    : undefined
+  const sessionResource =
+    sessionProject &&
+    agent?.session?.kind === 'id' &&
+    (agent.session.agent === 'codex' || agent.session.agent === 'claude')
+      ? ({
+          type: 'session',
+          projectName: sessionProject.name,
+          provider: agent.session.agent,
+          sessionId: agent.session.value,
+        } as const)
+      : null
+
+  useEffect(() => {
+    if (!stopAccepted || current) return
+    setStopAccepted(false)
+    setStopping(false)
+    if (sessionResource) onOpen(sessionResource)
+  }, [current, onOpen, sessionResource, stopAccepted])
+
   if (!agent) {
     return (
       <div className="grid h-full place-items-center p-8 text-center">
@@ -64,7 +99,6 @@ export const AgentTab = ({
   const runtimeMessage = unavailableMessage(current, snapshot.source, snapshot.stale)
   const attachCommand = `herdr agent attach ${agent.attachTarget}`
   const providerLabel = agentProviderLabel(agent.provider)
-  const directoryLabel = agentDirectoryLabel(agent.cwd)
 
   const copyText = async (
     text: string,
@@ -99,18 +133,37 @@ export const AgentTab = ({
     }
   }
 
+  const stop = async () => {
+    if (!current || stopping) return
+    setStopping(true)
+    setActionError(null)
+    try {
+      await stopAgent(current.id)
+      setStopAccepted(true)
+    } catch (error) {
+      console.error('Agent stop failed', error)
+      setStopping(false)
+      setActionError(error instanceof Error ? error.message : 'The Agent could not be stopped.')
+    }
+  }
+
+  const displayedStatus = current ? agent.status : 'stopped'
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <header className="flex min-h-14 flex-none items-center gap-3 border-border border-b px-5">
         <i
-          className={cn('size-2 flex-none rounded-full', statusClasses[agent.status])}
+          className={cn(
+            'size-2 flex-none rounded-full',
+            current ? statusClasses[agent.status] : 'bg-faint',
+          )}
           role="img"
-          aria-label={agent.status}
+          aria-label={displayedStatus}
         />
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h1 className="m-0 truncate text-sm font-semibold">{agent.name}</h1>
-            <span className="text-xs capitalize text-muted">{agent.status}</span>
+            <span className="text-xs capitalize text-muted">{displayedStatus}</span>
             {providerLabel && (
               <span className="rounded-full bg-raised px-2 py-0.5 text-[0.625rem] text-muted">
                 {providerLabel}
@@ -118,10 +171,10 @@ export const AgentTab = ({
             )}
           </div>
           <p
-            className="mt-1 mb-0 truncate text-[0.6875rem] text-faint"
+            className="mt-1 mb-0 truncate font-mono text-[0.6875rem] text-faint"
             title={agent.cwd ?? undefined}
           >
-            {directoryLabel ?? 'Working directory unavailable'}
+            {agent.cwd ?? 'Working directory unavailable'}
           </p>
         </div>
         {actionError && (
@@ -129,42 +182,52 @@ export const AgentTab = ({
             {actionError}
           </span>
         )}
-        <button
-          type="button"
-          className={cn(
-            'flex h-8 flex-none items-center gap-1.5 rounded-md px-2.5 text-xs text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3.5',
-            !actionError && 'ml-auto',
-          )}
+        {sessionResource && (
+          <Button
+            className={cn('flex-none', !actionError && 'ml-auto')}
+            onClick={() => onOpen(sessionResource)}
+          >
+            <MessageSquare aria-hidden="true" />
+            Open Session
+          </Button>
+        )}
+        <Button
+          className={cn('flex-none', !actionError && !sessionResource && 'ml-auto')}
           disabled={!runtimeAvailable || focusing}
           onClick={() => void focusInHerdr()}
         >
           <Crosshair aria-hidden="true" />
           {focusing ? 'Focusing…' : 'Focus in Herdr'}
-        </button>
-        <button
-          type="button"
+        </Button>
+        {current && (
+          <AgentStopControl
+            status={agent.status}
+            stopping={stopping}
+            disabled={!runtimeAvailable}
+            historyAvailable={Boolean(sessionResource)}
+            onStop={() => void stop()}
+          />
+        )}
+        <Button
           aria-label="Copy attach command"
-          className="flex h-8 flex-none items-center gap-1.5 rounded-md px-2.5 text-xs text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3.5"
+          className="flex-none"
           onClick={() =>
             void copyText(attachCommand, 'attach', 'The attach command could not be copied.')
           }
         >
           {copied === 'attach' ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
           {copied === 'attach' ? 'Copied' : 'Copy attach'}
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
           aria-controls={detailsId}
           aria-expanded={detailsOpen}
-          className={cn(
-            'flex h-8 flex-none items-center gap-1.5 rounded-md px-2.5 text-xs text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3.5',
-            detailsOpen && 'bg-raised text-foreground',
-          )}
+          className="flex-none"
+          data-state={detailsOpen ? 'open' : 'closed'}
           onClick={() => setDetailsOpen(open => !open)}
         >
           <Info aria-hidden="true" />
           Details
-        </button>
+        </Button>
       </header>
       {!runtimeAvailable && (
         <div className="border-warning/30 border-b bg-warning/8 px-5 py-2 text-xs text-muted">
@@ -173,10 +236,8 @@ export const AgentTab = ({
       )}
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">
-          <TerminalOutput agentId={resource.agentId} canRead={runtimeAvailable} />
-          <PromptComposer
-            agentId={resource.agentId}
-            status={agent.status}
+          <AgentRuntimeSurface
+            agent={agent}
             runtimeAvailable={runtimeAvailable}
             unavailableMessage={runtimeMessage}
           />

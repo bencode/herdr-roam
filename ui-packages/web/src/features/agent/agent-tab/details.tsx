@@ -1,5 +1,6 @@
 import type { AgentSummary } from '@herdr-roam/shared'
 import { Check, Copy, X } from 'lucide-react'
+import { Button } from '../../../ui/button'
 import { agentProviderLabel } from '../presentation'
 
 type Props = {
@@ -14,14 +15,14 @@ export const AgentDetails = ({ agent, id, copiedDirectory, onCopyDirectory, onCl
   <aside className="w-64 flex-none border-border border-l bg-sidebar/40" id={id}>
     <header className="flex h-11 items-center border-border border-b px-4">
       <h2 className="m-0 text-sm font-medium">Agent details</h2>
-      <button
-        type="button"
+      <Button
         aria-label="Close Agent details"
-        className="ml-auto grid size-7 place-items-center rounded-md border-0 bg-transparent text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3.5"
+        className="ml-auto"
+        size="compactIcon"
         onClick={onClose}
       >
         <X aria-hidden="true" />
-      </button>
+      </Button>
     </header>
     <dl className="m-0 grid gap-5 px-4 py-5 text-xs [&_dd]:m-0 [&_dd]:mt-1 [&_dd]:break-words [&_dt]:text-faint">
       <div>
@@ -39,15 +40,15 @@ export const AgentDetails = ({ agent, id, copiedDirectory, onCopyDirectory, onCl
             {agent.cwd ?? 'Unavailable'}
           </span>
           {agent.cwd && (
-            <button
-              type="button"
-              className="grid size-6 flex-none place-items-center rounded-sm border-0 bg-transparent text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3.5"
+            <Button
+              className="flex-none"
+              size="compactIcon"
               aria-label={copiedDirectory ? 'Working directory copied' : 'Copy working directory'}
               title={copiedDirectory ? 'Working directory copied' : 'Copy working directory'}
               onClick={onCopyDirectory}
             >
               {copiedDirectory ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
-            </button>
+            </Button>
           )}
         </dd>
       </div>

@@ -20,3 +20,8 @@ const applicationConfigDirectory = (): string => {
 }
 
 export const projectConfigPath = join(applicationConfigDirectory(), 'herdr-roam', 'config.json')
+
+export const sessionRoots = {
+  codex: join(homedir(), '.codex', 'sessions'),
+  claude: join(homedir(), '.claude', 'projects'),
+} as const

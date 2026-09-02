@@ -1,4 +1,9 @@
-const session = { type: 'session', projectName: 'herdr-roam', sessionId: 'scan' } as const
+const session = {
+  type: 'session',
+  projectName: 'herdr-roam',
+  provider: 'codex',
+  sessionId: 'scan',
+} as const
 const issue = { type: 'issue', projectName: 'other-project', issueId: 'hr-018' } as const
 const agent = { type: 'agent', agentId: 'terminal-codex' } as const
 
@@ -32,8 +37,8 @@ describe('workbench store', () => {
   it('persists only the versioned workbench snapshot', () => {
     const { useWorkbenchStore } = storeModule
     useWorkbenchStore.getState().open(agent)
-    expect(JSON.parse(localStorage.getItem('herdr-roam.workbench.v3') ?? '')).toEqual({
-      version: 3,
+    expect(JSON.parse(localStorage.getItem('herdr-roam.workbench.v4') ?? '')).toEqual({
+      version: 4,
       activeProjectName: 'herdr-roam',
       tabs: [agent],
       lastActive: agent,
@@ -71,7 +76,7 @@ describe('workbench store', () => {
     })
   })
 
-  it('migrates v2 tabs and the last active resource into v3 navigation memory', async () => {
+  it('migrates v2 tabs and the last active resource into v4 navigation memory', async () => {
     localStorage.setItem(
       'herdr-roam.workbench.v2',
       JSON.stringify({
@@ -85,7 +90,7 @@ describe('workbench store', () => {
     const { useWorkbenchStore } = await import('./store')
 
     expect(useWorkbenchStore.getState()).toMatchObject({
-      version: 3,
+      version: 4,
       tabs: [agent],
       lastActive: agent,
       lastActivity: 'agents',
@@ -95,6 +100,6 @@ describe('workbench store', () => {
         skills: '/skills',
       },
     })
-    expect(localStorage.getItem('herdr-roam.workbench.v3')).not.toBeNull()
+    expect(localStorage.getItem('herdr-roam.workbench.v4')).not.toBeNull()
   })
 })

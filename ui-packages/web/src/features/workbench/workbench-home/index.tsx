@@ -1,17 +1,17 @@
-import type { Project } from '@herdr-roam/shared'
+import type { AgentStatus, Project } from '@herdr-roam/shared'
 import { CircleDot, Play, Radio } from 'lucide-react'
 import { cn } from '../../../lib/cn'
-import type { SessionStatus } from '../../../mock/data'
-import { sessions } from '../../../mock/data'
 import type { ResourceRef } from '../../../workbench/resource'
 import { useAgentRuntime } from '../../agent/runtime-provider'
+import { useProjectSessions } from '../../session/use-session-data'
 import { AgentLauncher } from './agent-launcher'
 
-const statusClasses: Readonly<Record<SessionStatus, string>> = {
+const statusClasses: Readonly<Record<AgentStatus, string>> = {
   working: 'bg-primary',
   blocked: 'bg-warning',
-  idle: 'bg-primary',
+  idle: 'bg-muted',
   done: 'bg-success',
+  unknown: 'bg-faint',
 }
 
 export const WorkbenchHome = ({
@@ -22,8 +22,9 @@ export const WorkbenchHome = ({
   readonly onOpen: (resource: ResourceRef) => void
 }) => {
   const projectName = project.name
-  const projectSessions = sessions.filter(session => session.projectName === projectName)
   const { snapshot } = useAgentRuntime()
+  const sessionState = useProjectSessions(projectName, { limit: 8 })
+  const projectSessions = sessionState.value.items
   return (
     <div className="h-full overflow-auto bg-surface px-[clamp(1.5rem,4vw,2.5rem)] py-10">
       <div className="mx-auto w-full max-w-3xl">
@@ -42,20 +43,46 @@ export const WorkbenchHome = ({
               <Radio className="w-4 text-primary" /> Recent Sessions
             </h2>
             <div className="border-border border-t">
-              {projectSessions.map(session => (
-                <button
-                  type="button"
-                  key={session.id}
-                  className="flex h-11 w-full items-center gap-3 border-0 border-border border-b bg-transparent px-1 text-left hover:bg-hover"
-                  onClick={() => onOpen({ type: 'session', projectName, sessionId: session.id })}
-                >
-                  <i
-                    className={cn('size-1.5 flex-none rounded-full', statusClasses[session.status])}
-                  />
-                  <span className="min-w-0 flex-1 truncate">{session.title}</span>
-                  <span className="text-faint text-xs">{session.updated}</span>
-                </button>
-              ))}
+              {sessionState.loading && projectSessions.length === 0 && (
+                <p className="px-1 py-3 text-xs text-muted">Loading Sessions…</p>
+              )}
+              {sessionState.error && (
+                <p className="px-1 py-3 text-xs text-danger" role="status">
+                  {sessionState.error.message}
+                </p>
+              )}
+              {projectSessions.map(session => {
+                const agent = snapshot.items.find(
+                  candidate =>
+                    candidate.session?.kind === 'id' &&
+                    candidate.session.agent === session.provider &&
+                    candidate.session.value === session.id,
+                )
+                return (
+                  <button
+                    type="button"
+                    key={`${session.provider}:${session.id}`}
+                    className="flex h-11 w-full items-center gap-3 border-0 border-border border-b bg-transparent px-1 text-left hover:bg-hover"
+                    onClick={() =>
+                      onOpen({
+                        type: 'session',
+                        projectName,
+                        provider: session.provider,
+                        sessionId: session.id,
+                      })
+                    }
+                  >
+                    <i
+                      className={cn(
+                        'size-1.5 flex-none rounded-full',
+                        agent ? statusClasses[agent.status] : 'bg-faint',
+                      )}
+                    />
+                    <span className="min-w-0 flex-1 truncate">{session.title}</span>
+                    <span className="text-faint text-xs capitalize">{session.provider}</span>
+                  </button>
+                )
+              })}
             </div>
           </section>
           <section>

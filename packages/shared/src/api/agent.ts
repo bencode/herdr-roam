@@ -1,6 +1,13 @@
 export type AgentStatus = 'blocked' | 'working' | 'idle' | 'done' | 'unknown'
 export type AgentProvider = 'codex' | 'claude'
 
+export type AgentSessionRef = {
+  readonly source: string
+  readonly agent: string
+  readonly kind: 'id' | 'path'
+  readonly value: string
+}
+
 export type AgentSummary = {
   readonly id: string
   readonly name: string
@@ -8,6 +15,7 @@ export type AgentSummary = {
   readonly status: AgentStatus
   readonly cwd: string | null
   readonly attachTarget: string
+  readonly session: AgentSessionRef | null
 }
 
 export type AgentRuntimeSnapshot = {
@@ -33,6 +41,7 @@ export type AgentRuntimeSnapshot = {
 export type AgentOutput = {
   readonly agentId: string
   readonly text: string
+  readonly truncated: boolean
 }
 
 export type AgentPromptRequest = {
@@ -40,6 +49,45 @@ export type AgentPromptRequest = {
 }
 
 export type AgentPromptReceipt = {
+  readonly agentId: string
+}
+
+export const AGENT_PROMPT_IMAGE_MAX_COUNT = 4
+export const AGENT_PROMPT_IMAGE_MAX_BYTES = 10 * 1024 * 1024
+export const AGENT_PROMPT_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const
+export const AGENT_TEXT_MAX_BYTES = 64 * 1024
+
+export type AgentPromptImageType = (typeof AGENT_PROMPT_IMAGE_TYPES)[number]
+
+export type AgentInputKey =
+  | 'up'
+  | 'down'
+  | 'left'
+  | 'right'
+  | 'enter'
+  | 'esc'
+  | 'tab'
+  | 'shift+tab'
+  | 'backspace'
+  | 'delete'
+  | 'home'
+  | 'end'
+
+export type AgentInputRequest =
+  | {
+      readonly type: 'keys'
+      readonly keys: readonly AgentInputKey[]
+    }
+  | {
+      readonly type: 'text'
+      readonly text: string
+    }
+
+export type AgentInputReceipt = {
+  readonly agentId: string
+}
+
+export type AgentStopReceipt = {
   readonly agentId: string
 }
 
@@ -73,7 +121,11 @@ export type AgentApiError = {
       | 'invalid_prompt'
       | 'agent_not_ready'
       | 'agent_prompt_unavailable'
+      | 'invalid_agent_input'
+      | 'agent_input_unavailable'
+      | 'invalid_prompt_image'
       | 'agent_focus_unavailable'
+      | 'agent_stop_unavailable'
       | 'invalid_agent_launch'
       | 'project_not_found'
       | 'project_directory_unavailable'

@@ -1,5 +1,6 @@
 import { FileText, MessagesSquare } from 'lucide-react'
 import { issueById, projectByName } from '../../../mock/data'
+import { Button } from '../../../ui/button'
 import { Markdown } from '../../../ui/markdown'
 import type { ResourceRef } from '../../../workbench/resource'
 
@@ -23,13 +24,9 @@ export const IssueTab = ({
         <span className="rounded-full bg-primary-soft px-2 py-0.5 text-primary text-xs">
           {issue.status}
         </span>
-        <button
-          type="button"
-          disabled
-          className="ml-auto h-8 rounded-md border border-border bg-transparent px-3"
-        >
+        <Button className="ml-auto" disabled variant="secondary">
           Edit
-        </button>
+        </Button>
       </header>
       <div className="mx-auto grid w-[min(920px,calc(100%_-_48px))] gap-10 py-8 min-[64rem]:grid-cols-[minmax(0,1fr)_230px]">
         <article>
@@ -55,6 +52,7 @@ export const IssueTab = ({
                 onOpen({
                   type: 'session',
                   projectName: issue.projectName,
+                  provider: issue.sessionProvider,
                   sessionId: issue.sessionId,
                 })
               }

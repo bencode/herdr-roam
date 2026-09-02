@@ -1,5 +1,5 @@
-import { Activity } from 'react'
 import type { Project } from '@herdr-roam/shared'
+import { Activity } from 'react'
 import { AgentTab } from '../../features/agent/agent-tab'
 import { FileTab } from '../../features/file/file-tab'
 import { IssueTab } from '../../features/issue/issue-tab'
@@ -10,13 +10,28 @@ import { type ResourceRef, resourceKey, sameResource } from '../../workbench/res
 
 const ResourceContent = ({
   resource,
+  projects,
+  focusMode,
+  onFocusModeChange,
   onOpen,
 }: {
   readonly resource: ResourceRef
+  readonly projects: readonly Project[]
+  readonly focusMode: boolean
+  readonly onFocusModeChange: (focused: boolean) => void
   readonly onOpen: (resource: ResourceRef) => void
 }) => {
-  if (resource.type === 'agent') return <AgentTab resource={resource} />
-  if (resource.type === 'session') return <SessionTab resource={resource} onOpen={onOpen} />
+  if (resource.type === 'agent')
+    return <AgentTab resource={resource} projects={projects} onOpen={onOpen} />
+  if (resource.type === 'session')
+    return (
+      <SessionTab
+        resource={resource}
+        focusMode={focusMode}
+        onFocusModeChange={onFocusModeChange}
+        onOpen={onOpen}
+      />
+    )
   if (resource.type === 'issue') return <IssueTab resource={resource} onOpen={onOpen} />
   if (resource.type === 'file') return <FileTab resource={resource} />
   return <SkillTab resource={resource} />
@@ -24,13 +39,19 @@ const ResourceContent = ({
 
 export const ResourceHost = ({
   project,
+  projects,
   tabs,
   active,
+  focusMode,
+  onFocusModeChange,
   onOpen,
 }: {
   readonly project: Project | null
+  readonly projects: readonly Project[]
   readonly tabs: readonly ResourceRef[]
   readonly active: ResourceRef | null
+  readonly focusMode: boolean
+  readonly onFocusModeChange: (focused: boolean) => void
   readonly onOpen: (resource: ResourceRef) => void
 }) => (
   <main className="relative min-h-0 min-w-0 flex-1 bg-surface">
@@ -57,7 +78,13 @@ export const ResourceHost = ({
         name={resourceKey(resource)}
       >
         <div className="absolute inset-0 overflow-hidden">
-          <ResourceContent resource={resource} onOpen={onOpen} />
+          <ResourceContent
+            resource={resource}
+            projects={projects}
+            focusMode={focusMode}
+            onFocusModeChange={onFocusModeChange}
+            onOpen={onOpen}
+          />
         </div>
       </Activity>
     ))}

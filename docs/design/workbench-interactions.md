@@ -35,14 +35,12 @@ Herdr Roam
 │       ├── Loops
 │       └── Files
 ├── Agents                 cross-project live runtime
-├── Skills                 user skills and active-project skills
-└── Settings               lightweight application preferences
-    └── Theme              system, light, or dark
+└── Skills                 user skills and active-project skills
 ```
 
 Projects, Agents, and Skills are global dimensions. Sessions, Issues, Loops,
-and Files live inside the active project. Settings is a popover menu rather
-than another resource dimension or route-backed destination.
+and Files live inside the active project. Theme is a direct utility control,
+not another resource dimension or route-backed destination.
 
 These resources remain orthogonal. A Loop can create a Session, and a Session
 can use a Skill to read or write Issues, but one resource does not own the
@@ -72,8 +70,8 @@ the work area.
 └────┴───────────────────────┴──────────────────────────────────────────────────────────┘
 ```
 
-The Activity Bar contains Projects, Agents, and Skills at the top, with one
-Settings button at the bottom. Each global Activity is a route-backed
+The Activity Bar contains Projects, Agents, and Skills at the top, with a Theme
+control at the bottom. Each global Activity is a route-backed
 navigation link with an inset selected surface, an accessible label, and
 `aria-current`. The project panel begins with one compact row for Sessions,
 Issues, Loops, and Files, followed by the selected resource browser. Those four
@@ -85,9 +83,9 @@ remembers its last canonical path in browser storage; returning to Projects can
 therefore restore the exact Session, Issue, File, or Project collection that was
 previously active. React Activity keeps each contextual panel mounted during the
 page lifetime, preserving its search and scroll position as well. A full reload
-restores route-backed selection but not search or scroll state. Settings opens a
-small Theme menu without changing the route, Activity navigation memory, or
-active project. A compact
+restores route-backed selection but not search or scroll state. Theme opens a
+small direct selector without changing the route, Activity navigation memory,
+or active project. A compact
 `PanelLeft` control in the project header collapses the sidebar to the Activity
 Bar and restores its previous width. While collapsed, the ROAM mark remains
 visible and changes into the expand control on hover or keyboard focus. Selecting
@@ -201,9 +199,9 @@ continue natively.
 ## Session Conversation
 
 Selecting a Session opens or reuses its Workbench tab. Multiple Sessions can
-remain open across projects, and inactive tabs continue to show working,
-blocked, done, and unread state. A live Session accepts another Prompt; a
-historical Session offers Resume.
+remain open across projects. Herdr runtime state marks a Session as live when
+an Agent reports the same provider Session ID. A live Session accepts another
+Prompt; a historical Session remains readable and offers Resume.
 
 ```text
 ┌────────────────────────────┬──────────────────────────────────────────────────────────┐
@@ -223,9 +221,59 @@ historical Session offers Resume.
 └────┴───────────────────────┴─┴──────────────────────────────────────────────────────┴─┘
 ```
 
-Provider adapters may enrich a transcript when structured history is available.
-Terminal text remains the fallback; Roam must not invent message boundaries from
-unreliable screen parsing.
+Provider adapters read the native Codex and Claude JSONL histories directly.
+The transcript renders user and assistant messages, image references, and
+collapsible tool activity with bounded input and output previews. Roam does not copy this content into browser storage,
+configuration, or a database, and it never reconstructs a conversation from
+terminal screen text. Missing, inaccessible, or malformed provider history is
+shown as an explicit Session error.
+
+Large Session catalogs use server-side cursor pages rather than mounting every
+row. The sidebar keeps one 50-row page and offers Newer and Older navigation;
+title filtering runs on the server after a short input debounce. The Workbench
+home requests only its eight recent rows.
+
+Long transcripts open at the latest bounded page. Earlier, Newer, and Latest
+replace the visible page instead of accumulating unbounded Markdown nodes. Each
+page is constrained by entry count, rendered content size, and raw JSONL scan
+size. A native record above the per-record safety limit becomes an explicit
+omission row. Live Sessions consume append-only deltas while viewing the latest
+page and suspend polling on older pages.
+
+An offline Session opens in History and has no composer. Resume asks the server
+to start Codex or Claude with its native Session ID in the historical working
+directory. The directory must still resolve inside the registered Project. A
+successful Resume switches directly to Live; a currently running Session is
+reused rather than resumed a second time.
+
+Live uses the same dark runtime surface as an Agent tab, including recent ANSI
+output, blocked input, and the shared Prompt composer. Session and Agent routes
+remain distinct because their surrounding task context differs. A compact
+Live/History control switches between the native transcript and runtime surface;
+React Activity keeps each mounted view's local state. Runtime status changes do
+not override an explicit History selection. If the matching Agent disappears
+while Live is selected, the Session returns to History. `Open Agent` remains an
+explicit route transition to the Agent-oriented header and controls.
+
+Session History uses a reading canvas up to 960 px wide with message bodies
+limited to roughly 72 characters. Tool activity may use the remaining canvas
+width for code and output. Focus Mode temporarily overlays the whole workbench
+over the sidebar while retaining the Tab Bar and Session header. Escape or any
+resource navigation exits Focus Mode; it does not invoke browser fullscreen.
+
+When the selected Agent is `blocked`, the Prompt composer is replaced by a
+click-to-focus terminal input bridge, without adding a visible response toolbar.
+Before input activation, the surface remains read-only, is reachable with Tab,
+and entering `blocked` never steals keyboard input. Enter or an unselected click
+activates input. Native navigation keys, Enter, Escape, Tab, Shift+Tab, ordinary
+text, IME commits, and paste are then sent to the Agent in order. Escape is
+queued, then focus returns to the safe terminal surface; Shift+Tab stays in input
+mode and is forwarded unchanged. A subtle focus ring and screen-reader
+instructions are the only added state indicators. Clicking outside stops input, while selecting
+terminal text does not activate it. Successful input requests output refreshes
+without waiting for those reads. Roam coalesces concurrent refresh requests and
+does not parse ANSI output into browser-owned questions or assign meaning to
+provider-owned keys such as `Shift+Tab`.
 
 ## Agents
 
@@ -252,11 +300,18 @@ selected agent.
 The implemented Inspector reads recent unwrapped ANSI terminal output on a
 fixed dark surface without a separate output heading. It sends bounded Prompts
 through Herdr while the Agent is `working`, `idle`, or `done`: Enter sends and
-Shift+Enter inserts a newline. It does not reconstruct a chat transcript.
+Shift+Enter inserts a newline. Shift+Tab is sent directly to the Agent instead
+of changing browser focus or introducing a Roam-owned mode selector. Pasting a
+PNG, JPEG, or WebP into the composer adds a removable thumbnail. Images remain
+browser-local until submission, then the local server stages temporary files
+and pastes their paths into the native Agent composer. Text, images, or both may
+form a Prompt. It does not reconstruct a chat transcript.
 Details open on demand instead of permanently reducing the reading surface.
 Agent Tabs use `/agents/:agentId`; they remain independent of the active
 Project. `Focus in Herdr` selects the Agent's native Pane without simulating
-terminal control in Roam.
+terminal control in Roam. Direct terminal input is available only while the
+Agent reports `blocked`; it is a focused response bridge rather than a persistent
+browser Attach session.
 
 ## Deferred Browser Terminal Attach
 

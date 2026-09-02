@@ -1,6 +1,7 @@
 import type { AgentLaunchRecovery, AgentProvider, Project } from '@herdr-roam/shared'
 import { ArrowUp, Check, Copy, ExternalLink } from 'lucide-react'
 import { useState } from 'react'
+import { Button } from '../../../ui/button'
 import type { ResourceRef } from '../../../workbench/resource'
 import { AgentClientError, launchProjectAgent } from '../../agent/client'
 import { useAgentRuntime } from '../../agent/runtime-provider'
@@ -90,21 +91,23 @@ export const AgentLauncher = ({
             </select>
           </label>
           <span className="min-w-0 truncate font-mono">{project.path}</span>
-          <button
+          <Button
             type="submit"
-            className="ml-auto grid size-8 flex-none place-items-center rounded-md border-0 bg-primary text-white"
+            className="ml-auto flex-none"
             disabled={!canLaunch}
+            size="defaultIcon"
+            variant="primary"
             aria-label={launching ? `Starting ${provider}` : `Start ${provider}`}
           >
             <ArrowUp className="size-4" aria-hidden="true" />
-          </button>
+          </Button>
         </div>
       </form>
       {!runtimeAvailable && (
         <p className="mt-2 mb-0 text-xs text-warning">
           {snapshot.source.state === 'connected'
             ? 'Herdr runtime state is stale.'
-            : snapshot.source.message}
+            : `${snapshot.source.message} Check Runtime status at the bottom left for setup.`}
         </p>
       )}
       {launching && (
@@ -119,23 +122,18 @@ export const AgentLauncher = ({
             {recovery && ' The Herdr Workspace was kept for recovery.'}
           </span>
           {recovery?.agentId && (
-            <button
-              type="button"
-              className="flex h-7 items-center gap-1 rounded-sm border-0 bg-transparent px-2 text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3"
+            <Button
+              size="compact"
               onClick={() => onOpen({ type: 'agent', agentId: recovery.agentId ?? '' })}
             >
               <ExternalLink aria-hidden="true" /> Open Agent
-            </button>
+            </Button>
           )}
           {recovery && (
-            <button
-              type="button"
-              className="flex h-7 items-center gap-1 rounded-sm border-0 bg-transparent px-2 text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3"
-              onClick={() => void copyRecovery()}
-            >
+            <Button size="compact" onClick={() => void copyRecovery()}>
               {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
               {copied ? 'Copied' : 'Copy attach'}
-            </button>
+            </Button>
           )}
         </div>
       )}

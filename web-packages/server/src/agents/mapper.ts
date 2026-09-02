@@ -25,6 +25,14 @@ export const mapAgent = (raw: RawAgent): AgentSummary => ({
   status: status(raw.agent_status),
   cwd: value(raw.foreground_cwd, raw.cwd),
   attachTarget: raw.pane_id,
+  session: raw.agent_session
+    ? {
+        source: raw.agent_session.source,
+        agent: raw.agent_session.agent,
+        kind: raw.agent_session.kind,
+        value: raw.agent_session.value,
+      }
+    : null,
 })
 
 export const mapAgents = (agents: readonly RawAgent[]): readonly AgentSummary[] =>
@@ -39,7 +47,11 @@ const sameAgent = (left: AgentSummary, right: AgentSummary): boolean =>
   left.provider === right.provider &&
   left.status === right.status &&
   left.cwd === right.cwd &&
-  left.attachTarget === right.attachTarget
+  left.attachTarget === right.attachTarget &&
+  left.session?.source === right.session?.source &&
+  left.session?.agent === right.session?.agent &&
+  left.session?.kind === right.session?.kind &&
+  left.session?.value === right.session?.value
 
 const sameSource = (
   left: AgentRuntimeSnapshot['source'],

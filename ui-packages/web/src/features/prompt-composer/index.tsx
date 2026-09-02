@@ -1,7 +1,15 @@
-import type { AgentStatus } from '@herdr-roam/shared'
-import { type KeyboardEvent, useId, useLayoutEffect, useRef, useState } from 'react'
-import { cn } from '../../../lib/cn'
-import { submitAgentPrompt } from '../client'
+import { AGENT_TEXT_MAX_BYTES, type AgentStatus } from '@herdr-roam/shared'
+import {
+  type ClipboardEvent,
+  type KeyboardEvent,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
+import { cn } from '../../lib/cn'
+import { sendAgentInput, submitAgentPrompt } from '../agent/client'
+import { PromptAttachments, usePromptImages } from './attachments'
 
 const readinessMessage = (
   status: AgentStatus,
@@ -10,7 +18,7 @@ const readinessMessage = (
 ): string => {
   if (!runtimeAvailable) return unavailableMessage
   if (status === 'working') return 'working · ↵ send follow-up'
-  if (status === 'blocked') return 'Agent is blocked. Use terminal Attach to respond.'
+  if (status === 'blocked') return 'Agent is blocked. Open its Terminal Inspector to respond.'
   if (status === 'unknown') return 'Agent readiness is unknown. Wait for a reliable status.'
   return `${status} · ↵ send`
 }
@@ -20,20 +28,31 @@ export const PromptComposer = ({
   status,
   runtimeAvailable,
   unavailableMessage,
+  onSubmitted,
 }: {
   readonly agentId: string
   readonly status: AgentStatus
   readonly runtimeAvailable: boolean
   readonly unavailableMessage: string
+  readonly onSubmitted?: () => void
 }) => {
   const [draft, setDraft] = useState('')
+  const promptImages = usePromptImages()
   const [submitting, setSubmitting] = useState(false)
-  const [feedback, setFeedback] = useState<{ readonly kind: 'error' | 'success'; readonly text: string } | null>(null)
+  const [feedback, setFeedback] = useState<{
+    readonly kind: 'error' | 'success'
+    readonly text: string
+  } | null>(null)
   const fieldRef = useRef<HTMLTextAreaElement>(null)
   const fieldId = useId()
   const statusId = useId()
   const ready = runtimeAvailable && (status === 'idle' || status === 'done' || status === 'working')
-  const canSubmit = ready && draft.trim().length > 0 && !submitting
+  const textWithinLimit = new TextEncoder().encode(draft).byteLength <= AGENT_TEXT_MAX_BYTES
+  const canSubmit =
+    ready &&
+    textWithinLimit &&
+    (draft.trim().length > 0 || promptImages.images.length > 0) &&
+    !submitting
 
   useLayoutEffect(() => {
     const field = fieldRef.current
@@ -48,9 +67,11 @@ export const PromptComposer = ({
     setSubmitting(true)
     setFeedback(null)
     try {
-      await submitAgentPrompt(agentId, draft)
+      await submitAgentPrompt(agentId, draft, promptImages.files)
+      promptImages.clear()
       setDraft('')
       setFeedback({ kind: 'success', text: 'Prompt submitted.' })
+      onSubmitted?.()
     } catch (error) {
       console.error('Agent Prompt submission failed', error)
       setFeedback({
@@ -62,7 +83,43 @@ export const PromptComposer = ({
     }
   }
 
+  const forwardShiftTab = async () => {
+    if (!runtimeAvailable || submitting) return
+    setFeedback(null)
+    try {
+      await sendAgentInput(agentId, { type: 'keys', keys: ['shift+tab'] })
+      setFeedback({ kind: 'success', text: 'Shift+Tab sent to the Agent.' })
+    } catch (error) {
+      console.error('Agent key submission failed', error)
+      setFeedback({
+        kind: 'error',
+        text: error instanceof Error ? error.message : 'Shift+Tab could not be sent.',
+      })
+    }
+  }
+
+  const pasteImages = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+    const pasted = Array.from(event.clipboardData.files).filter(file =>
+      file.type.startsWith('image/'),
+    )
+    if (pasted.length === 0) return
+    event.preventDefault()
+    const error = promptImages.add(pasted)
+    setFeedback(error ? { kind: 'error', text: error } : null)
+  }
+
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (
+      event.key === 'Tab' &&
+      event.shiftKey &&
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.metaKey
+    ) {
+      event.preventDefault()
+      void forwardShiftTab()
+      return
+    }
     if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return
     event.preventDefault()
     void submit()
@@ -74,6 +131,13 @@ export const PromptComposer = ({
 
   return (
     <section className="flex-none border-border border-t bg-background px-5 py-3">
+      <PromptAttachments
+        images={promptImages.images}
+        onRemove={image => {
+          promptImages.remove(image)
+          setFeedback(null)
+        }}
+      />
       <label className="group flex cursor-text items-start gap-2 font-mono" htmlFor={fieldId}>
         <span className="sr-only">Send a Prompt</span>
         <span
@@ -91,10 +155,16 @@ export const PromptComposer = ({
           aria-describedby={statusId}
           className="prompt-composer-field block max-h-36 min-h-10 w-full cursor-text resize-none overflow-y-auto border-0 bg-transparent p-0 font-mono text-sm leading-5 caret-primary outline-none placeholder:text-muted"
           onChange={event => {
-            setDraft(event.target.value)
-            setFeedback(null)
+            const next = event.target.value
+            setDraft(next)
+            setFeedback(
+              new TextEncoder().encode(next).byteLength > AGENT_TEXT_MAX_BYTES
+                ? { kind: 'error', text: 'Prompt is too large (64 KB maximum).' }
+                : null,
+            )
           }}
           onKeyDown={handleKeyDown}
+          onPaste={pasteImages}
           placeholder="Send a follow-up…"
           rows={2}
           value={draft}

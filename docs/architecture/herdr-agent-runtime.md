@@ -26,6 +26,7 @@ POST /api/agents
 GET /api/agents/events
 GET /api/agents/:agentId/output
 POST /api/agents/:agentId/prompts
+POST /api/agents/:agentId/input
 POST /api/agents/:agentId/focus
 ```
 
@@ -44,11 +45,23 @@ Prompt, and returns its stable terminal ID. Agent names are deterministic and
 receive a numeric suffix on conflict. A failure after Workspace creation keeps
 that Workspace and returns its Pane, Terminal, and attach command for recovery.
 
-The Prompt endpoint accepts non-blank text, resolves the Agent's current
-`pane_id`, and calls Herdr `agent.prompt` without waiting for a turn. `working`,
-`idle`, and `done` Agents accept Prompts; `blocked` and `unknown` Agents require
-native interaction or a reliable status. Roam does not interpret `agent.wait`
-as a conversation-turn boundary.
+The Prompt endpoint accepts non-blank text or up to four local PNG, JPEG, or
+WebP images. Text-only Prompts call Herdr `agent.prompt`. Image Prompts are
+written to private files in the host operating system's temporary directory;
+their paths are pasted into the native Agent composer before text and Enter are
+sent. These files are not Project artifacts or configuration and are left to
+the operating system's temporary-file lifecycle. `working`, `idle`, and `done`
+Agents accept Prompts; `blocked` and `unknown` Agents require native interaction
+or a reliable status. Roam does not interpret `agent.wait` as a
+conversation-turn boundary.
+
+The input endpoint accepts validated logical key names or non-empty text. While
+an Agent is `blocked`, keys are forwarded through Herdr `agent.send_keys` and
+text through `pane.send_input`; Roam does not interpret the native TUI state.
+Outside `blocked`, only one `Shift+Tab` chord is accepted so the Prompt composer
+can toggle a provider-owned mode without Roam tracking Plan/Default state.
+Initial Prompts, follow-up Prompt text, and direct terminal text are limited to
+64 KiB of UTF-8 at both the browser and HTTP boundary.
 
 `terminal_id` is the public Agent ID. `pane_id` remains the runtime target used
 for output reads and the copied `herdr agent attach <target>` command. CWD is
@@ -63,18 +76,40 @@ feature.
 
 The Agents activity groups the raw Herdr statuses `blocked`, `working`, `idle`,
 `done`, and `unknown`. An Agent opens at `/agents/:agentId` in the shared Tab
-workbench. The Inspector polls recent unwrapped ANSI output only while its
-React Activity is visible and retains the last successful text in component
-memory when a later read fails. The output is requested as ANSI and rendered on
-a fixed dark terminal surface. The renderer interprets SGR styles, drops other
-escape and control sequences, preserves long lines with horizontal scrolling,
-and does not reconstruct message boundaries from terminal output. The Composer
-preserves a draft while its Tab is mounted, sends with Enter, inserts a newline
-with Shift+Enter, and clears the draft only after the server accepts the Prompt.
-It does not persist drafts.
+workbench. Agent tabs and the Live mode of a resumed Session use the same runtime
+surface: recent output, blocked input, and the Prompt composer have one behavior
+and implementation while their routes and surrounding headers remain distinct.
 
-Interrupting processes, ending Workspaces, Browser Attach, and historical
-Session discovery are deferred.
+The runtime surface polls recent unwrapped ANSI output only while its React
+Activity is visible and retains the last successful text in component memory
+when a later read fails. Each read asks Herdr for 500 recent lines. The server
+then returns at most the newest 512 KiB on a UTF-8 boundary and sets `truncated`
+when older bytes were removed; the browser replaces the prior snapshot and
+discloses the bounded tail without caching or accumulating it. Output is
+rendered on a fixed dark terminal surface. The renderer interprets SGR styles,
+drops other escape and control sequences, preserves long lines with horizontal
+scrolling, and does not reconstruct message boundaries from terminal output.
+The Composer preserves a draft while its Activity is mounted, sends with Enter,
+inserts a newline with Shift+Enter, and forwards Shift+Tab while focused. Pasted
+images appear as removable local previews and are uploaded only when the Prompt
+is submitted. The Composer clears text and previews only after the server
+accepts the Prompt. It does not persist drafts or attachments.
+
+When an Agent is `blocked`, the visible Composer is removed and the terminal
+surface becomes a keyboard-focusable input target. Enter or an unselected
+pointer click focuses a visually hidden textarea that captures native navigation
+keys, Enter, Escape, Tab, Shift+Tab, text input, IME commits, and paste. Escape
+is queued before focus returns to the safe terminal surface; Shift+Tab remains
+provider-owned and does not move browser focus. Input writes are serialized in
+browser order, independently of output reads. Successful writes request an
+immediate refresh, with concurrent refresh requests coalesced into at most one
+trailing read. Entering `blocked` never steals focus, and selecting terminal
+text does not activate input.
+
+Stopping an Agent closes its Herdr Pane after explicit confirmation; native
+Session history remains available from the provider files. Browser Attach and
+process-level interrupt controls beyond the forwarded native input remain
+deferred.
 
 Agent working directories also feed the independent Project Registry discovery
 bridge. Only the nearest Git root of an Agent cwd may be persisted as a Project;

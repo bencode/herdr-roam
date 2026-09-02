@@ -2,7 +2,7 @@ import { Bot, Box, Folder, type LucideIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { cn } from '../../lib/cn'
 import type { GlobalDimension } from '../../workbench/resource'
-import { SettingsMenu } from './settings-menu'
+import { ThemeSelect } from './theme-select'
 
 type ActivityItem = {
   readonly dimension: GlobalDimension
@@ -51,7 +51,7 @@ export const ActivityBar = ({
         })}
       </nav>
       <div className="mt-auto grid">
-        <SettingsMenu />
+        <ThemeSelect />
       </div>
     </div>
   )

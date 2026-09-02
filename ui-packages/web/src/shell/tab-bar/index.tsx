@@ -2,19 +2,28 @@ import type { AgentStatus } from '@herdr-roam/shared'
 import { Bot, Box, CircleDot, FileText, Home, MessageSquare, X } from 'lucide-react'
 import { useLayoutEffect, useRef } from 'react'
 import { useAgentRuntime } from '../../features/agent/runtime-provider'
+import { useSessionData } from '../../features/session/use-session-data'
 import { cn } from '../../lib/cn'
-import type { SessionStatus } from '../../mock/data'
-import { resourceTitle, sessionById } from '../../mock/data'
+import { resourceTitle } from '../../mock/data'
 import { type ResourceRef, resourceKey, sameResource } from '../../workbench/resource'
 
 const WORKBENCH_KEY = 'workbench'
 
-const statusClasses: Readonly<Record<AgentStatus | SessionStatus, string>> = {
+const statusClasses: Readonly<Record<AgentStatus, string>> = {
   working: 'bg-primary',
   blocked: 'bg-warning',
   idle: 'bg-muted',
   done: 'bg-success',
   unknown: 'bg-faint',
+}
+
+const SessionTitle = ({
+  resource,
+}: {
+  readonly resource: Extract<ResourceRef, { type: 'session' }>
+}) => {
+  const session = useSessionData(resource.projectName, resource.provider, resource.sessionId, false)
+  return <span>{session.value?.title ?? resource.sessionId}</span>
 }
 
 const tabShellClass =
@@ -43,7 +52,7 @@ type Props = {
 }
 
 export const TabBar = ({ tabs, active, onWorkbench, onActivate, onClose }: Props) => {
-  const { agentById } = useAgentRuntime()
+  const { agentById, snapshot } = useAgentRuntime()
   const refs = useRef(new Map<string, HTMLButtonElement>())
   const visibleRefs = useRef(new Map<string, HTMLElement>())
   const keys = [WORKBENCH_KEY, ...tabs.map(resourceKey)]
@@ -125,12 +134,17 @@ export const TabBar = ({ tabs, active, onWorkbench, onActivate, onClose }: Props
                   : 'user'
                 : resource.projectName
           const agent = resource.type === 'agent' ? agentById(resource.agentId) : undefined
-          const session =
+          const sessionAgent =
             resource.type === 'session'
-              ? sessionById(resource.projectName, resource.sessionId)
+              ? snapshot.items.find(
+                  candidate =>
+                    candidate.session?.kind === 'id' &&
+                    candidate.session.agent === resource.provider &&
+                    candidate.session.value === resource.sessionId,
+                )
               : undefined
           const title = agent?.name ?? resourceTitle(resource)
-          const status = agent?.status ?? session?.status
+          const status = agent?.status ?? sessionAgent?.status
           return (
             <div
               key={key}
@@ -163,7 +177,11 @@ export const TabBar = ({ tabs, active, onWorkbench, onActivate, onClose }: Props
                   />
                 )}
                 {!status && <ResourceIcon resource={resource} />}
-                <span>{title}</span>
+                {resource.type === 'session' ? (
+                  <SessionTitle resource={resource} />
+                ) : (
+                  <span>{title}</span>
+                )}
               </button>
               <button
                 type="button"

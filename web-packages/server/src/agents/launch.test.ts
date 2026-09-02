@@ -1,8 +1,8 @@
 import { mkdtemp, realpath, rm } from 'node:fs/promises'
-import { join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { type HerdrClient, HerdrApiError } from '../herdr/client.js'
+import { HerdrApiError, type HerdrClient } from '../herdr/client.js'
 import type { RawAgent } from '../herdr/schema.js'
 import { type AgentLaunchError, generatedAgentName, launchAgent } from './launch.js'
 
@@ -25,6 +25,9 @@ const client = (values: Partial<HerdrClient> = {}): HerdrClient => ({
   listAgents: vi.fn().mockResolvedValue([]),
   readAgent: vi.fn().mockResolvedValue(''),
   promptAgent: vi.fn().mockResolvedValue(undefined),
+  sendAgentKeys: vi.fn().mockResolvedValue(undefined),
+  sendPaneInput: vi.fn().mockResolvedValue(undefined),
+  closePane: vi.fn().mockResolvedValue(undefined),
   createWorkspace: vi.fn().mockResolvedValue({
     workspaceId: 'workspace-1',
     paneId: 'w1:p1',
@@ -67,7 +70,13 @@ describe('Agent launch', () => {
       expect.stringContaining('herdr-roam-launch-'),
       'codex-herdr-roam',
     )
-    expect(runtime.startAgent).toHaveBeenCalledWith('codex-herdr-roam', 'codex', 'w1:p1', 30_000)
+    expect(runtime.startAgent).toHaveBeenCalledWith(
+      'codex-herdr-roam',
+      'codex',
+      'w1:p1',
+      [],
+      30_000,
+    )
     expect(runtime.startAgent).toHaveBeenCalledTimes(2)
     expect(runtime.promptAgent).toHaveBeenCalledWith('codex-herdr-roam', 'Review the change.')
     expect(receipt).toMatchObject({

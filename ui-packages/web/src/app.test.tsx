@@ -38,11 +38,14 @@ vi.mock('./features/agent/client', () => ({
         status: 'working',
         cwd: '/work/herdr-roam',
         attachTarget: 'w1:p1',
+        session: null,
       },
     ],
   }),
   subscribeAgentSnapshots: vi.fn(() => () => undefined),
-  fetchAgentOutput: vi.fn().mockResolvedValue({ agentId: 'terminal-codex', text: 'Recent output' }),
+  fetchAgentOutput: vi
+    .fn()
+    .mockResolvedValue({ agentId: 'terminal-codex', text: 'Recent output', truncated: false }),
 }))
 
 vi.mock('./features/agent/runtime-provider', () => {
@@ -57,6 +60,7 @@ vi.mock('./features/agent/runtime-provider', () => {
         status: 'working' as const,
         cwd: '/work/herdr-roam',
         attachTarget: 'w1:p1',
+        session: null,
       },
     ],
   }
@@ -69,6 +73,85 @@ vi.mock('./features/agent/runtime-provider', () => {
     }),
   }
 })
+
+const sessionMocks = vi.hoisted(() => ({
+  items: [
+    {
+      id: 'product-scan',
+      provider: 'codex' as const,
+      title: 'Product scan',
+      cwd: '/work/herdr-roam',
+      createdAt: '2026-08-31T10:00:00.000Z',
+      updatedAt: '2026-09-01T10:00:00.000Z',
+    },
+    {
+      id: 'mission-review',
+      provider: 'claude' as const,
+      title: 'Mission board review',
+      cwd: '/work/cc-mission-control',
+      createdAt: '2026-08-31T09:00:00.000Z',
+      updatedAt: '2026-09-01T09:00:00.000Z',
+    },
+  ],
+}))
+
+vi.mock('./features/session/client', () => ({
+  resumeSession: vi.fn(),
+  SessionClientError: class SessionClientError extends Error {},
+}))
+
+vi.mock('./features/session/use-session-data', () => ({
+  useProjectSessions: (projectName: string) => ({
+    value: {
+      items: sessionMocks.items.filter(session => session.cwd.endsWith(projectName)),
+      total: sessionMocks.items.filter(session => session.cwd.endsWith(projectName)).length,
+      nextCursor: null,
+    },
+    loading: false,
+    error: null,
+    page: 1,
+    hasNewer: false,
+    older: vi.fn(),
+    newer: vi.fn(),
+  }),
+  useSessionData: (projectName: string, provider: 'codex' | 'claude', sessionId: string) => {
+    const summary = sessionMocks.items.find(
+      session =>
+        session.cwd.endsWith(projectName) &&
+        session.provider === provider &&
+        session.id === sessionId,
+    )
+    return {
+      value: summary
+        ? {
+            ...summary,
+            mode: 'page' as const,
+            entries: [
+              {
+                kind: 'message' as const,
+                id: `${sessionId}-message`,
+                role: 'assistant' as const,
+                text: 'Session history',
+                createdAt: summary.updatedAt,
+                attachments: [],
+              },
+            ],
+            olderCursor: null,
+            tailCursor: 'tail-1',
+            atLatest: true,
+          }
+        : null,
+      loading: false,
+      error: null,
+      navigation: 'initial' as const,
+      hasNewer: false,
+      loadOlder: vi.fn(),
+      loadNewer: vi.fn(),
+      loadLatest: vi.fn(),
+      reload: vi.fn(),
+    }
+  },
+}))
 
 const selectProjectResource = (sidebar: ReturnType<typeof within>, resource: string) =>
   fireEvent.click(sidebar.getByRole('button', { name: resource }))
@@ -116,7 +199,7 @@ describe('workbench application', () => {
       </MemoryRouter>,
     )
     const sidebar = within(screen.getByTestId('context-sidebar'))
-    fireEvent.click(sidebar.getByRole('button', { name: /Product scan/ }))
+    fireEvent.click(await sidebar.findByRole('button', { name: /Product scan/ }))
     await waitFor(() => expect(screen.getByRole('tab', { name: /Product scan/ })).toBeVisible())
     fireEvent.click(sidebar.getByRole('button', { name: /Product scan/ }))
     expect(screen.getAllByRole('tab', { name: /Product scan/ })).toHaveLength(1)
@@ -141,32 +224,48 @@ describe('workbench application', () => {
     fireEvent.click(source)
     const sidebar = within(screen.getByTestId('context-sidebar'))
     selectProjectResource(sidebar, 'Sessions')
-    fireEvent.click(sidebar.getByRole('button', { name: /Product scan/ }))
+    fireEvent.click(await sidebar.findByRole('button', { name: /Product scan/ }))
     fireEvent.click(screen.getByRole('tab', { name: /vision-and-scope.md/ }))
     expect(screen.getByRole('button', { name: 'source' })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('preserves a Session draft with Activity and omits unavailable actions', async () => {
+  it('preserves a Session tab across Activities and omits unavailable actions', async () => {
     render(
-      <MemoryRouter initialEntries={['/projects/herdr-roam/sessions/product-scan']}>
+      <MemoryRouter initialEntries={['/projects/herdr-roam/sessions/codex/product-scan']}>
         <App />
       </MemoryRouter>,
     )
 
-    const prompt = await screen.findByRole('textbox', { name: /Continue this Session/ })
-    fireEvent.change(prompt, { target: { value: 'Keep this draft' } })
+    expect(await screen.findByText('Session history')).toBeVisible()
     const sidebar = within(screen.getByTestId('context-sidebar'))
     selectProjectResource(sidebar, 'Files')
     fireEvent.click(sidebar.getByRole('button', { name: 'vision-and-scope.md' }))
     fireEvent.click(screen.getByRole('tab', { name: /Product scan/ }))
 
-    expect(screen.getByRole('textbox', { name: /Continue this Session/ })).toHaveValue(
-      'Keep this draft',
-    )
+    expect(screen.getByRole('button', { name: 'Resume Session' })).toBeVisible()
     expect(screen.queryByRole('button', { name: 'Search' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Tab actions' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Inspector' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Attach/ })).not.toBeInTheDocument()
+  })
+
+  it('focuses a Session workbench and exits with Escape', async () => {
+    render(
+      <MemoryRouter initialEntries={['/projects/herdr-roam/sessions/codex/product-scan']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    await screen.findByText('Session history')
+    fireEvent.click(screen.getByRole('button', { name: 'Enter focus mode' }))
+    expect(screen.getByRole('button', { name: 'Exit focus mode' }).closest('.fixed')).not.toBeNull()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.getByRole('button', { name: 'Enter focus mode' }).closest('.fixed')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enter focus mode' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Workbench' }))
+    expect(screen.queryByRole('button', { name: 'Exit focus mode' })).not.toBeInTheDocument()
   })
 
   it('opens Issue, File, and Skill resources in the same tablist', async () => {
@@ -296,7 +395,9 @@ describe('workbench application', () => {
 
   it('keeps the Active Project while opening a resource owned by another project', async () => {
     render(
-      <MemoryRouter initialEntries={['/projects/cc-mission-control/sessions/mission-review']}>
+      <MemoryRouter
+        initialEntries={['/projects/cc-mission-control/sessions/claude/mission-review']}
+      >
         <App />
       </MemoryRouter>,
     )
@@ -310,9 +411,9 @@ describe('workbench application', () => {
     expect(screen.getByRole('button', { name: 'Active project' })).toHaveTextContent('herdr-roam')
   })
 
-  it('opens Settings without changing the active resource route', async () => {
+  it('changes Theme without changing the active resource route', async () => {
     render(
-      <MemoryRouter initialEntries={['/projects/herdr-roam/sessions/product-scan']}>
+      <MemoryRouter initialEntries={['/projects/herdr-roam/sessions/codex/product-scan']}>
         <App />
         <CurrentPath />
       </MemoryRouter>,
@@ -324,14 +425,15 @@ describe('workbench application', () => {
         'true',
       ),
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Theme: System' }))
     expect(screen.getByRole('radiogroup', { name: 'Theme' })).toBeVisible()
     fireEvent.click(screen.getByRole('radio', { name: 'Dark' }))
 
     expect(screen.getByTestId('current-path')).toHaveTextContent(
-      '/projects/herdr-roam/sessions/product-scan',
+      '/projects/herdr-roam/sessions/codex/product-scan',
     )
     expect(document.documentElement).toHaveAttribute('data-theme', 'dark')
+    expect(screen.getByRole('button', { name: 'Theme: Dark' })).toBeVisible()
     expect(useWorkbenchStore.getState().tabs).toHaveLength(1)
     expect(screen.getByRole('tab', { name: /Product scan/ })).toHaveAttribute(
       'aria-selected',

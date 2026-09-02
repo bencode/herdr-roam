@@ -29,6 +29,27 @@ describe('Agent mapper', () => {
       status: 'working',
       cwd: '/work/root/packages/web',
       attachTarget: 'w1:p1',
+      session: null,
+    })
+  })
+
+  it('preserves Herdr native Session identity', () => {
+    expect(
+      mapAgent(
+        raw({
+          agent_session: {
+            source: 'herdr:codex',
+            agent: 'codex',
+            kind: 'id',
+            value: 'session-1',
+          },
+        }),
+      ).session,
+    ).toEqual({
+      source: 'herdr:codex',
+      agent: 'codex',
+      kind: 'id',
+      value: 'session-1',
     })
   })
 

@@ -23,6 +23,15 @@ export const rawAgentSchema = z.object({
   title: z.string().nullable().optional(),
   launch_pending: z.boolean().optional(),
   interactive_ready: z.boolean().optional(),
+  agent_session: z
+    .object({
+      source: z.string().min(1),
+      agent: z.string().min(1),
+      kind: z.enum(['id', 'path']),
+      value: z.string().min(1),
+    })
+    .nullable()
+    .optional(),
 })
 
 export type RawAgent = z.infer<typeof rawAgentSchema>
@@ -56,13 +65,15 @@ export const agentStartedResultSchema = z.object({
 export const workspaceCreatedResultSchema = z.object({
   type: z.literal('workspace_created'),
   workspace: z.object({ workspace_id: z.string().min(1) }).passthrough(),
-  root_pane: z
-    .object({ pane_id: z.string().min(1), terminal_id: z.string().min(1) })
-    .passthrough(),
+  root_pane: z.object({ pane_id: z.string().min(1), terminal_id: z.string().min(1) }).passthrough(),
 })
 
 export const subscriptionStartedSchema = z.object({
   type: z.literal('subscription_started'),
+})
+
+export const okResultSchema = z.object({
+  type: z.literal('ok'),
 })
 
 export const successResponseSchema = z.object({

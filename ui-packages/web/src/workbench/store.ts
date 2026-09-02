@@ -8,14 +8,14 @@ import {
   routeDimension,
 } from './resource-route'
 
-const STORAGE_KEY = 'herdr-roam.workbench.v3'
-const LEGACY_STORAGE_KEY = 'herdr-roam.workbench.v2'
+const STORAGE_KEY = 'herdr-roam.workbench.v4'
+const LEGACY_STORAGE_KEYS = ['herdr-roam.workbench.v3', 'herdr-roam.workbench.v2'] as const
 const DEFAULT_PROJECT = 'herdr-roam'
 
 export type ActivityPaths = Readonly<Record<GlobalDimension, string>>
 
 export type WorkbenchSnapshot = {
-  readonly version: 3
+  readonly version: 4
   readonly activeProjectName: string
   readonly tabs: readonly ResourceRef[]
   readonly lastActive: ResourceRef | null
@@ -39,7 +39,7 @@ const defaultActivityPaths = (projectName: string): ActivityPaths => ({
 })
 
 const defaultSnapshot = (projectName: string): WorkbenchSnapshot => ({
-  version: 3,
+  version: 4,
   activeProjectName: projectName,
   tabs: [],
   lastActive: null,
@@ -66,7 +66,7 @@ const validActivityPath = (value: unknown, dimension: GlobalDimension): string |
 
 const parseSnapshot = (value: unknown): WorkbenchSnapshot | null => {
   const record = snapshotRecord(value)
-  if (record?.version !== 3 || typeof record.activeProjectName !== 'string') return null
+  if (record?.version !== 4 || typeof record.activeProjectName !== 'string') return null
   if (!Array.isArray(record.tabs) || !record.tabs.every(isResourceRef)) return null
   if (record.lastActive !== null && !isResourceRef(record.lastActive)) return null
   const storedPaths = snapshotRecord(record.activityPaths)
@@ -77,7 +77,7 @@ const parseSnapshot = (value: unknown): WorkbenchSnapshot | null => {
     skills: validActivityPath(storedPaths?.skills, 'skills') ?? defaults.skills,
   }
   return {
-    version: 3,
+    version: 4,
     activeProjectName: record.activeProjectName,
     tabs: record.tabs,
     lastActive: record.lastActive,
@@ -88,16 +88,22 @@ const parseSnapshot = (value: unknown): WorkbenchSnapshot | null => {
 
 const migrateSnapshot = (value: unknown): WorkbenchSnapshot | null => {
   const record = snapshotRecord(value)
-  if (record?.version !== 2 || typeof record.activeProjectName !== 'string') return null
-  if (!Array.isArray(record.tabs) || !record.tabs.every(isResourceRef)) return null
-  if (record.lastActive !== null && !isResourceRef(record.lastActive)) return null
+  if (
+    (record?.version !== 2 && record?.version !== 3) ||
+    typeof record.activeProjectName !== 'string'
+  ) {
+    return null
+  }
+  if (!Array.isArray(record.tabs)) return null
+  const tabs = record.tabs.filter(isResourceRef)
+  const lastActive = isResourceRef(record.lastActive) ? record.lastActive : null
   const migrated = {
     ...defaultSnapshot(record.activeProjectName),
-    tabs: record.tabs,
-    lastActive: record.lastActive,
+    tabs,
+    lastActive,
   }
-  if (!record.lastActive) return migrated
-  const pathname = resourcePath(record.lastActive)
+  if (!lastActive) return migrated
+  const pathname = resourcePath(lastActive)
   const dimension = routeDimension(parseResourcePath(pathname))
   if (!dimension) return migrated
   return {
@@ -124,12 +130,14 @@ const readSnapshot = (): WorkbenchSnapshot => {
       console.error('workbench state is invalid; using defaults')
       return defaultWorkbenchSnapshot
     }
-    const legacyRaw = globalThis.localStorage?.getItem(LEGACY_STORAGE_KEY)
-    if (!legacyRaw) return defaultWorkbenchSnapshot
-    const migrated = migrateSnapshot(JSON.parse(legacyRaw))
-    if (migrated) {
-      persist(migrated)
-      return migrated
+    for (const key of LEGACY_STORAGE_KEYS) {
+      const legacyRaw = globalThis.localStorage?.getItem(key)
+      if (!legacyRaw) continue
+      const migrated = migrateSnapshot(JSON.parse(legacyRaw))
+      if (migrated) {
+        persist(migrated)
+        return migrated
+      }
     }
     console.error('workbench state is invalid; using defaults')
   } catch (error) {
@@ -149,7 +157,7 @@ const belongsToProject = (resource: ResourceRef, projectName: string): boolean =
   'projectName' in resource && resource.projectName === projectName
 
 const snapshotOf = (state: WorkbenchSnapshot): WorkbenchSnapshot => ({
-  version: 3,
+  version: 4,
   activeProjectName: state.activeProjectName,
   tabs: state.tabs,
   lastActive: state.lastActive,

@@ -1,5 +1,5 @@
-import { act, render, screen } from '@testing-library/react'
 import type { AgentRuntimeSnapshot } from '@herdr-roam/shared'
+import { act, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -53,6 +53,7 @@ describe('Agent runtime provider', () => {
             status: 'idle',
             cwd: null,
             attachTarget: 'w1:p1',
+            session: null,
           },
         ],
       })

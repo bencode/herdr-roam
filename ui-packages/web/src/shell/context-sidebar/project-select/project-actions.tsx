@@ -1,9 +1,7 @@
 import type { Project } from '@herdr-roam/shared'
 import { ArrowLeft, Check, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-
-const actionClass =
-  'flex h-7 items-center justify-center gap-1.5 rounded-sm border-0 px-2.5 text-xs disabled:opacity-45 [&_svg]:size-3'
+import { Button } from '../../../ui/button'
 
 export const AddProjectForm = ({
   onBack,
@@ -40,13 +38,13 @@ export const AddProjectForm = ({
         void submit()
       }}
     >
-      <button
-        type="button"
-        className="mb-2 flex h-7 items-center gap-1 rounded-sm px-1.5 text-xs text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3"
+      <Button
+        className="mb-2"
+        size="compact"
         onClick={onBack}
       >
         <ArrowLeft aria-hidden="true" /> Projects
-      </button>
+      </Button>
       <label className="block text-xs text-muted">
         Absolute path
         <input
@@ -64,13 +62,15 @@ export const AddProjectForm = ({
           {error}
         </p>
       )}
-      <button
+      <Button
         type="submit"
-        className={`${actionClass} mt-3 ml-auto bg-primary text-white hover:opacity-90`}
+        className="mt-3 ml-auto"
         disabled={!path.trim() || submitting}
+        size="compact"
+        variant="primary"
       >
         <Check aria-hidden="true" /> {submitting ? 'Adding…' : 'Add project'}
-      </button>
+      </Button>
     </form>
   )
 }
@@ -107,13 +107,13 @@ export const ManageProjects = ({
 
   return (
     <div className="p-2">
-      <button
-        type="button"
-        className="mb-1 flex h-7 items-center gap-1 rounded-sm px-1.5 text-xs text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3"
+      <Button
+        className="mb-1"
+        size="compact"
         onClick={onBack}
       >
         <ArrowLeft aria-hidden="true" /> Projects
-      </button>
+      </Button>
       <div className="max-h-64 overflow-auto">
         {projects.map(project => (
           <div className="border-border border-b px-1 py-2 last:border-b-0" key={project.name}>
@@ -125,9 +125,10 @@ export const ManageProjects = ({
                 </small>
               </span>
               {confirming !== project.name && (
-                <button
-                  type="button"
-                  className="grid size-7 flex-none place-items-center rounded-sm text-muted hover:bg-danger/10 hover:text-danger [&_svg]:size-3"
+                <Button
+                  className="flex-none"
+                  size="compactIcon"
+                  variant="dangerGhost"
                   aria-label={`Remove ${project.name}`}
                   onClick={() => {
                     setConfirming(project.name)
@@ -135,27 +136,26 @@ export const ManageProjects = ({
                   }}
                 >
                   <Trash2 aria-hidden="true" />
-                </button>
+                </Button>
               )}
             </div>
             {confirming === project.name && (
               <div className="mt-2 flex items-center gap-2 text-xs">
                 <span className="min-w-0 flex-1 text-muted">Remove from Roam?</span>
-                <button
-                  type="button"
-                  className={`${actionClass} bg-transparent text-muted hover:bg-hover`}
+                <Button
+                  size="compact"
                   onClick={() => setConfirming(null)}
                 >
                   Cancel
-                </button>
-                <button
-                  type="button"
-                  className={`${actionClass} bg-danger text-white hover:opacity-90`}
+                </Button>
+                <Button
                   disabled={removing}
+                  size="compact"
+                  variant="danger"
                   onClick={() => void remove(project.name)}
                 >
                   {removing ? 'Removing…' : 'Remove'}
-                </button>
+                </Button>
               </div>
             )}
           </div>

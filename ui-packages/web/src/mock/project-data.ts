@@ -1,4 +1,4 @@
-import type { FileResource, Issue, Loop, Project, Session } from './data'
+import type { FileResource, Issue, Loop, Project } from './data'
 
 export const projects: readonly Project[] = [
   {
@@ -16,62 +16,6 @@ export const projects: readonly Project[] = [
     path: '/archive/herdr-roam',
     issuesConfigured: false,
   },
-]
-
-const visionFile = {
-  type: 'file' as const,
-  projectName: 'herdr-roam',
-  path: 'docs/product/vision-and-scope.md',
-}
-
-const session = (
-  id: string,
-  title: string,
-  provider: Session['provider'],
-  status: Session['status'],
-  updated: string,
-  projectName = 'herdr-roam',
-): Session => ({
-  id,
-  title,
-  provider,
-  status,
-  updated,
-  projectName,
-  messages: [
-    {
-      id: `${id}-user-1`,
-      author: 'You',
-      body: `Review ${title.toLowerCase()} and leave a concrete result for the project.`,
-    },
-    {
-      id: `${id}-agent-1`,
-      author: provider,
-      body: `${title} has been reviewed. The current fixture keeps the conversation readable while the project layout is exercised with realistic data density.`,
-    },
-  ],
-})
-
-export const sessions: readonly Session[] = [
-  {
-    ...session('product-scan', 'Product scan', 'Codex', 'working', 'now'),
-    artifact: visionFile,
-  },
-  session('api-review', 'API review', 'Claude', 'blocked', '12m'),
-  session('runtime-design', 'Runtime design', 'Codex', 'done', '1h'),
-  session('security-review', 'Local security boundary review', 'Claude', 'working', '1h'),
-  session('issue-schema', 'Issue front matter compatibility', 'Codex', 'idle', '2h'),
-  session('session-discovery', 'Codex and Claude session discovery', 'Claude', 'done', '3h'),
-  session('file-tree-audit', 'Large repository file tree audit', 'Codex', 'working', '4h'),
-  session('loop-scheduler', 'Loop scheduler failure semantics', 'Claude', 'blocked', '5h'),
-  session('attach-protocol', 'Browser attach ownership protocol', 'Codex', 'idle', 'yesterday'),
-  session('dark-theme-check', 'Dark theme accessibility check', 'Claude', 'done', 'yesterday'),
-  session('release-notes', 'Prepare the first public release notes', 'Codex', 'done', '2d'),
-  session('test-stability', 'Stabilize workbench interaction tests', 'Claude', 'done', '3d'),
-  session('provider-parity', 'Provider capability parity matrix', 'Codex', 'idle', '4d'),
-  session('docs-polish', 'Product documentation consistency pass', 'Claude', 'done', '6d'),
-  session('mission-review', 'Mission board review', 'Claude', 'idle', '2h', 'cc-mission-control'),
-  session('archive-notes', 'Archive migration notes', 'Codex', 'done', '8d', 'cc-mission-control'),
 ]
 
 type IssueSpec = readonly [
@@ -203,6 +147,7 @@ export const issues: readonly Issue[] = issueSpecs.map(
     stage,
     labels,
     sessionId,
+    sessionProvider: 'codex',
     filePath,
     projectName: 'herdr-roam',
     body: `## Problem\n\n${title} needs a concrete, reviewable product decision.\n\n## Acceptance\n\n- The decision is visible in Roam.\n- Agents can consume the result without reconstructing context.`,

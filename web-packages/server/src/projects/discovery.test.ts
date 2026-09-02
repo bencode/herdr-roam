@@ -69,6 +69,7 @@ describe('Agent Project discovery', () => {
       },
       output: vi.fn(),
       prompt: vi.fn(),
+      respond: vi.fn(),
       focus: vi.fn(),
       launch: vi.fn(),
     }

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ launch: vi.fn() }))
+const mocks = vi.hoisted(() => ({ launch: vi.fn(), runtimeConnected: true }))
 
 vi.mock('../../agent/client', async importOriginal => {
   const original = await importOriginal<typeof import('../../agent/client')>()
@@ -10,7 +10,13 @@ vi.mock('../../agent/client', async importOriginal => {
 vi.mock('../../agent/runtime-provider', () => ({
   useAgentRuntime: () => ({
     snapshot: {
-      source: { state: 'connected' as const, version: '0.8.2', protocol: 20 },
+      source: mocks.runtimeConnected
+        ? ({ state: 'connected' as const, version: '0.8.2', protocol: 20 } as const)
+        : ({
+            state: 'unavailable' as const,
+            code: 'herdr_not_running' as const,
+            message: 'The default Herdr server is not running.',
+          } as const),
       stale: false,
       items: [],
     },
@@ -25,6 +31,7 @@ const project = { name: 'herdr-roam', path: '/work/herdr-roam' }
 describe('Workbench Agent launcher', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.runtimeConnected = true
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
@@ -89,5 +96,13 @@ describe('Workbench Agent launcher', () => {
         'herdr terminal attach terminal-1',
       ),
     )
+  })
+
+  it('points offline users to the global Runtime setup', () => {
+    mocks.runtimeConnected = false
+    render(<AgentLauncher project={project} onOpen={() => undefined} />)
+
+    expect(screen.getByText(/Check Runtime status at the bottom left for setup/)).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Start codex' })).toBeDisabled()
   })
 })

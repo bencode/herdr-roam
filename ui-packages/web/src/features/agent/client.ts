@@ -1,15 +1,25 @@
 import type {
   AgentApiError,
+  AgentInputReceipt,
+  AgentInputRequest,
   AgentLaunchReceipt,
   AgentLaunchRecovery,
   AgentLaunchRequest,
   AgentOutput,
   AgentPromptReceipt,
   AgentRuntimeSnapshot,
+  AgentStopReceipt,
 } from '@herdr-roam/shared'
 import { z } from 'zod'
 
 const agentStatusSchema = z.enum(['blocked', 'working', 'idle', 'done', 'unknown'])
+
+const agentSessionSchema = z.object({
+  source: z.string().min(1),
+  agent: z.string().min(1),
+  kind: z.enum(['id', 'path']),
+  value: z.string().min(1),
+})
 
 const agentSummarySchema = z.object({
   id: z.string().min(1),
@@ -18,6 +28,7 @@ const agentSummarySchema = z.object({
   status: agentStatusSchema,
   cwd: z.string().min(1).nullable(),
   attachTarget: z.string().min(1),
+  session: agentSessionSchema.nullable(),
 })
 
 const agentRuntimeSnapshotSchema = z.object({
@@ -45,9 +56,10 @@ const agentRuntimeSnapshotSchema = z.object({
 const agentOutputSchema = z.object({
   agentId: z.string().min(1),
   text: z.string(),
+  truncated: z.boolean(),
 })
 
-const agentPromptReceiptSchema = z.object({
+const agentReceiptSchema = z.object({
   agentId: z.string().min(1),
 })
 
@@ -75,7 +87,11 @@ const agentApiErrorSchema = z.object({
       'invalid_prompt',
       'agent_not_ready',
       'agent_prompt_unavailable',
+      'invalid_agent_input',
+      'agent_input_unavailable',
+      'invalid_prompt_image',
       'agent_focus_unavailable',
+      'agent_stop_unavailable',
       'invalid_agent_launch',
       'project_not_found',
       'project_directory_unavailable',
@@ -135,9 +151,14 @@ const parsedResponse = async <Value>(
   try {
     return parse(body)
   } catch (error) {
-    throw new AgentClientError('invalid_response', 'The server returned an invalid Agent payload.', null, {
-      cause: error,
-    })
+    throw new AgentClientError(
+      'invalid_response',
+      'The server returned an invalid Agent payload.',
+      null,
+      {
+        cause: error,
+      },
+    )
   }
 }
 
@@ -146,7 +167,9 @@ export const fetchAgentSnapshot = async (): Promise<AgentRuntimeSnapshot> => {
     return await parsedResponse(await fetch('/api/agents'), agentRuntimeSnapshotSchema.parse)
   } catch (error) {
     if (error instanceof AgentClientError) throw error
-    throw new AgentClientError('network_error', 'Herdr Roam could not be reached.', null, { cause: error })
+    throw new AgentClientError('network_error', 'Herdr Roam could not be reached.', null, {
+      cause: error,
+    })
   }
 }
 
@@ -167,19 +190,52 @@ export const fetchAgentOutput = async (agentId: string): Promise<AgentOutput> =>
 export const submitAgentPrompt = async (
   agentId: string,
   text: string,
+  images: readonly File[] = [],
 ): Promise<AgentPromptReceipt> => {
+  const request =
+    images.length === 0
+      ? {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ text }),
+        }
+      : (() => {
+          const form = new FormData()
+          form.set('text', text)
+          images.forEach(image => {
+            form.append('images', image)
+          })
+          return { method: 'POST', body: form }
+        })()
   try {
     return await parsedResponse(
-      await fetch(`/api/agents/${encodeURIComponent(agentId)}/prompts`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ text }),
-      }),
-      agentPromptReceiptSchema.parse,
+      await fetch(`/api/agents/${encodeURIComponent(agentId)}/prompts`, request),
+      agentReceiptSchema.parse,
     )
   } catch (error) {
     if (error instanceof AgentClientError) throw error
     throw new AgentClientError('network_error', 'The Prompt could not be submitted.', null, {
+      cause: error,
+    })
+  }
+}
+
+export const sendAgentInput = async (
+  agentId: string,
+  input: AgentInputRequest,
+): Promise<AgentInputReceipt> => {
+  try {
+    return await parsedResponse(
+      await fetch(`/api/agents/${encodeURIComponent(agentId)}/input`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(input),
+      }),
+      agentReceiptSchema.parse,
+    )
+  } catch (error) {
+    if (error instanceof AgentClientError) throw error
+    throw new AgentClientError('network_error', 'The Agent input could not be sent.', null, {
       cause: error,
     })
   }
@@ -209,11 +265,25 @@ export const focusAgentInHerdr = async (agentId: string): Promise<AgentPromptRec
   try {
     return await parsedResponse(
       await fetch(`/api/agents/${encodeURIComponent(agentId)}/focus`, { method: 'POST' }),
-      agentPromptReceiptSchema.parse,
+      agentReceiptSchema.parse,
     )
   } catch (error) {
     if (error instanceof AgentClientError) throw error
     throw new AgentClientError('network_error', 'The Agent could not be focused.', null, {
+      cause: error,
+    })
+  }
+}
+
+export const stopAgent = async (agentId: string): Promise<AgentStopReceipt> => {
+  try {
+    return await parsedResponse(
+      await fetch(`/api/agents/${encodeURIComponent(agentId)}`, { method: 'DELETE' }),
+      agentReceiptSchema.parse,
+    )
+  } catch (error) {
+    if (error instanceof AgentClientError) throw error
+    throw new AgentClientError('network_error', 'The Agent could not be stopped.', null, {
       cause: error,
     })
   }
@@ -229,9 +299,14 @@ export const subscribeAgentSnapshots = (
       onSnapshot(agentRuntimeSnapshotSchema.parse(JSON.parse(event.data)))
     } catch (error) {
       onError(
-        new AgentClientError('invalid_response', 'The Agent event stream returned invalid data.', null, {
-          cause: error,
-        }),
+        new AgentClientError(
+          'invalid_response',
+          'The Agent event stream returned invalid data.',
+          null,
+          {
+            cause: error,
+          },
+        ),
       )
     }
   })

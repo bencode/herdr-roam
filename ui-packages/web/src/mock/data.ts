@@ -1,26 +1,10 @@
 import type { ResourceRef } from '../workbench/resource'
-import { files, issues, loops, projects, sessions } from './project-data'
+import { files, issues, loops, projects } from './project-data'
 
 export type Project = {
   readonly name: string
   readonly path: string
   readonly issuesConfigured: boolean
-}
-export type SessionStatus = 'working' | 'blocked' | 'idle' | 'done'
-export type SessionMessage = {
-  readonly id: string
-  readonly author: 'You' | 'Codex' | 'Claude'
-  readonly body: string
-}
-export type Session = {
-  readonly id: string
-  readonly title: string
-  readonly projectName: string
-  readonly provider: 'Codex' | 'Claude'
-  readonly status: SessionStatus
-  readonly updated: string
-  readonly messages: readonly SessionMessage[]
-  readonly artifact?: ResourceRef
 }
 export type Issue = {
   readonly id: string
@@ -31,6 +15,7 @@ export type Issue = {
   readonly labels: readonly string[]
   readonly body: string
   readonly sessionId: string
+  readonly sessionProvider: 'codex' | 'claude'
   readonly filePath: string
 }
 export type LoopStatus = 'enabled' | 'paused' | 'error'
@@ -58,7 +43,7 @@ export type SkillResource = {
   readonly resources: readonly string[]
 }
 
-export { files, issues, loops, projects, sessions }
+export { files, issues, loops, projects }
 
 export const skills: readonly SkillResource[] = [
   {
@@ -88,8 +73,6 @@ Each Issue is a Markdown file. YAML Front Matter contains structured fields and 
 
 export const projectByName = (projectName: string): Project | undefined =>
   projects.find(project => project.name === projectName)
-export const sessionById = (projectName: string, sessionId: string): Session | undefined =>
-  sessions.find(session => session.projectName === projectName && session.id === sessionId)
 export const issueById = (projectName: string, issueId: string): Issue | undefined =>
   issues.find(issue => issue.projectName === projectName && issue.id === issueId)
 export const fileByPath = (projectName: string, path: string): FileResource | undefined =>
@@ -99,8 +82,7 @@ export const skillById = (skillId: string): SkillResource | undefined =>
 
 export const resourceTitle = (resource: ResourceRef): string => {
   if (resource.type === 'agent') return resource.agentId
-  if (resource.type === 'session')
-    return sessionById(resource.projectName, resource.sessionId)?.title ?? resource.sessionId
+  if (resource.type === 'session') return resource.sessionId
   if (resource.type === 'issue') return resource.issueId.toUpperCase()
   if (resource.type === 'file') return resource.path.split('/').at(-1) ?? resource.path
   return skillById(resource.skillId)?.name ?? resource.skillId

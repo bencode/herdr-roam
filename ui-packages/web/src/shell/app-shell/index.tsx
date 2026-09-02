@@ -1,15 +1,21 @@
 import type { Project } from '@herdr-roam/shared'
 import { PanelLeft } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Group, Panel, Separator, useDefaultLayout, usePanelRef } from 'react-resizable-panels'
 import { useAgentRuntime } from '../../features/agent/runtime-provider'
 import { cn } from '../../lib/cn'
-import type { GlobalDimension, ProjectSection, ResourceRef } from '../../workbench/resource'
+import {
+  type GlobalDimension,
+  type ProjectSection,
+  type ResourceRef,
+  resourceKey,
+} from '../../workbench/resource'
 import { ActivityBar } from '../activity-bar'
 import { BrandMark } from '../brand-mark'
 import { ContextSidebar } from '../context-sidebar'
 import { ProjectSelect } from '../context-sidebar/project-select'
 import { ResourceHost } from '../resource-host'
+import { RuntimeStatus } from '../runtime-status'
 import { TabBar } from '../tab-bar'
 
 const DEFAULT_SIDEBAR_WIDTH = 320
@@ -70,15 +76,31 @@ export const AppShell = ({
   onOpen,
   onClose,
 }: Props) => {
-  const { snapshot } = useAgentRuntime()
+  const { snapshot, transportError } = useAgentRuntime()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [focusedResourceKey, setFocusedResourceKey] = useState<string | null>(null)
   const sidebarRef = usePanelRef()
   const expandedWidth = useRef(readSidebarWidth())
+  const activeResourceKey = active ? resourceKey(active) : null
+  const focusMode = activeResourceKey !== null && focusedResourceKey === activeResourceKey
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({
     id: 'herdr-roam.app-shell.v1',
     panelIds: ['context-sidebar', 'workbench'],
     storage: globalThis.localStorage,
   })
+
+  useEffect(() => {
+    setFocusedResourceKey(current => (current && current !== activeResourceKey ? null : current))
+  }, [activeResourceKey])
+
+  useEffect(() => {
+    if (!focusMode) return
+    const exitFocusMode = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setFocusedResourceKey(null)
+    }
+    document.addEventListener('keydown', exitFocusMode)
+    return () => document.removeEventListener('keydown', exitFocusMode)
+  }, [focusMode])
 
   const setCollapsed = (collapsed: boolean) => {
     setSidebarCollapsed(collapsed)
@@ -195,24 +217,24 @@ export const AppShell = ({
                 onProjectSection={onProjectSection}
                 onOpen={onOpen}
               />
-              <footer className="flex h-10.5 flex-none items-center gap-2 border-border border-t px-2.75 text-[0.6875rem] text-muted">
-                {snapshot.items.length > 0 || snapshot.source.state === 'connected' ? (
-                  <>
-                    <span>{snapshot.items.length} agents</span>
-                    <span className="text-warning">
-                      {snapshot.items.filter(agent => agent.status === 'blocked').length} blocked
-                    </span>
-                    {snapshot.stale && <span className="text-faint">stale</span>}
-                  </>
-                ) : (
-                  <span className="text-danger">Runtime unavailable</span>
-                )}
+              <footer className="flex h-10.5 flex-none border-border border-t px-2">
+                <RuntimeStatus
+                  snapshot={snapshot}
+                  transportError={transportError?.message ?? null}
+                />
               </footer>
             </div>
           </div>
         </Panel>
         <Separator className="w-px bg-border transition-colors duration-150 hover:bg-primary data-[resize-handle-active]:bg-primary" />
-        <Panel id="workbench" minSize={560} className="flex min-h-0 min-w-0 flex-col bg-surface">
+        <Panel
+          id="workbench"
+          minSize={560}
+          className={cn(
+            'flex min-h-0 min-w-0 flex-col bg-surface',
+            focusMode && 'fixed inset-0 z-[var(--z-focus)] !w-auto !max-w-none',
+          )}
+        >
           <TabBar
             tabs={tabs}
             active={active}
@@ -222,9 +244,12 @@ export const AppShell = ({
           />
           <ResourceHost
             project={projects.find(project => project.name === activeProjectName) ?? null}
+            projects={projects}
             tabs={tabs}
             active={active}
             onOpen={onOpen}
+            focusMode={focusMode}
+            onFocusModeChange={focused => setFocusedResourceKey(focused ? activeResourceKey : null)}
           />
         </Panel>
       </Group>

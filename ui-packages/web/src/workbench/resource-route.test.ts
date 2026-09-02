@@ -28,9 +28,14 @@ describe('resource routes', () => {
       kind: 'workbench',
       projectName: 'herdr-roam',
     })
-    expect(parseResourcePath('/projects/herdr-roam/sessions/product-scan')).toEqual({
+    expect(parseResourcePath('/projects/herdr-roam/sessions/codex/product-scan')).toEqual({
       kind: 'resource',
-      resource: { type: 'session', projectName: 'herdr-roam', sessionId: 'product-scan' },
+      resource: {
+        type: 'session',
+        projectName: 'herdr-roam',
+        provider: 'codex',
+        sessionId: 'product-scan',
+      },
     })
     expect(parseResourcePath('/projects/herdr-roam/issues')).toEqual({
       kind: 'project-section',

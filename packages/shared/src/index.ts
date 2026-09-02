@@ -1,15 +1,27 @@
 export type {
   AgentApiError,
-  AgentOutput,
+  AgentInputKey,
+  AgentInputReceipt,
+  AgentInputRequest,
   AgentLaunchReceipt,
   AgentLaunchRecovery,
   AgentLaunchRequest,
-  AgentProvider,
+  AgentOutput,
+  AgentPromptImageType,
   AgentPromptReceipt,
   AgentPromptRequest,
+  AgentProvider,
   AgentRuntimeSnapshot,
+  AgentSessionRef,
   AgentStatus,
+  AgentStopReceipt,
   AgentSummary,
+} from './api/agent.js'
+export {
+  AGENT_PROMPT_IMAGE_MAX_BYTES,
+  AGENT_PROMPT_IMAGE_MAX_COUNT,
+  AGENT_PROMPT_IMAGE_TYPES,
+  AGENT_TEXT_MAX_BYTES,
 } from './api/agent.js'
 export type {
   Project,
@@ -18,3 +30,18 @@ export type {
   ProjectMutationReceipt,
   ProjectRegistrySnapshot,
 } from './api/project.js'
+export type {
+  SessionActivityEntry,
+  SessionActivityUpdate,
+  SessionApiError,
+  SessionAttachment,
+  SessionCatalog,
+  SessionEntry,
+  SessionHistoryDelta,
+  SessionHistoryPage,
+  SessionMessageEntry,
+  SessionOmissionEntry,
+  SessionProvider,
+  SessionResumeReceipt,
+  SessionSummary,
+} from './api/session.js'

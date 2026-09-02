@@ -52,7 +52,8 @@ The server:
 
 The browser presents Project, Agent, Session, Issue, Loop, File, and Skill views
 inside one tabbed work area. It does not access the filesystem or Herdr socket
-directly. The current Agent surface is a read-only text Inspector.
+directly. Session pages render provider-owned conversation history, while Agent
+pages expose recent terminal output and operational input.
 
 ## Herdr Discovery
 
@@ -162,6 +163,28 @@ database, supplies durable history for this project state.
 Herdr Roam derives global and per-project views from those sources. It does not
 persist a duplicate task, agent, artifact, or conversation model in a database
 in the first version.
+
+Session discovery reads Codex JSONL files under `~/.codex/sessions` and Claude
+JSONL files under `~/.claude/projects` on demand. A Session belongs to a Project
+only when its recorded working directory is that registered Project root or a
+descendant. Roam stores neither a Session index nor copied messages; provider
+files remain the durable source, including after the corresponding Agent has
+stopped. Session detail routes include both provider and provider Session ID so
+identical IDs cannot collide across adapters.
+
+Session catalogs remain stateless. Each request reads only the bounded identity
+record needed to scope and order native files; titles are read for the requested
+page, with server-side cursor pagination and debounced title filtering. Session
+history uses opaque byte cursors over the selected native file. The initial view
+reads the latest bounded page, older pages read preceding ranges, and live views
+read only bytes appended after the last complete record. No cursor or derived
+metadata is persisted between requests.
+
+Herdr's `agent_session` metadata links a running Agent back to its provider
+Session. Resuming an offline Session validates its recorded directory against
+the registered Project, starts the provider with its native resume arguments,
+and then returns the resulting Herdr Agent. If Herdr already reports an Agent
+for that provider Session ID, Roam reuses it instead of starting another one.
 
 Runtime terms are translated at the server boundary:
 

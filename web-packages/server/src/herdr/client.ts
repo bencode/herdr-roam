@@ -2,17 +2,18 @@ import { randomUUID } from 'node:crypto'
 import { createConnection, type Socket } from 'node:net'
 import { HERDR_MAX_MESSAGE_BYTES, HERDR_REQUEST_TIMEOUT_MS } from '../config.js'
 import {
-  agentListResultSchema,
   agentInfoResultSchema,
+  agentListResultSchema,
   agentPromptedResultSchema,
   agentStartedResultSchema,
   errorResponseSchema,
   eventEnvelopeSchema,
+  okResultSchema,
   paneReadResultSchema,
+  type RawAgent,
   subscriptionStartedSchema,
   successResponseSchema,
   workspaceCreatedResultSchema,
-  type RawAgent,
 } from './schema.js'
 
 type Request = {
@@ -23,16 +24,24 @@ type Request = {
 
 export type HerdrClient = {
   readonly listAgents: () => Promise<readonly RawAgent[]>
-  readonly readAgent: (target: string) => Promise<string>
+  readonly readAgent: (target: string, lines: number) => Promise<string>
   readonly promptAgent: (target: string, text: string) => Promise<void>
+  readonly sendAgentKeys: (target: string, keys: readonly string[]) => Promise<void>
+  readonly sendPaneInput: (paneId: string, text: string, keys: readonly string[]) => Promise<void>
+  readonly closePane: (paneId: string) => Promise<void>
   readonly createWorkspace: (
     cwd: string,
     label: string,
-  ) => Promise<{ readonly workspaceId: string; readonly paneId: string; readonly terminalId: string }>
+  ) => Promise<{
+    readonly workspaceId: string
+    readonly paneId: string
+    readonly terminalId: string
+  }>
   readonly startAgent: (
     name: string,
     kind: string,
     paneId: string,
+    args: readonly string[],
     timeoutMs: number,
   ) => Promise<RawAgent>
   readonly getAgent: (target: string) => Promise<RawAgent>
@@ -158,7 +167,8 @@ const openSubscription = (
       if (!started) {
         const result = responseResult(line, id)
         const parsed = subscriptionStartedSchema.safeParse(result)
-        if (!parsed.success) throw new Error('Herdr rejected the event subscription.', { cause: parsed.error })
+        if (!parsed.success)
+          throw new Error('Herdr rejected the event subscription.', { cause: parsed.error })
         started = true
         socket.setTimeout(0)
         resolve(() => {
@@ -168,7 +178,8 @@ const openSubscription = (
         return
       }
       const event = eventEnvelopeSchema.safeParse(parseJson(line))
-      if (!event.success) throw new Error('Herdr returned an invalid event.', { cause: event.error })
+      if (!event.success)
+        throw new Error('Herdr returned an invalid event.', { cause: event.error })
       onEvent()
     }
 
@@ -210,11 +221,12 @@ export const createHerdrClient = (socketPath: string): HerdrClient => ({
     const result = agentListResultSchema.parse(await request(socketPath, 'agent.list', {}))
     return result.agents
   },
-  readAgent: async target => {
+  readAgent: async (target, lines) => {
     const result = paneReadResultSchema.parse(
       await request(socketPath, 'agent.read', {
         target,
         source: 'recent_unwrapped',
+        lines,
         strip_ansi: false,
         format: 'ansi',
       }),
@@ -229,6 +241,26 @@ export const createHerdrClient = (socketPath: string): HerdrClient => ({
       }),
     )
   },
+  sendAgentKeys: async (target, keys) => {
+    okResultSchema.parse(
+      await request(socketPath, 'agent.send_keys', {
+        target,
+        keys,
+      }),
+    )
+  },
+  sendPaneInput: async (paneId, text, keys) => {
+    okResultSchema.parse(
+      await request(socketPath, 'pane.send_input', {
+        pane_id: paneId,
+        text,
+        keys,
+      }),
+    )
+  },
+  closePane: async paneId => {
+    okResultSchema.parse(await request(socketPath, 'pane.close', { pane_id: paneId }))
+  },
   createWorkspace: async (cwd, label) => {
     const result = workspaceCreatedResultSchema.parse(
       await request(socketPath, 'workspace.create', { cwd, label, focus: false, env: {} }),
@@ -239,28 +271,24 @@ export const createHerdrClient = (socketPath: string): HerdrClient => ({
       terminalId: result.root_pane.terminal_id,
     }
   },
-  startAgent: async (name, kind, paneId, timeoutMs) => {
+  startAgent: async (name, kind, paneId, args, timeoutMs) => {
     const result = agentStartedResultSchema.parse(
       await request(socketPath, 'agent.start', {
         name,
         kind,
         pane_id: paneId,
-        args: [],
+        args,
         timeout_ms: timeoutMs,
       }),
     )
     return result.agent
   },
   getAgent: async target => {
-    const result = agentInfoResultSchema.parse(
-      await request(socketPath, 'agent.get', { target }),
-    )
+    const result = agentInfoResultSchema.parse(await request(socketPath, 'agent.get', { target }))
     return result.agent
   },
   focusAgent: async target => {
-    const result = agentInfoResultSchema.parse(
-      await request(socketPath, 'agent.focus', { target }),
-    )
+    const result = agentInfoResultSchema.parse(await request(socketPath, 'agent.focus', { target }))
     return result.agent
   },
   subscribe: (onEvent, onDisconnect) => openSubscription(socketPath, onEvent, onDisconnect),

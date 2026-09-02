@@ -135,6 +135,11 @@ loads the native terminal only after an explicit action. Roam also copies the
 standard attach command for use in an existing terminal, but it does not launch
 external terminal processes.
 
+When Herdr reports an Agent as blocked, the Prompt input gives way to a focused
+terminal input bridge. Roam forwards validated navigation keys, Enter, Escape,
+Tab, Shift+Tab, text, IME commits, and paste through Herdr without interpreting
+the native screen or inventing provider-specific question semantics.
+
 ### Artifact and project reading
 
 Projects provide a read-only file tree with dedicated rendering for Markdown
@@ -179,8 +184,9 @@ product decisions.
 ### Herdr runtime prerequisites
 
 Herdr and at least one authenticated agent CLI are prerequisites. Roam detects
-and reports missing prerequisites but does not install or teach them. By
-default, Roam connects to the default Herdr server or starts it when absent.
+missing prerequisites and provides a concise installation or startup command,
+but the user runs that command in a terminal. Roam connects automatically when
+the default Herdr server becomes available; it does not own the server process.
 Runtime availability is reported in the Agent list, Agent Inspector, and
 sidebar summary where it affects the current task. A dedicated Runtime surface
 and configurable server ownership remain deferred until their product purpose
@@ -198,15 +204,12 @@ Herdr Roam
 │       ├── Loops
 │       └── Files
 ├── Agents
-├── Skills
-└── Settings
-    └── Theme
+└── Skills
 ```
 
 The default desktop shell uses a contextual sidebar and one main work surface.
-Settings is a lightweight application menu rather than a fifth resource
-dimension. It currently contains the theme preference and does not create a
-Workbench tab or change the current route.
+Theme is a direct utility control in the Activity Bar rather than a resource
+dimension. It does not create a Workbench tab or change the current route.
 The detailed interaction model is documented in
 [Workbench Interactions](../design/workbench-interactions.md).
 

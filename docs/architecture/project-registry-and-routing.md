@@ -106,15 +106,15 @@ The route builder derives the canonical URL from each reference. On reload, the
 browser restores the ordered set and uses the current URL to select the active
 resource. A deep-linked resource that is not already present is added once.
 
-The Project Workbench is pinned and is not part of the resource array. Settings
-is a non-route popover and is not represented in the resource array. Local view
-state such as a Session draft or Markdown mode is retained while the React
-Activity remains mounted, but it is not copied into persistent tab data.
+The Project Workbench is pinned and is not part of the resource array. The Theme
+selector is a non-route popover and is not represented in the resource array.
+Local view state such as a Session draft or Markdown mode is retained while the
+React Activity remains mounted, but it is not copied into persistent tab data.
 
 The browser stores one last canonical path for each of Projects, Agents, and
 Skills, plus the last selected Activity. The current URL wins on reload and
 updates this navigation memory. Switching Activities navigates to the saved path
 for the destination, so returning to Projects restores the exact collection or
-detail route. Opening Settings does not overwrite Activity navigation memory.
+detail route. Opening Theme does not overwrite Activity navigation memory.
 Only canonical pathnames are stored; query strings, hashes, search terms,
 scroll positions, and copied resource content are not persisted.

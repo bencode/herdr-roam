@@ -44,7 +44,7 @@ export const activityRootPath = (dimension: GlobalDimension, projectName: string
 export const resourcePath = (resource: ResourceRef): string => {
   if (resource.type === 'agent') return `/agents/${encoded(resource.agentId)}`
   if (resource.type === 'session')
-    return `${projectSectionPath(resource.projectName, 'sessions')}/${encoded(resource.sessionId)}`
+    return `${projectSectionPath(resource.projectName, 'sessions')}/${encoded(resource.provider)}/${encoded(resource.sessionId)}`
   if (resource.type === 'issue')
     return `${projectSectionPath(resource.projectName, 'issues')}/${encoded(resource.issueId)}`
   if (resource.type === 'file')
@@ -64,8 +64,18 @@ const projectTarget = (parts: readonly string[]): RouteTarget | null => {
   if (isProjectSection(section) && parts.length === 3)
     return { kind: 'project-section', projectName, section }
   const id = parts[3] ? decode(parts[3]) : null
-  if (section === 'sessions' && id && parts.length === 4)
-    return { kind: 'resource', resource: { type: 'session', projectName, sessionId: id } }
+  const sessionId = parts[4] ? decode(parts[4]) : null
+  if (
+    section === 'sessions' &&
+    (id === 'codex' || id === 'claude') &&
+    sessionId &&
+    parts.length === 5
+  ) {
+    return {
+      kind: 'resource',
+      resource: { type: 'session', projectName, provider: id, sessionId },
+    }
+  }
   if (section === 'issues' && id && parts.length === 4)
     return { kind: 'resource', resource: { type: 'issue', projectName, issueId: id } }
   if (section === 'skills' && id && parts.length === 4)

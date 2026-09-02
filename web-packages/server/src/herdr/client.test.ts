@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from 'node:fs/promises'
 import { createServer, type Server } from 'node:net'
-import { join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createHerdrClient, HerdrApiError } from './client.js'
 
@@ -41,31 +41,58 @@ afterEach(async () => {
 
 describe('Herdr socket client', () => {
   it('reads a fragmented agent.list response', async () => {
-    const socketPath = await socketServer(request =>
-      `${JSON.stringify({
-        id: request.id,
-        result: {
-          type: 'agent_list',
-          agents: [
-            {
-              terminal_id: 'terminal-1',
-              agent_status: 'idle',
-              workspace_id: 'w1',
-              tab_id: 't1',
-              pane_id: 'w1:p1',
-            },
-          ],
-        },
-      })}\n`,
+    const socketPath = await socketServer(
+      request =>
+        `${JSON.stringify({
+          id: request.id,
+          result: {
+            type: 'agent_list',
+            agents: [
+              {
+                terminal_id: 'terminal-1',
+                agent_status: 'idle',
+                workspace_id: 'w1',
+                tab_id: 't1',
+                pane_id: 'w1:p1',
+              },
+            ],
+          },
+        })}\n`,
     )
     await expect(createHerdrClient(socketPath).listAgents()).resolves.toHaveLength(1)
   })
 
   it('exposes Herdr API errors', async () => {
-    const socketPath = await socketServer(request =>
-      `${JSON.stringify({ id: request.id, error: { code: 'agent_not_found', message: 'missing' } })}\n`,
+    const socketPath = await socketServer(
+      request =>
+        `${JSON.stringify({ id: request.id, error: { code: 'agent_not_found', message: 'missing' } })}\n`,
     )
     await expect(createHerdrClient(socketPath).listAgents()).rejects.toBeInstanceOf(HerdrApiError)
+  })
+
+  it('reads a bounded recent ANSI snapshot', async () => {
+    let received: ReceivedRequest | null = null
+    const socketPath = await socketServer(request => {
+      received = request
+      return `${JSON.stringify({
+        id: request.id,
+        result: { type: 'pane_read', read: { text: '\u001b[32mready' } },
+      })}\n`
+    })
+
+    await expect(createHerdrClient(socketPath).readAgent('w1:p1', 500)).resolves.toBe(
+      '\u001b[32mready',
+    )
+    expect(received).toMatchObject({
+      method: 'agent.read',
+      params: {
+        target: 'w1:p1',
+        source: 'recent_unwrapped',
+        lines: 500,
+        strip_ansi: false,
+        format: 'ansi',
+      },
+    })
   })
 
   it('submits an agent prompt to the requested target', async () => {
@@ -78,10 +105,62 @@ describe('Herdr socket client', () => {
       })}\n`
     })
 
-    await expect(createHerdrClient(socketPath).promptAgent('w1:p1', 'Review the change.')).resolves.toBeUndefined()
+    await expect(
+      createHerdrClient(socketPath).promptAgent('w1:p1', 'Review the change.'),
+    ).resolves.toBeUndefined()
     expect(received).toMatchObject({
       method: 'agent.prompt',
       params: { target: 'w1:p1', text: 'Review the change.' },
+    })
+  })
+
+  it('sends validated keys to the requested Agent', async () => {
+    let received: ReceivedRequest | null = null
+    const socketPath = await socketServer(request => {
+      received = request
+      return `${JSON.stringify({ id: request.id, result: { type: 'ok' } })}\n`
+    })
+
+    await expect(
+      createHerdrClient(socketPath).sendAgentKeys('w1:p1', ['down', 'enter']),
+    ).resolves.toBeUndefined()
+    expect(received).toMatchObject({
+      method: 'agent.send_keys',
+      params: { target: 'w1:p1', keys: ['down', 'enter'] },
+    })
+  })
+
+  it('sends text and trailing keys to a Pane in one input request', async () => {
+    let received: ReceivedRequest | null = null
+    const socketPath = await socketServer(request => {
+      received = request
+      return `${JSON.stringify({ id: request.id, result: { type: 'ok' } })}\n`
+    })
+
+    await expect(
+      createHerdrClient(socketPath).sendPaneInput('w1:p1', 'Preserve the current data.', ['enter']),
+    ).resolves.toBeUndefined()
+    expect(received).toMatchObject({
+      method: 'pane.send_input',
+      params: {
+        pane_id: 'w1:p1',
+        text: 'Preserve the current data.',
+        keys: ['enter'],
+      },
+    })
+  })
+
+  it('closes the requested Pane without closing its Workspace', async () => {
+    let received: ReceivedRequest | null = null
+    const socketPath = await socketServer(request => {
+      received = request
+      return `${JSON.stringify({ id: request.id, result: { type: 'ok' } })}\n`
+    })
+
+    await expect(createHerdrClient(socketPath).closePane('w1:p1')).resolves.toBeUndefined()
+    expect(received).toMatchObject({
+      method: 'pane.close',
+      params: { pane_id: 'w1:p1' },
     })
   })
 
@@ -140,7 +219,13 @@ describe('Herdr socket client', () => {
     })
 
     await expect(
-      createHerdrClient(socketPath).startAgent('codex-herdr-roam', 'codex', 'w1:p1', 30_000),
+      createHerdrClient(socketPath).startAgent(
+        'codex-herdr-roam',
+        'codex',
+        'w1:p1',
+        ['resume', 'session-1'],
+        30_000,
+      ),
     ).resolves.toMatchObject({ name: 'codex-herdr-roam', launch_pending: true })
     expect(received).toMatchObject({
       method: 'agent.start',
@@ -148,7 +233,7 @@ describe('Herdr socket client', () => {
         name: 'codex-herdr-roam',
         kind: 'codex',
         pane_id: 'w1:p1',
-        args: [],
+        args: ['resume', 'session-1'],
         timeout_ms: 30_000,
       },
     })
