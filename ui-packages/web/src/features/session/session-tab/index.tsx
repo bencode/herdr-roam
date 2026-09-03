@@ -22,6 +22,7 @@ import { AgentStopControl } from '../../agent/stop-control'
 import { stopAgent } from '../../agent/client'
 import { resumeSession, SessionClientError } from '../client'
 import { type SessionDataState, useSessionData } from '../use-session-data'
+import styles from './style.module.scss'
 import { SessionTranscript } from './transcript'
 
 const statusClasses: Readonly<Record<AgentSummary['status'], string>> = {
@@ -83,40 +84,38 @@ const HistoryPanel = ({
       )}
       {(session.olderCursor || data.hasNewer) && (
         <nav
-          className="sticky top-0 z-10 mx-auto flex h-9 w-[min(960px,calc(100%_-_40px))] items-center gap-1 border-border border-b bg-surface/95 text-xs text-muted backdrop-blur-sm"
+          className={cn(
+            styles.readingColumn,
+            styles.historyNavigation,
+            data.hasNewer && !data.loading && styles.historyNavigationPaged,
+          )}
           aria-label="Session history pages"
         >
-          <button
-            type="button"
-            className="flex h-7 items-center gap-1 rounded-sm px-2 hover:bg-hover disabled:opacity-40"
-            disabled={!session.olderCursor || data.loading}
-            onClick={data.loadOlder}
-          >
-            <ChevronLeft className="size-3.5" aria-hidden="true" />
-            Earlier
-          </button>
-          {data.hasNewer && (
+          {data.loading ? (
+            <span className="text-xs text-faint" role="status">
+              Loading messages…
+            </span>
+          ) : (
             <>
-              <button
-                type="button"
-                className="ml-auto flex h-7 items-center gap-1 rounded-sm px-2 hover:bg-hover disabled:opacity-40"
-                disabled={data.loading}
-                onClick={data.loadNewer}
-              >
-                Newer
-                <ChevronRight className="size-3.5" aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="h-7 rounded-sm px-2 hover:bg-hover disabled:opacity-40"
-                disabled={data.loading}
-                onClick={data.loadLatest}
-              >
-                Latest
-              </button>
+              {session.olderCursor && (
+                <Button size="compact" onClick={data.loadOlder}>
+                  <ChevronLeft aria-hidden="true" />
+                  {data.hasNewer ? 'Earlier' : 'Load earlier messages'}
+                </Button>
+              )}
+              {data.hasNewer && (
+                <div className={styles.historyNavigationEnd}>
+                  <Button size="compact" onClick={data.loadNewer}>
+                    Newer
+                    <ChevronRight aria-hidden="true" />
+                  </Button>
+                  <Button size="compact" onClick={data.loadLatest}>
+                    Latest
+                  </Button>
+                </div>
+              )}
             </>
           )}
-          {data.loading && <span className="ml-auto pr-2 text-faint">Loading…</span>}
         </nav>
       )}
       <SessionTranscript entries={session.entries} provider={provider} />

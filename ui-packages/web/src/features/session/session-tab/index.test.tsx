@@ -38,7 +38,7 @@ vi.mock('../use-session-data', () => ({
           kind: 'message',
           id: 'message-1',
           role: 'assistant',
-          text: 'Historical answer',
+          text: '# Historical answer',
           createdAt: null,
           attachments: [],
         },
@@ -122,6 +122,8 @@ describe('Session tab', () => {
     renderSession()
 
     expect(screen.getByText('Historical answer')).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'Historical answer', level: 2 })).toBeVisible()
+    expect(screen.queryByRole('heading', { name: 'Historical answer', level: 1 })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Resume Session' }))
     await waitFor(() =>
       expect(mocks.resume).toHaveBeenCalledWith('herdr-roam', 'codex', 'session-1'),

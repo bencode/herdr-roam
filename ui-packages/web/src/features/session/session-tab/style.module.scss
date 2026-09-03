@@ -1,0 +1,88 @@
+.transcript {
+  container-type: inline-size;
+  padding-block: 2rem;
+}
+
+.readingColumn {
+  width: min(48rem, calc(100% - 2.5rem));
+  margin-inline: auto;
+}
+
+.historyNavigation {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.historyNavigationPaged {
+  justify-content: flex-start;
+}
+
+.historyNavigationEnd {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.message {
+  position: relative;
+  padding-bottom: 1.5rem;
+}
+
+.author {
+  position: absolute;
+  top: 0.125rem;
+  right: calc(100% + 1rem);
+  width: 4rem;
+  margin: 0;
+  text-align: right;
+}
+
+.messageBody {
+  min-width: 0;
+
+  > div {
+    max-width: none;
+    line-height: 1.5rem;
+  }
+}
+
+.activity {
+  border-top: 1px solid var(--border);
+  padding-block: 0.375rem;
+}
+
+.activitySummary {
+  display: flex;
+  min-height: 1.75rem;
+  cursor: pointer;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.activityContent {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-left: 1.25rem;
+}
+
+.omission {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-block: 0.75rem;
+  border-block: 1px solid var(--border);
+  padding-block: 0.75rem;
+}
+
+@container (max-width: 58rem) {
+  .author {
+    position: static;
+    width: auto;
+    margin-bottom: 0.375rem;
+    text-align: left;
+  }
+}

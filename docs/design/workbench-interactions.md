@@ -255,11 +255,15 @@ not override an explicit History selection. If the matching Agent disappears
 while Live is selected, the Session returns to History. `Open Agent` remains an
 explicit route transition to the Agent-oriented header and controls.
 
-Session History uses a reading canvas up to 960 px wide with message bodies
-limited to roughly 72 characters. Tool activity may use the remaining canvas
-width for code and output. Focus Mode temporarily overlays the whole workbench
-over the sidebar while retaining the Tab Bar and Session header. Escape or any
-resource navigation exits Focus Mode; it does not invoke browser fullscreen.
+Session History centers the message body itself as a technical reading column
+capped at 48rem. Provider and user labels sit in a narrow metadata rail
+beside that column and move above the message when the panel is too narrow.
+Tool activity, omission notices, and history pagination share the same reading
+axis. History pagination is an in-flow control above the transcript rather than
+a sticky toolbar, so it never overlaps message metadata. Focus Mode temporarily
+overlays the whole workbench over the sidebar while
+retaining the Tab Bar and Session header. Escape or any resource navigation
+exits Focus Mode; it does not invoke browser fullscreen.
 
 When the selected Agent is `blocked`, the Prompt composer is replaced by a
 click-to-focus terminal input bridge, without adding a visible response toolbar.
