@@ -102,9 +102,13 @@ not silently change the active project.
 
 Closing a tab closes only the view. It does not stop an Agent, close an Issue,
 or modify a file. Closing the active tab selects its right neighbor, then its
-left neighbor, then Workbench. Inactive tabs retain local view state such as a
-Session draft or Markdown Preview/Source mode. Overflow scrolls horizontally;
-tabs are never hidden to fit the viewport.
+left neighbor, then Workbench. A resource tab context menu can close that tab,
+the other tabs, the tabs to its right, or all resource tabs. Bulk close updates
+the ordered tab set once; if it removes the active tab, the same neighbor rule
+selects the next route. Workbench remains fixed and is never part of a bulk
+close. Inactive tabs retain local view state such as a Session draft or Markdown
+Preview/Source mode. Overflow scrolls horizontally; tabs are never hidden,
+evicted, or capped by count to fit the viewport.
 
 The active resource is represented by a deep-linkable URL. The ordered tab set
 is an interface preference stored in the browser and contains resource

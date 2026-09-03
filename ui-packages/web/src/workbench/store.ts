@@ -25,7 +25,7 @@ export type WorkbenchSnapshot = {
 
 type WorkbenchStore = WorkbenchSnapshot & {
   readonly open: (resource: ResourceRef) => void
-  readonly close: (resource: ResourceRef) => ResourceRef | null
+  readonly closeMany: (resources: readonly ResourceRef[]) => ResourceRef | null
   readonly forgetProject: (projectName: string) => void
   readonly rememberActivity: (dimension: GlobalDimension, pathname: string) => void
   readonly showWorkbench: () => void
@@ -146,11 +146,19 @@ const readSnapshot = (): WorkbenchSnapshot => {
   return defaultWorkbenchSnapshot
 }
 
-const nextAfterClose = (tabs: readonly ResourceRef[], closing: ResourceRef): ResourceRef | null => {
-  const index = tabs.findIndex(tab => resourceKey(tab) === resourceKey(closing))
+const nextAfterClose = (
+  tabs: readonly ResourceRef[],
+  active: ResourceRef,
+  closingKeys: ReadonlySet<string>,
+): ResourceRef | null => {
+  const index = tabs.findIndex(tab => resourceKey(tab) === resourceKey(active))
   if (index < 0) return null
-  const remaining = tabs.filter(tab => resourceKey(tab) !== resourceKey(closing))
-  return remaining[index] ?? remaining[index - 1] ?? null
+  const isRemaining = (tab: ResourceRef): boolean => !closingKeys.has(resourceKey(tab))
+  return (
+    tabs.slice(index + 1).find(isRemaining) ??
+    tabs.slice(0, index).filter(isRemaining).at(-1) ??
+    null
+  )
 }
 
 const belongsToProject = (resource: ResourceRef, projectName: string): boolean =>
@@ -182,13 +190,13 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => ({
     set(next)
     persist(next)
   },
-  close: resource => {
+  closeMany: resources => {
     const current = get()
-    const candidate = nextAfterClose(current.tabs, resource)
-    const tabs = current.tabs.filter(tab => resourceKey(tab) !== resourceKey(resource))
+    const closingKeys = new Set(resources.map(resourceKey))
+    const tabs = current.tabs.filter(tab => !closingKeys.has(resourceKey(tab)))
     const lastActive =
-      current.lastActive && resourceKey(current.lastActive) === resourceKey(resource)
-        ? candidate
+      current.lastActive && closingKeys.has(resourceKey(current.lastActive))
+        ? nextAfterClose(current.tabs, current.lastActive, closingKeys)
         : current.lastActive
     const next = {
       ...snapshotOf(current),
@@ -197,7 +205,7 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => ({
     }
     set(next)
     persist(next)
-    return candidate
+    return lastActive
   },
   forgetProject: projectName => {
     const current = get()

@@ -30,8 +30,19 @@ describe('workbench store', () => {
     useWorkbenchStore.getState().open(session)
     useWorkbenchStore.getState().open(issue)
     useWorkbenchStore.getState().open(session)
-    expect(useWorkbenchStore.getState().close(session)).toEqual(issue)
+    expect(useWorkbenchStore.getState().closeMany([session])).toEqual(issue)
     expect(useWorkbenchStore.getState().tabs).toEqual([issue])
+  })
+
+  it('closes multiple tabs atomically and falls back to the nearest left neighbor', () => {
+    const { useWorkbenchStore } = storeModule
+    useWorkbenchStore.getState().open(session)
+    useWorkbenchStore.getState().open(issue)
+    useWorkbenchStore.getState().open(agent)
+
+    expect(useWorkbenchStore.getState().closeMany([issue, agent])).toEqual(session)
+    expect(useWorkbenchStore.getState().tabs).toEqual([session])
+    expect(useWorkbenchStore.getState().lastActive).toEqual(session)
   })
 
   it('persists only the versioned workbench snapshot', () => {

@@ -25,7 +25,7 @@ const RoutedApp = () => {
   const lastActivity = useWorkbenchStore(state => state.lastActivity)
   const activityPaths = useWorkbenchStore(state => state.activityPaths)
   const open = useWorkbenchStore(state => state.open)
-  const close = useWorkbenchStore(state => state.close)
+  const closeMany = useWorkbenchStore(state => state.closeMany)
   const forgetProject = useWorkbenchStore(state => state.forgetProject)
   const rememberActivity = useWorkbenchStore(state => state.rememberActivity)
   const showWorkbench = useWorkbenchStore(state => state.showWorkbench)
@@ -143,11 +143,13 @@ const RoutedApp = () => {
     [activeProjectName, navigate],
   )
 
-  const closeResource = useCallback(
-    (resource: ResourceRef) => {
-      const wasActive = active ? sameResource(active, resource) : false
-      const next = close(resource)
-      if (!wasActive) return
+  const closeResources = useCallback(
+    (resources: readonly ResourceRef[]) => {
+      const activeClosed = active
+        ? resources.some(resource => sameResource(active, resource))
+        : false
+      const next = closeMany(resources)
+      if (!activeClosed) return
       navigate(
         next
           ? resourcePath(next)
@@ -156,7 +158,12 @@ const RoutedApp = () => {
             : '/projects',
       )
     },
-    [active, activeProjectName, close, navigate],
+    [active, activeProjectName, closeMany, navigate],
+  )
+
+  const closeResource = useCallback(
+    (resource: ResourceRef) => closeResources([resource]),
+    [closeResources],
   )
 
   const addProject = useCallback(
@@ -213,6 +220,7 @@ const RoutedApp = () => {
       onWorkbench={openWorkbench}
       onOpen={openResource}
       onClose={closeResource}
+      onCloseMany={closeResources}
     />
   )
 }

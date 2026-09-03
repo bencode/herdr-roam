@@ -6,6 +6,7 @@ import { useSessionData } from '../../features/session/use-session-data'
 import { cn } from '../../lib/cn'
 import { resourceTitle } from '../../mock/data'
 import { type ResourceRef, resourceKey, sameResource } from '../../workbench/resource'
+import { TabContextMenu } from './tab-context-menu'
 
 const WORKBENCH_KEY = 'workbench'
 
@@ -49,9 +50,10 @@ type Props = {
   readonly onWorkbench: () => void
   readonly onActivate: (resource: ResourceRef) => void
   readonly onClose: (resource: ResourceRef) => void
+  readonly onCloseMany: (resources: readonly ResourceRef[]) => void
 }
 
-export const TabBar = ({ tabs, active, onWorkbench, onActivate, onClose }: Props) => {
+export const TabBar = ({ tabs, active, onWorkbench, onActivate, onClose, onCloseMany }: Props) => {
   const { agentById, snapshot } = useAgentRuntime()
   const refs = useRef(new Map<string, HTMLButtonElement>())
   const visibleRefs = useRef(new Map<string, HTMLElement>())
@@ -146,52 +148,53 @@ export const TabBar = ({ tabs, active, onWorkbench, onActivate, onClose }: Props
           const title = agent?.name ?? resourceTitle(resource)
           const status = agent?.status ?? sessionAgent?.status
           return (
-            <div
-              key={key}
-              className={cn(tabShellClass, selected && selectedTabClass)}
-              ref={node => {
-                if (node) visibleRefs.current.set(key, node)
-                else visibleRefs.current.delete(key)
-              }}
-              onAuxClick={event => event.button === 1 && onClose(resource)}
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={selected}
-                tabIndex={selected ? 0 : -1}
-                className={tabClass}
+            <TabContextMenu key={key} resource={resource} tabs={tabs} onCloseMany={onCloseMany}>
+              <div
+                className={cn(tabShellClass, selected && selectedTabClass)}
                 ref={node => {
-                  if (node) refs.current.set(key, node)
-                  else refs.current.delete(key)
+                  if (node) visibleRefs.current.set(key, node)
+                  else visibleRefs.current.delete(key)
                 }}
-                onClick={() => onActivate(resource)}
-                onKeyDown={event => keyboard(event, key)}
-                title={`${title} · ${owner}`}
+                onAuxClick={event => event.button === 1 && onClose(resource)}
               >
-                {status && (
-                  <i
-                    className={cn('size-1.5 flex-none rounded-full', statusClasses[status])}
-                    role="img"
-                    aria-label={status}
-                  />
-                )}
-                {!status && <ResourceIcon resource={resource} />}
-                {resource.type === 'session' ? (
-                  <SessionTitle resource={resource} />
-                ) : (
-                  <span>{title}</span>
-                )}
-              </button>
-              <button
-                type="button"
-                className={closeClass}
-                onClick={() => onClose(resource)}
-                aria-label={`Close ${title}`}
-              >
-                <X />
-              </button>
-            </div>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  tabIndex={selected ? 0 : -1}
+                  className={tabClass}
+                  ref={node => {
+                    if (node) refs.current.set(key, node)
+                    else refs.current.delete(key)
+                  }}
+                  onClick={() => onActivate(resource)}
+                  onKeyDown={event => keyboard(event, key)}
+                  title={`${title} · ${owner}`}
+                >
+                  {status && (
+                    <i
+                      className={cn('size-1.5 flex-none rounded-full', statusClasses[status])}
+                      role="img"
+                      aria-label={status}
+                    />
+                  )}
+                  {!status && <ResourceIcon resource={resource} />}
+                  {resource.type === 'session' ? (
+                    <SessionTitle resource={resource} />
+                  ) : (
+                    <span>{title}</span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className={closeClass}
+                  onClick={() => onClose(resource)}
+                  aria-label={`Close ${title}`}
+                >
+                  <X />
+                </button>
+              </div>
+            </TabContextMenu>
           )
         })}
       </div>

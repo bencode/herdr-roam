@@ -56,6 +56,7 @@ type Props = {
   readonly onWorkbench: () => void
   readonly onOpen: (resource: ResourceRef) => void
   readonly onClose: (resource: ResourceRef) => void
+  readonly onCloseMany: (resources: readonly ResourceRef[]) => void
 }
 
 export const AppShell = ({
@@ -75,6 +76,7 @@ export const AppShell = ({
   onWorkbench,
   onOpen,
   onClose,
+  onCloseMany,
 }: Props) => {
   const { snapshot, transportError } = useAgentRuntime()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -241,6 +243,7 @@ export const AppShell = ({
             onWorkbench={onWorkbench}
             onActivate={onOpen}
             onClose={onClose}
+            onCloseMany={onCloseMany}
           />
           <ResourceHost
             project={projects.find(project => project.name === activeProjectName) ?? null}

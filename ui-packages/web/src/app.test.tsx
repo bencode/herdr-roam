@@ -288,6 +288,38 @@ describe('workbench application', () => {
     })
   })
 
+  it('keeps the context target active when closing its other tabs', async () => {
+    render(
+      <MemoryRouter
+        initialEntries={['/projects/herdr-roam/files/docs/product/vision-and-scope.md']}
+      >
+        <App />
+        <CurrentPath />
+      </MemoryRouter>,
+    )
+    const sidebar = within(screen.getByTestId('context-sidebar'))
+    selectProjectResource(sidebar, 'Sessions')
+    fireEvent.click(await sidebar.findByRole('button', { name: /Product scan/ }))
+    selectProjectResource(sidebar, 'Issues')
+    fireEvent.click(sidebar.getByRole('button', { name: /Clarify runtime ownership/ }))
+
+    fireEvent.contextMenu(screen.getByRole('tab', { name: /vision-and-scope.md/ }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Close Other Tabs' }))
+
+    await waitFor(() =>
+      expect(screen.getByTestId('current-path')).toHaveTextContent(
+        '/projects/herdr-roam/files/docs/product/vision-and-scope.md',
+      ),
+    )
+    expect(useWorkbenchStore.getState().tabs).toEqual([
+      {
+        type: 'file',
+        projectName: 'herdr-roam',
+        path: 'docs/product/vision-and-scope.md',
+      },
+    ])
+  })
+
   it('preserves project browser state while switching global activities', () => {
     render(
       <MemoryRouter initialEntries={['/projects/herdr-roam']}>
