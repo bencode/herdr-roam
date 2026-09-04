@@ -42,14 +42,23 @@ export const WorkspaceSelect = ({ items, value, onValueChange }: Props) => {
   const active = items.find(workspace => workspace.id === value) ?? items[0]
   if (!active || items.length < 2) return null
   const branch = branchLabel(active)
+  const label = branch ?? active.name
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
-        <button type="button" className={styles.workspaceTrigger} aria-label="File directory">
-          <FolderGit2 aria-hidden="true" />
-          <span className={styles.workspaceTriggerName}>{active.name}</span>
-          {branch && <span className={styles.workspaceTriggerBranch}>{branch}</span>}
+        <button
+          type="button"
+          className={styles.workspaceTrigger}
+          aria-label="File directory"
+          title={`${label} · ${active.path}`}
+        >
+          {active.kind === 'worktree' ? (
+            <GitBranch aria-hidden="true" />
+          ) : (
+            <FolderGit2 aria-hidden="true" />
+          )}
+          <span className={styles.workspaceTriggerLabel}>{label}</span>
           <ChevronDown aria-hidden="true" />
         </button>
       </Popover.Trigger>

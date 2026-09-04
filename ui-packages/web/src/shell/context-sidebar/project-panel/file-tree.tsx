@@ -100,21 +100,21 @@ export const FileTree = ({
 
   return (
     <div className={styles.fileBrowser}>
-      {workspaces.items.length > 1 && (
-        <div className={styles.workspaceBar}>
-          <WorkspaceSelect
-            items={workspaces.items}
-            value={workspaceId}
-            onValueChange={selectWorkspace}
-          />
-        </div>
-      )}
       <ProjectBrowserFrame
         title="Files"
         total={root.total}
         filtered={root.total}
         query={query}
         onQuery={onQuery}
+        leading={
+          workspaces.items.length > 1 ? (
+            <WorkspaceSelect
+              items={workspaces.items}
+              value={workspaceId}
+              onValueChange={selectWorkspace}
+            />
+          ) : null
+        }
         countLabel={
           deferredQuery === '' ? null : `${root.total} ${root.total === 1 ? 'result' : 'results'}`
         }

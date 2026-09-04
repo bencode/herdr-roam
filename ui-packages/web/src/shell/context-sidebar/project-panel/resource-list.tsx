@@ -32,6 +32,7 @@ type BrowserFrameProps = {
   readonly filtered: number
   readonly query: string
   readonly onQuery: (query: string) => void
+  readonly leading?: ReactNode
   readonly countLabel?: string | null
   readonly actions?: ReactNode
   readonly children: ReactNode
@@ -43,16 +44,25 @@ export const ProjectBrowserFrame = ({
   filtered,
   query,
   onQuery,
+  leading,
   countLabel,
   actions,
   children,
 }: BrowserFrameProps) => {
   const resolvedCountLabel =
-    countLabel === undefined ? (query.trim() === '' ? String(total) : `${filtered}/${total}`) : countLabel
+    countLabel === undefined
+      ? query.trim() === ''
+        ? String(total)
+        : `${filtered}/${total}`
+      : countLabel
 
   return (
     <section className="flex min-h-0 flex-1 flex-col" aria-label={`${title} browser`}>
-      <div className="flex flex-none items-center gap-1.5 bg-sidebar px-2.5 py-2">
+      <fieldset
+        className="m-0 flex min-w-0 flex-none items-center gap-1.5 border-0 bg-sidebar px-2.5 py-2"
+        aria-label={`${title} tools`}
+      >
+        {leading}
         <label className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md border border-border bg-surface px-2 transition-[border-color,box-shadow] duration-150 focus-within:border-primary focus-within:shadow-[0_0_0_1px_var(--primary)] [&>svg]:w-3.5 [&>svg]:flex-none [&>svg]:text-faint">
           <Search aria-hidden="true" />
           <span className="sr-only">Search {title.toLowerCase()}</span>
@@ -70,7 +80,7 @@ export const ProjectBrowserFrame = ({
           )}
         </label>
         {actions}
-      </div>
+      </fieldset>
       <div className="min-h-0 flex-1 overflow-auto px-1.75 pb-3.5">{children}</div>
     </section>
   )
