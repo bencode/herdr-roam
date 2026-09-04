@@ -3,6 +3,7 @@ import {
   type FileClientError,
   fetchProjectFile,
   fetchProjectFiles,
+  fetchProjectWorkspaces,
   projectFileRawUrl,
 } from './client'
 
@@ -17,14 +18,17 @@ describe('Project file client', () => {
       )
     vi.stubGlobal('fetch', fetchMock)
 
-    await fetchProjectFiles('my project', { directory: 'docs/design', cursor: 'next page' })
+    await fetchProjectFiles('my project', 'primary', {
+      directory: 'docs/design',
+      cursor: 'next page',
+    })
 
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/projects/my%20project/files?directory=docs%2Fdesign&cursor=next+page',
+      '/api/projects/my%20project/workspaces/primary/files?directory=docs%2Fdesign&cursor=next+page',
       { signal: undefined },
     )
-    expect(projectFileRawUrl('my project', 'images/space mark.png')).toBe(
-      '/api/projects/my%20project/files/raw/images/space%20mark.png',
+    expect(projectFileRawUrl('my project', 'primary', 'images/space mark.png')).toBe(
+      '/api/projects/my%20project/workspaces/primary/files/raw/images/space%20mark.png',
     )
   })
 
@@ -41,10 +45,37 @@ describe('Project file client', () => {
         ),
     )
 
-    await expect(fetchProjectFile('fixture', 'missing.md')).rejects.toMatchObject({
+    await expect(fetchProjectFile('fixture', 'primary', 'missing.md')).rejects.toMatchObject({
       name: 'FileClientError',
       code: 'file_not_found',
       message: 'File not found.',
     } satisfies Partial<FileClientError>)
+  })
+
+  it('loads the Project Workspace catalog', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: 'primary',
+              name: 'project',
+              path: '/work/project',
+              kind: 'worktree',
+              branch: 'main',
+              primary: true,
+            },
+          ],
+        }),
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(fetchProjectWorkspaces('my project')).resolves.toMatchObject({
+      items: [expect.objectContaining({ id: 'primary', branch: 'main' })],
+    })
+    expect(fetchMock).toHaveBeenCalledWith('/api/projects/my%20project/workspaces', {
+      signal: undefined,
+    })
   })
 })

@@ -1,8 +1,14 @@
+import { execFile } from 'node:child_process'
 import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { promisify } from 'node:util'
 import { afterEach, describe, expect, it } from 'vitest'
-import { createSessionService, sessionBelongsToProject } from './service.js'
+import { createSessionService } from './service.js'
+
+const execFileAsync = promisify(execFile)
+const git = (cwd: string, ...args: readonly string[]) =>
+  execFileAsync('git', ['-C', cwd, ...args], { encoding: 'utf8' })
 
 const directories: string[] = []
 
@@ -96,11 +102,9 @@ afterEach(async () => {
 
 describe('Session service', () => {
   it('scopes native Sessions to the registered Project without copying history', async () => {
-    const { project, roots, latestPath, nestedPath } = await createFixture()
+    const { project, roots, latestPath } = await createFixture()
     const service = createSessionService(roots)
 
-    expect(sessionBelongsToProject(project, nestedPath)).toBe(true)
-    expect(sessionBelongsToProject(project, `${project.path}-other`)).toBe(false)
     const catalog = await service.list(project)
     expect(catalog.total).toBe(2)
     expect(catalog.items).toEqual(
@@ -139,6 +143,44 @@ describe('Session service', () => {
     await expect(service.list(project, { query: 'Claude' })).resolves.toMatchObject({
       total: 1,
       items: [expect.objectContaining({ id: 'claude-1' })],
+    })
+  })
+
+  it('includes Sessions from linked worktrees outside the primary directory', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'herdr-roam-worktree-sessions-'))
+    directories.push(root)
+    const repository = join(root, 'repository')
+    const linked = join(root, 'linked')
+    const codexRoot = join(root, 'codex')
+    const claudeRoot = join(root, 'claude')
+    await Promise.all([mkdir(repository), mkdir(codexRoot), mkdir(claudeRoot)])
+    await git(repository, 'init', '-b', 'main')
+    await git(repository, 'config', 'user.email', 'test@example.com')
+    await git(repository, 'config', 'user.name', 'Test User')
+    await writeFile(join(repository, 'README.md'), '# Fixture\n')
+    await git(repository, 'add', 'README.md')
+    await git(repository, 'commit', '-m', 'initial')
+    await git(repository, 'branch', 'task')
+    await git(repository, 'worktree', 'add', linked, 'task')
+    const linkedCwd = join(await realpath(linked), 'packages', 'web')
+    await mkdir(linkedCwd, { recursive: true })
+    await writeFile(
+      join(claudeRoot, 'linked.jsonl'),
+      JSON.stringify({
+        type: 'user',
+        sessionId: 'linked-session',
+        cwd: linkedCwd,
+        timestamp: '2026-09-01T09:00:00.000Z',
+        message: { role: 'user', content: 'Linked worktree session' },
+      }),
+    )
+
+    const service = createSessionService({ codex: codexRoot, claude: claudeRoot })
+    await expect(
+      service.list({ name: 'repository', path: await realpath(repository) }),
+    ).resolves.toMatchObject({
+      total: 1,
+      items: [expect.objectContaining({ id: 'linked-session' })],
     })
   })
 })

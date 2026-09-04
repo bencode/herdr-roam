@@ -8,6 +8,7 @@ import type {
   SessionProvider,
   SessionSummary,
 } from '@herdr-roam/shared'
+import { directoryBelongsToWorkspaces, listProjectWorkspaces } from '../projects/workspaces.js'
 import {
   findSessionSource,
   readSessionCatalog,
@@ -15,7 +16,6 @@ import {
   SessionCursorError,
   type SessionRoots,
   type SessionSource,
-  sessionBelongsToProject,
   summarizeSession,
 } from './catalog.js'
 import { readClaudeSessionIdentity, readClaudeSessionRange } from './claude.js'
@@ -29,8 +29,6 @@ import {
 import { sessionResumeTarget, type SessionResumeTarget } from './resume-target.js'
 
 export type { SessionCatalogRequest, SessionRoots }
-export { sessionBelongsToProject }
-
 export type SessionServiceApi = {
   readonly list: (project: Project, request?: SessionCatalogRequest) => Promise<SessionCatalog>
   readonly resumeTarget: (
@@ -113,11 +111,12 @@ const sourceFromCursor = async (
     provider === 'codex'
       ? await readCodexSessionIdentity(decoded.filePath)
       : await readClaudeSessionIdentity(decoded.filePath)
+  const workspaces = await listProjectWorkspaces(project)
   if (
     !identity ||
     identity.id !== sessionId ||
     identity.provider !== provider ||
-    !sessionBelongsToProject(project, identity.cwd)
+    !directoryBelongsToWorkspaces(workspaces, identity.cwd)
   ) {
     throw new SessionServiceError(
       'history_changed',

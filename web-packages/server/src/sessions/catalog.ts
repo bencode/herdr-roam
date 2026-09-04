@@ -1,5 +1,5 @@
-import { isAbsolute, relative, resolve } from 'node:path'
 import type { Project, SessionCatalog, SessionProvider, SessionSummary } from '@herdr-roam/shared'
+import { directoryBelongsToWorkspaces, listProjectWorkspaces } from '../projects/workspaces.js'
 import {
   type ClaudeSessionIdentity,
   type ClaudeSessionSource,
@@ -38,12 +38,6 @@ export class SessionCursorError extends Error {
     super(message, options)
     this.name = 'SessionCursorError'
   }
-}
-
-export const sessionBelongsToProject = (project: Project, cwd: string): boolean => {
-  if (!isAbsolute(cwd)) return false
-  const path = relative(resolve(project.path), resolve(cwd))
-  return path === '' || (!path.startsWith('..') && !isAbsolute(path))
 }
 
 const sourceSummary = ({ filePath: _filePath, ...summary }: SessionSource): SessionSummary =>
@@ -133,8 +127,9 @@ export const readSessionCatalog = async (
   project: Project,
   request: SessionCatalogRequest,
 ): Promise<SessionCatalog> => {
+  const workspaces = await listProjectWorkspaces(project)
   const identities = (await discoverSessionIdentities(roots, request.signal)).filter(identity =>
-    sessionBelongsToProject(project, identity.cwd),
+    directoryBelongsToWorkspaces(workspaces, identity.cwd),
   )
   ensureActive(request.signal)
   const query = request.query?.trim() ?? ''
@@ -171,11 +166,12 @@ export const findSessionSource = async (
   sessionId: string,
   signal?: AbortSignal,
 ): Promise<SessionSource | null> => {
+  const workspaces = await listProjectWorkspaces(project)
   const identity = (await discoverSessionIdentities(roots, signal)).find(
     candidate =>
       candidate.provider === provider &&
       candidate.id === sessionId &&
-      sessionBelongsToProject(project, candidate.cwd),
+      directoryBelongsToWorkspaces(workspaces, candidate.cwd),
   )
   return identity ? summarizeSession(identity) : null
 }

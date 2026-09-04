@@ -49,6 +49,8 @@ export type {
   ProjectCreateRequest,
   ProjectMutationReceipt,
   ProjectRegistrySnapshot,
+  ProjectWorkspace,
+  ProjectWorkspaceCatalog,
 } from './api/project.js'
 export type {
   SessionActivityEntry,

@@ -48,7 +48,7 @@ export const resourcePath = (resource: ResourceRef): string => {
   if (resource.type === 'issue')
     return `${projectSectionPath(resource.projectName, 'issues')}/${encoded(resource.issueId)}`
   if (resource.type === 'file')
-    return `${projectSectionPath(resource.projectName, 'files')}/${encodePath(resource.path)}`
+    return `${projectSectionPath(resource.projectName, 'files')}/${encoded(resource.workspaceId)}/${encodePath(resource.path)}`
   if (resource.scope === 'project')
     return `${projectPath(resource.projectName)}/skills/${encoded(resource.skillId)}`
   return `/skills/${encoded(resource.skillId)}`
@@ -83,12 +83,12 @@ const projectTarget = (parts: readonly string[]): RouteTarget | null => {
       kind: 'resource',
       resource: { type: 'skill', scope: 'project', projectName, skillId: id },
     }
-  if (section !== 'files' || parts.length < 4) return { kind: 'unknown' }
-  const decodedParts = parts.slice(3).map(decode)
+  if (section !== 'files' || parts.length < 5 || !id) return { kind: 'unknown' }
+  const decodedParts = parts.slice(4).map(decode)
   if (decodedParts.some(part => part === null)) return { kind: 'unknown' }
   return {
     kind: 'resource',
-    resource: { type: 'file', projectName, path: decodedParts.join('/') },
+    resource: { type: 'file', projectName, workspaceId: id, path: decodedParts.join('/') },
   }
 }
 

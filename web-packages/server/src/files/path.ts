@@ -3,7 +3,10 @@ import { realpath, stat } from 'node:fs/promises'
 import { isAbsolute, relative, resolve, sep } from 'node:path'
 import type { ProjectFileApiError } from '@herdr-roam/shared'
 
-export type ProjectFileErrorCode = ProjectFileApiError['error']['code']
+export type ProjectFileErrorCode = Exclude<
+  ProjectFileApiError['error']['code'],
+  'workspace_not_found' | 'workspace_directory_unavailable'
+>
 
 export class ProjectFileError extends Error {
   readonly code: ProjectFileErrorCode

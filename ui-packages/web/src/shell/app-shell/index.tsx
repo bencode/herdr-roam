@@ -215,7 +215,7 @@ export const AppShell = ({
                 dimension={activeDimension}
                 activeProjectName={activeProjectName}
                 activeAgentId={active?.type === 'agent' ? active.agentId : null}
-                activeFilePath={active?.type === 'file' ? active.path : null}
+                activeFile={active?.type === 'file' ? active : null}
                 activeSkill={active?.type === 'skill' ? active : null}
                 projectSection={projectSection}
                 projectRouteKey={projectRouteKey}

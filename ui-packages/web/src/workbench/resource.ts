@@ -10,7 +10,12 @@ export type ResourceRef =
       readonly sessionId: string
     }
   | { readonly type: 'issue'; readonly projectName: string; readonly issueId: string }
-  | { readonly type: 'file'; readonly projectName: string; readonly path: string }
+  | {
+      readonly type: 'file'
+      readonly projectName: string
+      readonly workspaceId: string
+      readonly path: string
+    }
   | { readonly type: 'skill'; readonly scope: 'user'; readonly skillId: string }
   | {
       readonly type: 'skill'
@@ -40,7 +45,11 @@ export const isResourceRef = (value: unknown): value is ResourceRef => {
   if (type === 'issue')
     return Boolean(stringField(record, 'projectName') && stringField(record, 'issueId'))
   if (type === 'file')
-    return Boolean(stringField(record, 'projectName') && stringField(record, 'path'))
+    return Boolean(
+      stringField(record, 'projectName') &&
+        stringField(record, 'workspaceId') &&
+        stringField(record, 'path'),
+    )
   if (type !== 'skill') return false
   const scope = stringField(record, 'scope')
   const validScope = scope === 'user' || scope === 'project'
@@ -53,7 +62,8 @@ export const resourceKey = (resource: ResourceRef): string => {
   if (resource.type === 'session')
     return `session:${resource.projectName}:${resource.provider}:${resource.sessionId}`
   if (resource.type === 'issue') return `issue:${resource.projectName}:${resource.issueId}`
-  if (resource.type === 'file') return `file:${resource.projectName}:${resource.path}`
+  if (resource.type === 'file')
+    return `file:${resource.projectName}:${resource.workspaceId}:${resource.path}`
   const owner = resource.scope === 'project' ? resource.projectName : 'user'
   return `skill:${resource.scope}:${owner}:${resource.skillId}`
 }

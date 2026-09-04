@@ -9,6 +9,7 @@ import { streamSSE } from 'hono/streaming'
 import { z } from 'zod'
 import { SSE_HEARTBEAT_MS } from '../config.js'
 import { ProjectRegistryError, type ProjectRegistryApi } from './registry.js'
+import { listProjectWorkspaces, ProjectWorkspaceError } from './workspaces.js'
 
 const createRequestSchema: z.ZodType<ProjectCreateRequest> = z.object({ path: z.string() })
 
@@ -117,6 +118,34 @@ export const createProjectRoutes = (registry: ProjectRegistryApi): Hono => {
       }
       console.error('Project registration failed', error)
       return context.json(errorBody('internal_error', 'Project could not be added.'), 500)
+    }
+  })
+
+  routes.get('/:projectName/workspaces', async context => {
+    try {
+      const project = await registry.get(context.req.param('projectName'))
+      if (!project) return context.json(errorBody('project_not_found', 'Project not found.'), 404)
+      return context.json({ items: await listProjectWorkspaces(project) })
+    } catch (error) {
+      if (error instanceof ProjectWorkspaceError) {
+        const code =
+          error.code === 'project_directory_unavailable'
+            ? 'project_directory_unavailable'
+            : 'workspace_unavailable'
+        return context.json(
+          errorBody(code, error.message),
+          code === 'workspace_unavailable' ? 503 : 409,
+        )
+      }
+      if (error instanceof ProjectRegistryError) {
+        const failure = registryFailure(error)
+        return context.json(failure.body, failure.status)
+      }
+      console.error('Project Workspace discovery failed', error)
+      return context.json(
+        errorBody('internal_error', 'Project Workspaces could not be loaded.'),
+        500,
+      )
     }
   })
 

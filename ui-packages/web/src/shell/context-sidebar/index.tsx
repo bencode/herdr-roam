@@ -8,7 +8,7 @@ type Props = {
   readonly dimension: GlobalDimension
   readonly activeProjectName: string
   readonly activeAgentId: string | null
-  readonly activeFilePath: string | null
+  readonly activeFile: Extract<ResourceRef, { type: 'file' }> | null
   readonly activeSkill: Extract<ResourceRef, { type: 'skill' }> | null
   readonly projectSection: ProjectSection
   readonly projectRouteKey: string
@@ -27,7 +27,7 @@ export const ContextSidebar = (props: Props) => {
             <ProjectPanel
               key={props.activeProjectName}
               activeProjectName={props.activeProjectName}
-              activeFilePath={props.activeFilePath}
+              activeFile={props.activeFile}
               section={props.projectSection}
               routeKey={props.projectRouteKey}
               onOpen={props.onOpen}

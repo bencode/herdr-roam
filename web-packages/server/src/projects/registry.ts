@@ -3,6 +3,8 @@ import { mkdir, readFile, realpath, rename, stat, writeFile } from 'node:fs/prom
 import { basename, dirname, isAbsolute } from 'node:path'
 import type { Project, ProjectCreateRequest, ProjectRegistrySnapshot } from '@herdr-roam/shared'
 import { z } from 'zod'
+import { gitLocation } from './git.js'
+import { projectIdentity } from './workspaces.js'
 
 const projectName = /^[a-z0-9][a-z0-9._-]{0,63}$/
 
@@ -162,7 +164,7 @@ const canonicalDirectory = async (path: string, configPath: string): Promise<str
         configPath,
       )
     }
-    return canonical
+    return (await gitLocation(canonical))?.topLevel ?? canonical
   } catch (error) {
     if (error instanceof ProjectRegistryError) throw error
     throw new ProjectRegistryError(
@@ -215,6 +217,9 @@ const publicSnapshot = (configPath: string, config: StoredConfig): ProjectRegist
   projects: config.projects,
 })
 
+const pathIdentities = async (paths: readonly string[]): Promise<ReadonlyMap<string, string>> =>
+  new Map(await Promise.all(paths.map(async path => [path, await projectIdentity(path)] as const)))
+
 export const createProjectRegistry = (configPath: string): ProjectRegistryApi => {
   const listeners = new Set<Listener>()
   let mutationQueue: Promise<void> = Promise.resolve()
@@ -251,8 +256,13 @@ export const createProjectRegistry = (configPath: string): ProjectRegistryApi =>
       mutate(async () => {
         const path = await canonicalDirectory(request.path, configPath)
         const config = await readConfig(configPath)
-        const existing = config.projects.find(project => project.path === path)
+        const identity = await projectIdentity(path)
+        const projectIdentities = await pathIdentities(config.projects.map(project => project.path))
+        const existing = config.projects.find(
+          project => projectIdentities.get(project.path) === identity,
+        )
         if (existing) return existing
+        const ignoredIdentities = await pathIdentities(config.ignoredProjectPaths)
         const project = {
           name: availableName(path, new Set(config.projects.map(item => item.name))),
           path,
@@ -260,7 +270,9 @@ export const createProjectRegistry = (configPath: string): ProjectRegistryApi =>
         const next = {
           ...config,
           projects: [...config.projects, project],
-          ignoredProjectPaths: config.ignoredProjectPaths.filter(item => item !== path),
+          ignoredProjectPaths: config.ignoredProjectPaths.filter(
+            item => ignoredIdentities.get(item) !== identity,
+          ),
         }
         await writeConfig(configPath, next)
         notify(next)
@@ -272,14 +284,26 @@ export const createProjectRegistry = (configPath: string): ProjectRegistryApi =>
           [...new Set(paths)].map(path => canonicalDirectory(path, configPath)),
         )
         const config = await readConfig(configPath)
-        const knownPaths = new Set(config.projects.map(project => project.path))
-        const ignoredPaths = new Set(config.ignoredProjectPaths)
+        const projectIdentities = await pathIdentities(config.projects.map(project => project.path))
+        const ignoredIdentities = await pathIdentities(config.ignoredProjectPaths)
+        const known = new Set(projectIdentities.values())
+        const ignored = new Set(ignoredIdentities.values())
         const names = new Set(config.projects.map(project => project.name))
-        const additions = [...new Set(canonicalPaths)]
-          .filter(path => !knownPaths.has(path) && !ignoredPaths.has(path))
-          .toSorted()
-          .map(path => {
-            const project = { name: availableName(path, names), path }
+        const candidates = await Promise.all(
+          [...new Set(canonicalPaths)].map(async path => ({
+            identity: await projectIdentity(path),
+            path,
+          })),
+        )
+        const additions = candidates
+          .toSorted((left, right) => left.path.localeCompare(right.path))
+          .filter(candidate => {
+            if (known.has(candidate.identity) || ignored.has(candidate.identity)) return false
+            known.add(candidate.identity)
+            return true
+          })
+          .map(candidate => {
+            const project = { name: availableName(candidate.path, names), path: candidate.path }
             names.add(project.name)
             return project
           })

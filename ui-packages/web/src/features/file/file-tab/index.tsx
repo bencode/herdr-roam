@@ -20,8 +20,9 @@ export const FileTab = ({
   readonly active: boolean
   readonly onOpen: (resource: ResourceRef) => void
 }) => {
-  const state = useFileView(resource.projectName, resource.path, active)
-  const rawUrl = (path: string) => projectFileRawUrl(resource.projectName, path)
+  const state = useFileView(resource.projectName, resource.workspaceId, resource.path, active)
+  const rawUrl = (path: string) =>
+    projectFileRawUrl(resource.projectName, resource.workspaceId, path)
 
   return (
     <div className={styles.tab}>
@@ -62,7 +63,14 @@ export const FileTab = ({
           <FileReader
             file={state.value}
             rawUrl={rawUrl}
-            onOpenPath={path => onOpen({ type: 'file', projectName: resource.projectName, path })}
+            onOpenPath={path =>
+              onOpen({
+                type: 'file',
+                projectName: resource.projectName,
+                workspaceId: resource.workspaceId,
+                path,
+              })
+            }
           />
         ) : null}
       </div>

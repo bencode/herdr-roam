@@ -1,6 +1,12 @@
-import type { ProjectFileApiError, ProjectFilePage, ProjectFileView } from '@herdr-roam/shared'
+import type {
+  ProjectApiError,
+  ProjectFileApiError,
+  ProjectFilePage,
+  ProjectFileView,
+  ProjectWorkspaceCatalog,
+} from '@herdr-roam/shared'
 import { z } from 'zod'
-import { filePageSchema, fileViewSchema } from './schema'
+import { filePageSchema, fileViewSchema, workspaceCatalogSchema } from './schema'
 const errorSchema = z.object({
   error: z.object({
     code: z.enum([
@@ -8,6 +14,9 @@ const errorSchema = z.object({
       'invalid_cursor',
       'project_not_found',
       'project_directory_unavailable',
+      'workspace_not_found',
+      'workspace_directory_unavailable',
+      'workspace_unavailable',
       'file_not_found',
       'file_unavailable',
       'file_unsupported',
@@ -19,7 +28,11 @@ const errorSchema = z.object({
 })
 
 export class FileClientError extends Error {
-  readonly code: ProjectFileApiError['error']['code'] | 'invalid_response' | 'network_error'
+  readonly code:
+    | ProjectFileApiError['error']['code']
+    | ProjectApiError['error']['code']
+    | 'invalid_response'
+    | 'network_error'
 
   constructor(code: FileClientError['code'], message: string, options?: ErrorOptions) {
     super(message, options)
@@ -28,8 +41,11 @@ export class FileClientError extends Error {
   }
 }
 
-const fileRoot = (projectName: string): string =>
-  `/api/projects/${encodeURIComponent(projectName)}/files`
+const projectRoot = (projectName: string): string =>
+  `/api/projects/${encodeURIComponent(projectName)}`
+
+const fileRoot = (projectName: string, workspaceId: string): string =>
+  `${projectRoot(projectName)}/workspaces/${encodeURIComponent(workspaceId)}/files`
 
 const queryPath = (
   path: string,
@@ -80,6 +96,7 @@ const request = async <Value>(
 
 export const fetchProjectFiles = (
   projectName: string,
+  workspaceId: string,
   options: {
     readonly directory?: string
     readonly cursor?: string
@@ -88,7 +105,7 @@ export const fetchProjectFiles = (
   } = {},
 ): Promise<ProjectFilePage> =>
   request(
-    queryPath(fileRoot(projectName), {
+    queryPath(fileRoot(projectName, workspaceId), {
       directory: options.directory,
       cursor: options.cursor,
       limit: options.limit,
@@ -99,6 +116,7 @@ export const fetchProjectFiles = (
 
 export const searchProjectFiles = (
   projectName: string,
+  workspaceId: string,
   query: string,
   options: {
     readonly cursor?: string
@@ -107,7 +125,7 @@ export const searchProjectFiles = (
   } = {},
 ): Promise<ProjectFilePage> =>
   request(
-    queryPath(`${fileRoot(projectName)}/search`, {
+    queryPath(`${fileRoot(projectName, workspaceId)}/search`, {
       query,
       cursor: options.cursor,
       limit: options.limit,
@@ -118,10 +136,21 @@ export const searchProjectFiles = (
 
 export const fetchProjectFile = (
   projectName: string,
+  workspaceId: string,
   path: string,
   signal?: AbortSignal,
 ): Promise<ProjectFileView> =>
-  request(queryPath(`${fileRoot(projectName)}/view`, { path }), fileViewSchema.parse, signal)
+  request(
+    queryPath(`${fileRoot(projectName, workspaceId)}/view`, { path }),
+    fileViewSchema.parse,
+    signal,
+  )
 
-export const projectFileRawUrl = (projectName: string, path: string): string =>
-  `${fileRoot(projectName)}/raw/${path.split('/').map(encodeURIComponent).join('/')}`
+export const projectFileRawUrl = (projectName: string, workspaceId: string, path: string): string =>
+  `${fileRoot(projectName, workspaceId)}/raw/${path.split('/').map(encodeURIComponent).join('/')}`
+
+export const fetchProjectWorkspaces = (
+  projectName: string,
+  signal?: AbortSignal,
+): Promise<ProjectWorkspaceCatalog> =>
+  request(`${projectRoot(projectName)}/workspaces`, workspaceCatalogSchema.parse, signal)

@@ -13,7 +13,12 @@ const clientError = (error: unknown): FileClientError =>
     ? error
     : new FileClientError('network_error', 'The file could not be loaded.', { cause: error })
 
-export const useFileView = (projectName: string, path: string, active: boolean) => {
+export const useFileView = (
+  projectName: string,
+  workspaceId: string,
+  path: string,
+  active: boolean,
+) => {
   const [state, setState] = useState<State>({ value: null, loading: false, error: null })
   const wasActive = useRef(false)
 
@@ -30,7 +35,7 @@ export const useFileView = (projectName: string, path: string, active: boolean) 
         loading: true,
         error: null,
       }))
-      void fetchProjectFile(projectName, path, signal).then(
+      void fetchProjectFile(projectName, workspaceId, path, signal).then(
         value => {
           if (!signal?.aborted) setState({ value, loading: false, error: null })
         },
@@ -41,7 +46,7 @@ export const useFileView = (projectName: string, path: string, active: boolean) 
         },
       )
     },
-    [active, path, projectName],
+    [active, path, projectName, workspaceId],
   )
 
   useEffect(() => {

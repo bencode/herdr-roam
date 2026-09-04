@@ -120,6 +120,16 @@ flat server-side path result. The Files toolbar and each open File tab provide
 explicit refresh controls. Selecting the already-open file activates its tab,
 and the active file is highlighted in the tree when its ancestors are open.
 
+A Git Project groups its existing worktree directories under one Project. When
+more than one directory exists, Files places a compact directory selector above
+search. The collapsed control leads with the directory name and shows the
+branch as metadata; the menu adds the full path for disambiguation. Arrow keys,
+Home, End, Enter, and Escape work without introducing a separate management
+screen. Selecting a directory clears Files search and expansion state but does
+not navigate. Only opening a file updates the route. Existing File tabs remain
+bound to the Workspace in which they were opened, while activating a File tab
+selects its Workspace in the sidebar.
+
 The File tab keeps identity and path in a compact header, then gives the rest of
 the workbench to a content-specific reader. Markdown provides Preview/Source,
 an outline when space permits, relative file navigation, and local images.
@@ -263,9 +273,9 @@ page and suspend polling on older pages.
 
 An offline Session opens in History and has no composer. Resume asks the server
 to start Codex or Claude with its native Session ID in the historical working
-directory. The directory must still resolve inside the registered Project. A
-successful Resume switches directly to Live; a currently running Session is
-reused rather than resumed a second time.
+directory. The directory must still resolve inside one of the registered
+Project's existing Workspaces. A successful Resume switches directly to Live;
+a currently running Session is reused rather than resumed a second time.
 
 Live uses the same dark runtime surface as an Agent tab, including recent ANSI
 output, blocked input, and the shared Prompt composer. Session and Agent routes

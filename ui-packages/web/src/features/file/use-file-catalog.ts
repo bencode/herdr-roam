@@ -25,10 +25,12 @@ const asClientError = (error: unknown): FileClientError =>
 
 export const useFileCatalog = ({
   projectName,
+  workspaceId,
   directory = '',
   query = '',
 }: {
   readonly projectName: string
+  readonly workspaceId: string
   readonly directory?: string
   readonly query?: string
 }) => {
@@ -40,8 +42,8 @@ export const useFileCatalog = ({
       setState(current => ({ ...current, loading: true, error: null }))
       try {
         const page = normalizedQuery
-          ? await searchProjectFiles(projectName, normalizedQuery, { cursor, signal })
-          : await fetchProjectFiles(projectName, { directory, cursor, signal })
+          ? await searchProjectFiles(projectName, workspaceId, normalizedQuery, { cursor, signal })
+          : await fetchProjectFiles(projectName, workspaceId, { directory, cursor, signal })
         if (signal?.aborted) return
         setState(current => ({
           items: cursor ? [...current.items, ...page.items] : page.items,
@@ -51,11 +53,12 @@ export const useFileCatalog = ({
           error: null,
         }))
       } catch (error) {
-        if (signal?.aborted || (error instanceof DOMException && error.name === 'AbortError')) return
+        if (signal?.aborted || (error instanceof DOMException && error.name === 'AbortError'))
+          return
         setState(current => ({ ...current, loading: false, error: asClientError(error) }))
       }
     },
-    [directory, normalizedQuery, projectName],
+    [directory, normalizedQuery, projectName, workspaceId],
   )
 
   useEffect(() => {

@@ -2,8 +2,10 @@
 
 ## Source and catalog
 
-Files are read directly from each registered Project root. Roam stores no file
-index, copied content, cache, or database records.
+Files are read directly from a selected Project Workspace. A Workspace is a
+real directory: an existing Git worktree or the primary directory of a non-Git
+Project. Roam stores no file index, copied content, Workspace catalog, cache, or
+database records.
 
 For a Git worktree, the catalog is the union returned by:
 
@@ -24,15 +26,18 @@ not download the whole tree.
 
 ## Read boundary
 
-Every API path is Project-relative. The server canonicalizes the registered
-root and requested entry, rejects absolute paths and `..`, and verifies that
-symbolic links do not leave the root.
+Every API path is Workspace-relative. The client sends an opaque Workspace ID;
+the server resolves it against the Project's currently available worktrees and
+never accepts a client-selected absolute root. It then canonicalizes the
+requested entry, rejects absolute paths and `..`, and verifies that symbolic
+links do not leave the selected Workspace.
 
 ```text
-GET /api/projects/:projectName/files
-GET /api/projects/:projectName/files/search?query=...
-GET /api/projects/:projectName/files/view?path=...
-GET /api/projects/:projectName/files/raw/:path
+GET /api/projects/:projectName/workspaces
+GET /api/projects/:projectName/workspaces/:workspaceId/files
+GET /api/projects/:projectName/workspaces/:workspaceId/files/search?query=...
+GET /api/projects/:projectName/workspaces/:workspaceId/files/view?path=...
+GET /api/projects/:projectName/workspaces/:workspaceId/files/raw/:path
 ```
 
 Text previews are limited to 1 MiB. Image and allowlisted raw assets are
@@ -44,9 +49,18 @@ caching.
 ## Browser readers
 
 Opening a file creates or reuses its ordinary Workbench resource tab at
-`/projects/:projectName/files/:path`. Collection routes open only the Files
-browser. Tabs retain references, not file content, and an explicit refresh
-re-reads the source file.
+`/projects/:projectName/files/:workspaceId/:path`. Collection routes open only
+the Files browser. Tabs retain references, not file content, and an explicit
+refresh re-reads the source file.
+
+When a Project has multiple Workspaces, Files shows a compact directory
+selector above search. It displays the directory name first, current branch as
+secondary metadata, and the full path in the open menu. The choice affects only
+the Files tree and is remembered per Project in browser storage. It does not
+change Agent or Session directories, and it does not retarget existing File
+tabs. If a selected Workspace disappears, Files falls back to the primary
+Workspace while an already-open tab retains its failed reference and reports
+that the directory is unavailable.
 
 Markdown, source, HTML, images, binary files, and oversized files use separate
 read-only presentations. HTML preview runs in a sandboxed iframe without script
@@ -58,5 +72,6 @@ Mermaid, full file readers, and syntax-highlighting code are split into
 on-demand browser chunks, so common Session, Issue, and Skill prose does not
 load uncommon rendering engines.
 
-Editing, deleting, watching, Git status, PDF rendering, annotations, and
-download management are outside this slice.
+Editing, deleting, watching, arbitrary branch snapshots, Git checkout,
+worktree management, Git status, PDF rendering, annotations, and download
+management are outside this slice.

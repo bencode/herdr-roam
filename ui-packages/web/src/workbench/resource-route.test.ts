@@ -14,6 +14,7 @@ describe('resource routes', () => {
     const file = {
       type: 'file',
       projectName: 'roam project',
+      workspaceId: 'workspace id',
       path: 'docs/产品 plan.md',
     } as const
     expect(parseResourcePath(resourcePath(file))).toEqual({ kind: 'resource', resource: file })
@@ -87,8 +88,8 @@ describe('resource routes', () => {
     expect(routeProjectSection(parseResourcePath('/projects/herdr-roam/issues/hr-018'))).toBe(
       'issues',
     )
-    const target = parseResourcePath('/projects/herdr-roam/files/docs/guide.md')
-    expect(canonicalPath(target)).toBe('/projects/herdr-roam/files/docs/guide.md')
+    const target = parseResourcePath('/projects/herdr-roam/files/primary/docs/guide.md')
+    expect(canonicalPath(target)).toBe('/projects/herdr-roam/files/primary/docs/guide.md')
   })
 
   it('returns unknown for unsupported and legacy routes', () => {

@@ -6,6 +6,7 @@ import styles from './style.module.scss'
 
 export type TreeProps = {
   readonly projectName: string
+  readonly workspaceId: string
   readonly activePath: string | null
   readonly expanded: ReadonlySet<string>
   readonly revision: number
@@ -18,12 +19,14 @@ export const FileRow = ({
   level,
   active,
   projectName,
+  workspaceId,
   onOpen,
 }: {
   readonly entry: ProjectFileEntry
   readonly level: number
   readonly active: boolean
   readonly projectName: string
+  readonly workspaceId: string
   readonly onOpen: (resource: ResourceRef) => void
 }) => (
   <button
@@ -31,7 +34,7 @@ export const FileRow = ({
     className={styles.row}
     data-active={active || undefined}
     style={{ paddingLeft: `${0.5 + level * 0.875}rem` }}
-    onClick={() => onOpen({ type: 'file', projectName, path: entry.path })}
+    onClick={() => onOpen({ type: 'file', projectName, workspaceId, path: entry.path })}
     title={entry.path}
   >
     <File aria-hidden="true" />
@@ -78,6 +81,7 @@ const DirectoryChildren = ({
 }: TreeProps & { readonly directory: string; readonly level: number }) => {
   const state = useFileCatalog({
     projectName: props.projectName,
+    workspaceId: props.workspaceId,
     directory,
   })
   return (
@@ -92,6 +96,7 @@ const DirectoryChildren = ({
             level={level}
             active={entry.path === props.activePath}
             projectName={props.projectName}
+            workspaceId={props.workspaceId}
             onOpen={props.onOpen}
           />
         ),

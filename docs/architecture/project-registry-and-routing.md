@@ -39,8 +39,17 @@ the old entry and add the new path instead.
 
 The browser sends a Project Name for project operations and an absolute path
 when the user explicitly adds a directory. The server canonicalizes the path,
-derives a URL-safe Project Name from its basename, and appends a numeric suffix
-on a name collision. Runtime availability and Git state are not stored.
+resolves a Git directory to its worktree root, derives a URL-safe Project Name
+from its basename, and appends a numeric suffix on a name collision. Runtime
+availability and Git state are not stored.
+
+A Project identifies one logical Git repository. Its registered `path` is the
+primary Workspace, while every other live worktree sharing the same Git common
+directory is another Workspace of that Project. Registering or discovering a
+second worktree returns the existing Project instead of creating a duplicate.
+For non-Git directories, the Project has exactly one Workspace. Workspace state
+is derived from the filesystem and Git on each request; Roam does not create,
+checkout, remove, or cache worktrees.
 
 The server validates and canonicalizes a directory before adding it, then
 writes the file through a temporary sibling and atomic rename. A missing file
@@ -52,8 +61,9 @@ Roam also listens to the authoritative Herdr Agent snapshot. A distinct Agent
 working directory is resolved to its nearest Git root and added automatically.
 Pane directories and non-Git Agent directories are ignored. Removing a Project
 adds its canonical path to `ignoredProjectPaths`, preventing a still-running
-Agent from immediately restoring it; explicitly adding that path removes the
-ignore entry.
+Agent from immediately restoring it. Git ignore matching uses repository
+identity, so an Agent in another worktree cannot restore the removed Project;
+explicitly adding any worktree from that repository removes the ignore entry.
 
 The Project Selector is the only user-facing Project entry point. It lists one
 kind of persisted Project and contains Add and Manage modes without exposing
@@ -73,7 +83,7 @@ registration or routing.
 /projects/:projectName/issues/:issueId
 /projects/:projectName/loops
 /projects/:projectName/files
-/projects/:projectName/files/:path...
+/projects/:projectName/files/:workspaceId/:path...
 /projects/:projectName/skills/:skillId
 /agents
 /agents/:agentId
@@ -127,6 +137,11 @@ Local view state such as a Session draft or Markdown mode is retained while the
 React Activity remains mounted, but it is not copied into persistent tab data.
 The supporting file selected inside a Skill follows the same rule and resets to
 `SKILL.md` after a full page reload.
+
+A File reference contains Project Name, Workspace ID, and Project-relative
+path. The same path in two Workspaces therefore opens two distinct tabs. The
+Workspace ID remains bound to the tab even when the Files browser selects a
+different directory.
 
 The browser stores one last canonical path for each of Projects, Agents, and
 Skills, plus the last selected Activity. The current URL wins on reload and

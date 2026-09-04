@@ -1,5 +1,8 @@
 import type { ProjectRegistrySnapshot } from '@herdr-roam/shared'
-import { describe, expect, it, vi } from 'vitest'
+import { mkdtemp, realpath, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createProjectRoutes } from './routes.js'
 import { ProjectRegistryError, type ProjectRegistryApi } from './registry.js'
 
@@ -7,6 +10,12 @@ const snapshot: ProjectRegistrySnapshot = {
   configPath: '/tmp/herdr-roam/config.json',
   projects: [{ name: 'herdr-roam', path: '/work/herdr-roam' }],
 }
+
+const directories: string[] = []
+
+afterEach(async () => {
+  await Promise.all(directories.splice(0).map(path => rm(path, { recursive: true, force: true })))
+})
 
 const registry = (values: Partial<ProjectRegistryApi> = {}): ProjectRegistryApi => ({
   snapshot: vi.fn().mockResolvedValue(snapshot),
@@ -42,6 +51,29 @@ describe('Project routes', () => {
     expect(response.status).toBe(200)
     expect(service.remove).toHaveBeenCalledWith('herdr-roam')
     await expect(response.json()).resolves.toMatchObject({ project: snapshot.projects[0] })
+  })
+
+  it('lists the real directories available to a Project', async () => {
+    const path = await realpath(await mkdtemp(join(tmpdir(), 'herdr-roam-project-route-')))
+    directories.push(path)
+    const service = registry({
+      get: vi.fn().mockResolvedValue({ name: 'fixture', path }),
+    })
+    const response = await createProjectRoutes(service).request('/fixture/workspaces')
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({
+      items: [
+        {
+          id: 'primary',
+          name: path.split('/').at(-1),
+          path,
+          kind: 'directory',
+          branch: null,
+          primary: true,
+        },
+      ],
+    })
   })
 
   it('maps registry failures without hiding the configuration path', async () => {

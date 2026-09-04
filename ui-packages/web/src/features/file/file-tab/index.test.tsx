@@ -24,7 +24,12 @@ describe('FileTab', () => {
   it('shows file identity and offers an explicit refresh', () => {
     render(
       <FileTab
-        resource={{ type: 'file', projectName: 'fixture', path: 'dist/app.bin' }}
+        resource={{
+          type: 'file',
+          projectName: 'fixture',
+          workspaceId: 'primary',
+          path: 'dist/app.bin',
+        }}
         active
         onOpen={vi.fn()}
       />,

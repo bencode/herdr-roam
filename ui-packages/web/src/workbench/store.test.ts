@@ -6,6 +6,13 @@ const session = {
 } as const
 const issue = { type: 'issue', projectName: 'other-project', issueId: 'hr-018' } as const
 const agent = { type: 'agent', agentId: 'terminal-codex' } as const
+const primaryFile = {
+  type: 'file',
+  projectName: 'herdr-roam',
+  workspaceId: 'primary',
+  path: 'README.md',
+} as const
+const linkedFile = { ...primaryFile, workspaceId: 'linked' } as const
 
 describe('workbench store', () => {
   let storeModule: typeof import('./store')
@@ -23,6 +30,15 @@ describe('workbench store', () => {
     useWorkbenchStore.getState().open(session)
     expect(useWorkbenchStore.getState().tabs).toEqual([session, issue])
     expect(useWorkbenchStore.getState().lastActive).toEqual(session)
+  })
+
+  it('keeps the same path in different Workspaces as distinct tabs', () => {
+    const { useWorkbenchStore } = storeModule
+    useWorkbenchStore.getState().open(primaryFile)
+    useWorkbenchStore.getState().open(linkedFile)
+    useWorkbenchStore.getState().open(primaryFile)
+
+    expect(useWorkbenchStore.getState().tabs).toEqual([primaryFile, linkedFile])
   })
 
   it('selects the right neighbor when closing the active tab', () => {
@@ -48,8 +64,8 @@ describe('workbench store', () => {
   it('persists only the versioned workbench snapshot', () => {
     const { useWorkbenchStore } = storeModule
     useWorkbenchStore.getState().open(agent)
-    expect(JSON.parse(localStorage.getItem('herdr-roam.workbench.v4') ?? '')).toEqual({
-      version: 4,
+    expect(JSON.parse(localStorage.getItem('herdr-roam.workbench.v5') ?? '')).toEqual({
+      version: 5,
       activeProjectName: 'herdr-roam',
       tabs: [agent],
       lastActive: agent,
@@ -103,7 +119,7 @@ describe('workbench store', () => {
     })
   })
 
-  it('migrates v2 tabs and the last active resource into v4 navigation memory', async () => {
+  it('discards legacy workbench state after the File resource identity change', async () => {
     localStorage.setItem(
       'herdr-roam.workbench.v2',
       JSON.stringify({
@@ -116,17 +132,7 @@ describe('workbench store', () => {
     vi.resetModules()
     const { useWorkbenchStore } = await import('./store')
 
-    expect(useWorkbenchStore.getState()).toMatchObject({
-      version: 4,
-      tabs: [agent],
-      lastActive: agent,
-      lastActivity: 'agents',
-      activityPaths: {
-        projects: '/projects/herdr-roam',
-        agents: '/agents/terminal-codex',
-        skills: '/skills',
-      },
-    })
-    expect(localStorage.getItem('herdr-roam.workbench.v4')).not.toBeNull()
+    expect(useWorkbenchStore.getState()).toMatchObject({ version: 5, tabs: [], lastActive: null })
+    expect(localStorage.getItem('herdr-roam.workbench.v5')).toBeNull()
   })
 })

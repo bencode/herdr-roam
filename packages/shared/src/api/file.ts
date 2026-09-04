@@ -48,6 +48,8 @@ export type ProjectFileApiError = {
       | 'invalid_cursor'
       | 'project_not_found'
       | 'project_directory_unavailable'
+      | 'workspace_not_found'
+      | 'workspace_directory_unavailable'
       | 'file_not_found'
       | 'file_unavailable'
       | 'file_unsupported'

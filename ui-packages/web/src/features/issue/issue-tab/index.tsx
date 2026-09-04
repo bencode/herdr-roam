@@ -63,7 +63,12 @@ export const IssueTab = ({
               type="button"
               className="flex w-full items-center gap-2 rounded-sm border-0 bg-transparent px-1 py-2 text-left hover:bg-hover [&>svg]:w-4 [&>svg]:flex-none [&>svg]:text-primary"
               onClick={() =>
-                onOpen({ type: 'file', projectName: issue.projectName, path: issue.filePath })
+                onOpen({
+                  type: 'file',
+                  projectName: issue.projectName,
+                  workspaceId: 'primary',
+                  path: issue.filePath,
+                })
               }
             >
               <FileText />

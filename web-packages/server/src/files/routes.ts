@@ -5,6 +5,7 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import type { ProjectRegistryApi } from '../projects/registry.js'
 import { ProjectRegistryError } from '../projects/registry.js'
+import { ProjectWorkspaceError, resolveProjectWorkspace } from '../projects/workspaces.js'
 import { listProjectDirectory, searchProjectFiles } from './catalog.js'
 import { readProjectFile, readRawProjectFile } from './content.js'
 import { ProjectFileError } from './path.js'
@@ -29,8 +30,14 @@ const errorBody = (code: ErrorCode, message: string): ProjectFileApiError => ({
 
 const errorStatus = (code: ErrorCode): 400 | 404 | 409 | 413 | 415 | 500 => {
   if (code === 'invalid_path' || code === 'invalid_cursor') return 400
-  if (code === 'project_not_found' || code === 'file_not_found') return 404
-  if (code === 'project_directory_unavailable' || code === 'file_unavailable') return 409
+  if (code === 'project_not_found' || code === 'workspace_not_found' || code === 'file_not_found')
+    return 404
+  if (
+    code === 'project_directory_unavailable' ||
+    code === 'workspace_directory_unavailable' ||
+    code === 'file_unavailable'
+  )
+    return 409
   if (code === 'catalog_too_large') return 413
   if (code === 'file_unsupported') return 415
   return 500
@@ -51,6 +58,17 @@ const failure = (
           : 'internal_error'
     return { body: errorBody(code, error.message), status: errorStatus(code) }
   }
+  if (error instanceof ProjectWorkspaceError) {
+    const code: ErrorCode =
+      error.code === 'project_directory_unavailable'
+        ? 'project_directory_unavailable'
+        : error.code === 'workspace_not_found'
+          ? 'workspace_not_found'
+          : error.code === 'workspace_directory_unavailable'
+            ? 'workspace_directory_unavailable'
+            : 'file_unavailable'
+    return { body: errorBody(code, error.message), status: errorStatus(code) }
+  }
   console.error('Project file request failed', error)
   return {
     body: errorBody('internal_error', 'The Project file request failed.'),
@@ -58,22 +76,30 @@ const failure = (
   }
 }
 
-const projectPath = async (registry: ProjectRegistryApi, name: string): Promise<string> => {
+const workspacePath = async (
+  registry: ProjectRegistryApi,
+  name: string,
+  workspaceId: string,
+): Promise<string> => {
   const project = await registry.get(name)
   if (!project) throw new ProjectFileError('project_not_found', 'Project not found.')
-  return project.path
+  return (await resolveProjectWorkspace(project, workspaceId)).path
 }
 
 export const createFileRoutes = (registry: ProjectRegistryApi): Hono => {
   const routes = new Hono()
 
-  routes.get('/:projectName/files', async context => {
+  routes.get('/:projectName/workspaces/:workspaceId/files', async context => {
     const query = pageQuerySchema.safeParse(context.req.query())
     if (!query.success) {
       return context.json(errorBody('invalid_path', 'Invalid file catalog query.'), 400)
     }
     try {
-      const path = await projectPath(registry, context.req.param('projectName'))
+      const path = await workspacePath(
+        registry,
+        context.req.param('projectName'),
+        context.req.param('workspaceId'),
+      )
       return context.json(await listProjectDirectory(path, query.data))
     } catch (error) {
       const result = failure(error)
@@ -81,13 +107,17 @@ export const createFileRoutes = (registry: ProjectRegistryApi): Hono => {
     }
   })
 
-  routes.get('/:projectName/files/search', async context => {
+  routes.get('/:projectName/workspaces/:workspaceId/files/search', async context => {
     const query = searchQuerySchema.safeParse(context.req.query())
     if (!query.success) {
       return context.json(errorBody('invalid_path', 'A valid file search query is required.'), 400)
     }
     try {
-      const path = await projectPath(registry, context.req.param('projectName'))
+      const path = await workspacePath(
+        registry,
+        context.req.param('projectName'),
+        context.req.param('workspaceId'),
+      )
       return context.json(await searchProjectFiles(path, query.data))
     } catch (error) {
       const result = failure(error)
@@ -95,13 +125,17 @@ export const createFileRoutes = (registry: ProjectRegistryApi): Hono => {
     }
   })
 
-  routes.get('/:projectName/files/view', async context => {
+  routes.get('/:projectName/workspaces/:workspaceId/files/view', async context => {
     const query = viewQuerySchema.safeParse(context.req.query())
     if (!query.success) {
       return context.json(errorBody('invalid_path', 'A valid file path is required.'), 400)
     }
     try {
-      const path = await projectPath(registry, context.req.param('projectName'))
+      const path = await workspacePath(
+        registry,
+        context.req.param('projectName'),
+        context.req.param('workspaceId'),
+      )
       return context.json(await readProjectFile(path, query.data.path))
     } catch (error) {
       const result = failure(error)
@@ -109,12 +143,16 @@ export const createFileRoutes = (registry: ProjectRegistryApi): Hono => {
     }
   })
 
-  routes.get('/:projectName/files/raw/:path{.+}', async context => {
+  routes.get('/:projectName/workspaces/:workspaceId/files/raw/:path{.+}', async context => {
     const requestedPath = context.req.param('path')
     if (!requestedPath)
       return context.json(errorBody('invalid_path', 'A valid file path is required.'), 400)
     try {
-      const path = await projectPath(registry, context.req.param('projectName'))
+      const path = await workspacePath(
+        registry,
+        context.req.param('projectName'),
+        context.req.param('workspaceId'),
+      )
       const asset = await readRawProjectFile(path, requestedPath)
       const headers = new Headers({
         'Cache-Control': 'no-store',

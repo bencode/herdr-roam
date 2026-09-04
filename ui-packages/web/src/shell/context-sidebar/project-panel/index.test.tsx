@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { vi } from 'vitest'
-import type { ProjectSection } from '../../../workbench/resource'
+import { fetchProjectFiles } from '../../../features/file/client'
+import type { ProjectSection, ResourceRef } from '../../../workbench/resource'
 import { ProjectPanel } from '.'
 
 const fileEntries = vi.hoisted(
@@ -23,10 +24,34 @@ const fileEntries = vi.hoisted(
 )
 
 vi.mock('../../../features/file/client', () => ({
-  fetchProjectFiles: vi.fn((_projectName: string, options?: { readonly directory?: string }) => {
-    const items = fileEntries[options?.directory ?? ''] ?? []
-    return Promise.resolve({ items, total: items.length, nextCursor: null })
-  }),
+  fetchProjectWorkspaces: vi.fn(() =>
+    Promise.resolve({
+      items: [
+        {
+          id: 'primary',
+          name: 'herdr-roam',
+          path: '/work/herdr-roam',
+          kind: 'worktree' as const,
+          branch: 'main',
+          primary: true,
+        },
+        {
+          id: 'linked',
+          name: 'feature-task',
+          path: '/work/worktrees/feature-task',
+          kind: 'worktree' as const,
+          branch: 'feature/task',
+          primary: false,
+        },
+      ],
+    }),
+  ),
+  fetchProjectFiles: vi.fn(
+    (_projectName: string, _workspaceId: string, options?: { readonly directory?: string }) => {
+      const items = fileEntries[options?.directory ?? ''] ?? []
+      return Promise.resolve({ items, total: items.length, nextCursor: null })
+    },
+  ),
   searchProjectFiles: vi.fn(() =>
     Promise.resolve({
       items: fileEntries['docs/product'],
@@ -72,19 +97,23 @@ type ProjectPanelHarnessProps = {
   readonly projectName?: string
   readonly section?: ProjectSection
   readonly routeKey?: string
+  readonly activeFile?: Extract<ResourceRef, { type: 'file' }> | null
+  readonly onOpen?: (resource: ResourceRef) => void
 }
 
 const ProjectPanelHarness = ({
   projectName = 'herdr-roam',
   section = 'sessions',
   routeKey = `/projects/${projectName}`,
+  activeFile = null,
+  onOpen = () => undefined,
 }: ProjectPanelHarnessProps) => (
   <ProjectPanel
     activeProjectName={projectName}
-    activeFilePath={null}
+    activeFile={activeFile}
     section={section}
     routeKey={routeKey}
-    onOpen={() => undefined}
+    onOpen={onOpen}
   />
 )
 
@@ -135,11 +164,58 @@ describe('ProjectPanel', () => {
     expect(await within(filesBrowser).findByText('1 result')).toBeVisible()
   })
 
+  it('switches the Files directory without changing the resource route', async () => {
+    const onOpen = vi.fn()
+    render(
+      <ProjectPanelHarness section="files" routeKey="/projects/herdr-roam/files" onOpen={onOpen} />,
+    )
+
+    const trigger = await screen.findByRole('button', { name: 'File directory' })
+    expect(trigger).toHaveTextContent('herdr-roam')
+    fireEvent.click(trigger)
+    fireEvent.click(await screen.findByRole('option', { name: /feature-task/ }))
+
+    expect(trigger).toHaveTextContent('feature-task')
+    expect(vi.mocked(fetchProjectFiles)).toHaveBeenLastCalledWith(
+      'herdr-roam',
+      'linked',
+      expect.objectContaining({ directory: '' }),
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'docs' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'product' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'vision-and-scope.md' }))
+    expect(onOpen).toHaveBeenCalledWith({
+      type: 'file',
+      projectName: 'herdr-roam',
+      workspaceId: 'linked',
+      path: 'docs/product/vision-and-scope.md',
+    })
+  })
+
+  it('follows the Workspace encoded by an active File route', async () => {
+    render(
+      <ProjectPanelHarness
+        section="files"
+        routeKey="/projects/herdr-roam/files/linked/docs/readme.md"
+        activeFile={{
+          type: 'file',
+          projectName: 'herdr-roam',
+          workspaceId: 'linked',
+          path: 'docs/readme.md',
+        }}
+      />,
+    )
+
+    expect(await screen.findByRole('button', { name: 'File directory' })).toHaveTextContent(
+      'feature-task',
+    )
+  })
+
   it('syncs the browser when the canonical resource route changes', async () => {
     const { rerender } = render(
       <ProjectPanelHarness
         section="files"
-        routeKey="/projects/herdr-roam/files/docs/first.md"
+        routeKey="/projects/herdr-roam/files/primary/docs/first.md"
       />,
     )
 
@@ -150,7 +226,7 @@ describe('ProjectPanel', () => {
     rerender(
       <ProjectPanelHarness
         section="files"
-        routeKey="/projects/herdr-roam/files/docs/second.md"
+        routeKey="/projects/herdr-roam/files/primary/docs/second.md"
       />,
     )
 

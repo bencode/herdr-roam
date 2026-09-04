@@ -1,8 +1,14 @@
+import { execFile } from 'node:child_process'
 import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { promisify } from 'node:util'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createProjectRegistry, ProjectRegistryError } from './registry.js'
+
+const execFileAsync = promisify(execFile)
+const git = (cwd: string, ...args: readonly string[]) =>
+  execFileAsync('git', ['-C', cwd, ...args], { encoding: 'utf8' })
 
 const directories: string[] = []
 
@@ -94,6 +100,33 @@ describe('Project registry', () => {
       projects: [{ name: 'project', path: canonicalPath }],
     })
     expect(listener).toHaveBeenCalledTimes(3)
+  })
+
+  it('deduplicates and ignores Projects by Git repository identity', async () => {
+    const { root, configPath } = await fixture()
+    const repository = join(root, 'repository')
+    const linked = join(root, 'linked')
+    await mkdir(repository)
+    await git(repository, 'init', '-b', 'main')
+    await git(repository, 'config', 'user.email', 'test@example.com')
+    await git(repository, 'config', 'user.name', 'Test User')
+    await writeFile(join(repository, 'README.md'), '# Fixture\n')
+    await git(repository, 'add', 'README.md')
+    await git(repository, 'commit', '-m', 'initial')
+    await git(repository, 'branch', 'task')
+    await git(repository, 'worktree', 'add', linked, 'task')
+    const registry = createProjectRegistry(configPath)
+
+    const project = await registry.add({ path: repository })
+    await expect(registry.add({ path: linked })).resolves.toEqual(project)
+    await expect(registry.snapshot()).resolves.toMatchObject({ projects: [project] })
+
+    await registry.remove(project.name)
+    await registry.discover([linked])
+    await expect(registry.snapshot()).resolves.toMatchObject({ projects: [] })
+
+    const restored = await registry.add({ path: linked })
+    await expect(registry.snapshot()).resolves.toMatchObject({ projects: [restored] })
   })
 
   it('reports missing Projects and invalid configuration without replacing the file', async () => {

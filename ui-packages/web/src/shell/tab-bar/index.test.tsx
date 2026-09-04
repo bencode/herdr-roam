@@ -18,6 +18,7 @@ const issue = { type: 'issue', projectName: 'herdr-roam', issueId: 'hr-018' } as
 const file = {
   type: 'file',
   projectName: 'herdr-roam',
+  workspaceId: 'primary',
   path: 'docs/product/vision-and-scope.md',
 } as const
 const skill = {

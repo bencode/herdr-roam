@@ -173,14 +173,30 @@ const projectFileItems = vi.hoisted(
 )
 
 vi.mock('./features/file/client', () => ({
-  fetchProjectFiles: vi.fn((_projectName: string, options?: { readonly directory?: string }) => {
-    const items = projectFileItems[options?.directory ?? ''] ?? []
-    return Promise.resolve({ items, total: items.length, nextCursor: null })
-  }),
+  fetchProjectWorkspaces: vi.fn(() =>
+    Promise.resolve({
+      items: [
+        {
+          id: 'primary',
+          name: 'herdr-roam',
+          path: '/work/herdr-roam',
+          kind: 'worktree' as const,
+          branch: 'main',
+          primary: true,
+        },
+      ],
+    }),
+  ),
+  fetchProjectFiles: vi.fn(
+    (_projectName: string, _workspaceId: string, options?: { readonly directory?: string }) => {
+      const items = projectFileItems[options?.directory ?? ''] ?? []
+      return Promise.resolve({ items, total: items.length, nextCursor: null })
+    },
+  ),
   searchProjectFiles: vi.fn(() =>
     Promise.resolve({ items: projectFileItems['docs/product'], total: 1, nextCursor: null }),
   ),
-  fetchProjectFile: vi.fn((_projectName: string, path: string) =>
+  fetchProjectFile: vi.fn((_projectName: string, _workspaceId: string, path: string) =>
     Promise.resolve({
       kind: 'markdown',
       path,
@@ -192,7 +208,9 @@ vi.mock('./features/file/client', () => ({
       content: '# Vision and Scope\n',
     }),
   ),
-  projectFileRawUrl: vi.fn((_projectName: string, path: string) => `/raw/${path}`),
+  projectFileRawUrl: vi.fn(
+    (_projectName: string, _workspaceId: string, path: string) => `/raw/${path}`,
+  ),
   FileClientError: class FileClientError extends Error {},
 }))
 
@@ -318,7 +336,7 @@ describe('workbench application', () => {
   it('preserves a File tab mode while switching resources', async () => {
     render(
       <MemoryRouter
-        initialEntries={['/projects/herdr-roam/files/docs/product/vision-and-scope.md']}
+        initialEntries={['/projects/herdr-roam/files/primary/docs/product/vision-and-scope.md']}
       >
         <App />
         <CurrentPath />
@@ -333,7 +351,7 @@ describe('workbench application', () => {
     const sidebar = within(screen.getByTestId('context-sidebar'))
     selectProjectResource(sidebar, 'Sessions')
     expect(screen.getByTestId('current-path')).toHaveTextContent(
-      '/projects/herdr-roam/files/docs/product/vision-and-scope.md',
+      '/projects/herdr-roam/files/primary/docs/product/vision-and-scope.md',
     )
     expect(screen.getByRole('tab', { name: /vision-and-scope.md/ })).toHaveAttribute(
       'aria-selected',
@@ -414,7 +432,7 @@ describe('workbench application', () => {
   it('keeps the context target active when closing its other tabs', async () => {
     render(
       <MemoryRouter
-        initialEntries={['/projects/herdr-roam/files/docs/product/vision-and-scope.md']}
+        initialEntries={['/projects/herdr-roam/files/primary/docs/product/vision-and-scope.md']}
       >
         <App />
         <CurrentPath />
@@ -431,13 +449,14 @@ describe('workbench application', () => {
 
     await waitFor(() =>
       expect(screen.getByTestId('current-path')).toHaveTextContent(
-        '/projects/herdr-roam/files/docs/product/vision-and-scope.md',
+        '/projects/herdr-roam/files/primary/docs/product/vision-and-scope.md',
       ),
     )
     expect(useWorkbenchStore.getState().tabs).toEqual([
       {
         type: 'file',
         projectName: 'herdr-roam',
+        workspaceId: 'primary',
         path: 'docs/product/vision-and-scope.md',
       },
     ])

@@ -9,7 +9,7 @@ type Props = {
   readonly section: ProjectSection
   readonly routeKey: string
   readonly onOpen: (resource: ResourceRef) => void
-  readonly activeFilePath: string | null
+  readonly activeFile: Extract<ResourceRef, { type: 'file' }> | null
 }
 
 export const ProjectPanel = ({
@@ -17,7 +17,7 @@ export const ProjectPanel = ({
   section,
   routeKey,
   onOpen,
-  activeFilePath,
+  activeFile,
 }: Props) => {
   const [query, setQuery] = useState('')
   const [selectedSection, setSelectedSection] = useState(section)
@@ -40,8 +40,10 @@ export const ProjectPanel = ({
       <ProjectViewTabs value={selectedSection} onValueChange={activate} />
       {selectedSection === 'files' ? (
         <FileTree
+          key={activeProjectName}
           projectName={activeProjectName}
-          activePath={activeFilePath}
+          activeFile={activeFile}
+          routeKey={routeKey}
           query={query}
           onQuery={setQuery}
           onOpen={onOpen}

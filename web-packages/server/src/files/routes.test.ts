@@ -29,8 +29,8 @@ afterEach(async () => {
 describe('Project file routes', () => {
   it('lists and reads registered Project files', async () => {
     const app = await routes()
-    const catalog = await app.request('/fixture/files')
-    const view = await app.request('/fixture/files/view?path=README.md')
+    const catalog = await app.request('/fixture/workspaces/primary/files')
+    const view = await app.request('/fixture/workspaces/primary/files/view?path=README.md')
 
     expect(catalog.status).toBe(200)
     await expect(catalog.json()).resolves.toMatchObject({
@@ -51,7 +51,7 @@ describe('Project file routes', () => {
       join(root, 'assets', 'mark.svg'),
       '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
     )
-    const response = await app.request('/fixture/files/raw/assets/mark.svg')
+    const response = await app.request('/fixture/workspaces/primary/files/raw/assets/mark.svg')
 
     expect(response.status).toBe(200)
     expect(response.headers.get('content-type')).toContain('image/svg+xml')
@@ -60,7 +60,9 @@ describe('Project file routes', () => {
 
   it('returns explicit errors for missing Projects and invalid paths', async () => {
     const app = await routes()
-    expect((await app.request('/missing/files')).status).toBe(404)
-    expect((await app.request('/fixture/files/view?path=../secret')).status).toBe(400)
+    expect((await app.request('/missing/workspaces/primary/files')).status).toBe(404)
+    expect(
+      (await app.request('/fixture/workspaces/primary/files/view?path=../secret')).status,
+    ).toBe(400)
   })
 })

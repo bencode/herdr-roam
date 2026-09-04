@@ -2,6 +2,166 @@
   padding-top: 0.125rem;
 }
 
+.fileBrowser {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.workspaceBar {
+  flex: none;
+  padding: 0.5rem 0.625rem 0;
+}
+
+.workspaceTrigger {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  height: 1.875rem;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  padding: 0 0.5rem;
+  color: var(--foreground);
+  font-size: 0.6875rem;
+  text-align: left;
+
+  &:hover,
+  &[data-state='open'] {
+    background: var(--hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+  }
+
+  > svg {
+    width: 0.8125rem;
+    flex: none;
+
+    &:last-child {
+      margin-left: auto;
+      color: var(--faint);
+    }
+  }
+}
+
+.workspaceTriggerName,
+.workspaceTriggerBranch {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspaceTriggerName {
+  font-weight: 600;
+}
+
+.workspaceTriggerBranch {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+}
+
+.workspaceMenu {
+  z-index: var(--z-dropdown);
+  width: var(--radix-popover-trigger-width);
+  min-width: 17rem;
+  max-width: min(28rem, calc(100vw - 1rem));
+  max-height: min(24rem, var(--radix-popover-content-available-height));
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  padding: 0.25rem;
+  color: var(--foreground);
+  box-shadow: var(--shadow-popover);
+  outline: none;
+}
+
+.workspaceOption {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 0.5rem;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  padding: 0.4375rem 0.5rem;
+  color: var(--foreground);
+  text-align: left;
+
+  &:hover,
+  &:focus-visible,
+  &[data-selected] {
+    background: var(--hover);
+    outline: none;
+  }
+}
+
+.workspaceOptionIcon,
+.workspaceCheck {
+  display: grid;
+  width: 0.875rem;
+  height: 1rem;
+  flex: none;
+  place-items: center;
+  color: var(--muted);
+}
+
+.workspaceOptionIcon svg,
+.workspaceCheck {
+  width: 0.8125rem;
+}
+
+.workspaceOptionIdentity {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 0.1875rem;
+
+  > span {
+    display: flex;
+    min-width: 0;
+    align-items: baseline;
+    gap: 0.375rem;
+  }
+
+  strong {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 0.6875rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  small {
+    flex: none;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.5625rem;
+  }
+
+  code {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--faint);
+    font-size: 0.5625rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.workspaceCheck {
+  color: var(--primary);
+}
+
 .row {
   display: flex;
   width: 100%;
