@@ -1,5 +1,6 @@
 import { homedir, platform } from 'node:os'
 import { join } from 'node:path'
+import type { SkillSource } from '@herdr-roam/shared'
 
 export const HERDR_PROTOCOL = 20
 export const HERDR_REQUEST_TIMEOUT_MS = 5_000
@@ -25,3 +26,9 @@ export const sessionRoots = {
   codex: join(homedir(), '.codex', 'sessions'),
   claude: join(homedir(), '.claude', 'projects'),
 } as const
+
+export const personalSkillRoots: Readonly<Record<SkillSource, string>> = {
+  agents: join(homedir(), '.agents', 'skills'),
+  codex: join(homedir(), '.codex', 'skills'),
+  claude: join(homedir(), '.claude', 'skills'),
+}

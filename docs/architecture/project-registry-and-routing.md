@@ -84,10 +84,20 @@ registration or routing.
 `/` restores the last global Activity and that Activity's last canonical path.
 `/projects` restores the Projects Activity's last path. The collection routes
 select the corresponding Activity or Project resource browser without inventing
-a persisted content tab. A project resource route identifies the owner of the
-resource; activating a cross-project resource does not silently change the
-Project selected for browsing. Only opening a Project Workbench, opening a
-Project collection route, or selecting a Project changes the active Project.
+a persisted content tab. The Sessions, Issues, Loops, and Files controls inside
+the Project sidebar are local browser switches: they do not create history
+entries or replace the active resource route. Selecting a concrete resource is
+the boundary that opens a Workbench tab and updates the route. A project
+resource route identifies the owner of the resource; activating a cross-project
+resource does not silently change the Project selected for browsing. Only
+opening a Project Workbench, opening a Project collection route, or selecting a
+Project changes the active Project.
+
+Selecting a Project while Skills is active is a browsing-context change rather
+than a route transition. The application stays in Skills, refreshes only the
+Project group, and leaves any open Skill tab unchanged. The selected Project
+therefore does not overwrite the last Activity or force an old Project Skill
+tab to close.
 
 The Activity is normally derived from the resource type. Project Sessions,
 Issues, Loops, and Files belong to Projects; Agents belong to Agents; and both
@@ -98,6 +108,11 @@ project-scoped canonical path.
 Each path segment is URI encoded independently. The old
 `/projects/:projectName/workbench` form is not a compatibility route because
 the application is still pre-release.
+
+A Skill ID is source-qualified as `<source>:<directory-name>`, for example
+`codex:frontend-design`. The whole ID is one encoded route segment. This keeps
+same-name Skills from Agents, Codex, and Claude distinct without adding source
+fields to the persisted resource reference.
 
 ## Tab restoration
 
@@ -110,6 +125,8 @@ The Project Workbench is pinned and is not part of the resource array. The Theme
 selector is a non-route popover and is not represented in the resource array.
 Local view state such as a Session draft or Markdown mode is retained while the
 React Activity remains mounted, but it is not copied into persistent tab data.
+The supporting file selected inside a Skill follows the same rule and resets to
+`SKILL.md` after a full page reload.
 
 The browser stores one last canonical path for each of Projects, Agents, and
 Skills, plus the last selected Activity. The current URL wins on reload and

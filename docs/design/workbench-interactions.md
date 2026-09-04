@@ -74,18 +74,22 @@ The Activity Bar contains Projects, Agents, and Skills at the top, with a Theme
 control at the bottom. Each global Activity is a route-backed
 navigation link with an inset selected surface, an accessible label, and
 `aria-current`. The project panel begins with one compact row for Sessions,
-Issues, Loops, and Files, followed by the selected resource browser. Those four
-resource browsers also have collection routes, so their selection survives a
-reload.
+Issues, Loops, and Files, followed by the selected resource browser. Switching
+that row changes only the sidebar browser; it does not navigate, replace the
+active Workbench tab, or clear resource-local state. A concrete list item opens
+or reuses its resource tab and updates the canonical route. Collection routes
+remain valid deep links and select their matching browser on direct entry,
+reload, and browser history navigation.
 
 Switching to Agents or Skills does not clear the active project. Each Activity
 remembers its last canonical path in browser storage; returning to Projects can
 therefore restore the exact Session, Issue, File, or Project collection that was
 previously active. React Activity keeps each contextual panel mounted during the
-page lifetime, preserving its search and scroll position as well. A full reload
-restores route-backed selection but not search or scroll state. Theme opens a
-small direct selector without changing the route, Activity navigation memory,
-or active project. A compact
+page lifetime, preserving its local resource-browser selection, search, and
+scroll position as well. A full reload derives the browser selection from the
+canonical route and does not restore an uncommitted sidebar-only switch, search,
+or scroll state. Theme opens a small direct selector without changing the route,
+Activity navigation memory, or active project. A compact
 `PanelLeft` control in the project header collapses the sidebar to the Activity
 Bar and restores its previous width. While collapsed, the ROAM mark remains
 visible and changes into the expand control on hover or keyboard focus. Selecting
@@ -109,6 +113,19 @@ selects the next route. Workbench remains fixed and is never part of a bulk
 close. Inactive tabs retain local view state such as a Session draft or Markdown
 Preview/Source mode. Overflow scrolls horizontally; tabs are never hidden,
 evicted, or capped by count to fit the viewport.
+
+Files uses a lazy directory tree rather than a preloaded Project snapshot.
+Expanding a folder requests one page of its current children; search returns a
+flat server-side path result. The Files toolbar and each open File tab provide
+explicit refresh controls. Selecting the already-open file activates its tab,
+and the active file is highlighted in the tree when its ancestors are open.
+
+The File tab keeps identity and path in a compact header, then gives the rest of
+the workbench to a content-specific reader. Markdown provides Preview/Source,
+an outline when space permits, relative file navigation, and local images.
+HTML provides a sandboxed Preview/Source choice. Source code scrolls without
+wrapping; images use a neutral inspection canvas. Binary and oversized content
+explain why preview is unavailable instead of showing an empty surface.
 
 The active resource is represented by a deep-linkable URL. The ordered tab set
 is an interface preference stored in the browser and contains resource
@@ -367,24 +384,32 @@ format or copy Skills into a database.
 
 ```text
 ┌──────────────────────────┬────────────────────────────────────────────────────────────┐
-│ [Skills]                 │ frontend-design                              user skill     │
+│ [Skills]                 │ frontend-design                    Project · Codex         │
 │                          │────────────────────────────────────────────────────────────│
-│ Scope                    │ Rendered SKILL.md                                          │
-│ [Effective] User Project │                                                            │
-│                          │ Guidance for distinctive, intentional visual design...     │
-│ Search skills...        │                                                            │
-│                          │ Resources                                                   │
-│ frontend-design         │ scripts/                                                    │
-│ impeccable              │ references/                                                 │
-│ herdr-roam-issues       │ assets/                                                     │
-│ project-release         │                                                            │
-│                          │ Source                                                      │
-│                          │ user-level skill                                [Reveal]   │
+│ Search skills...      ↻ │ Rendered SKILL.md                         │ Contents        │
+│ Project · herdr-roam  2 │                                           │ Overview        │
+│ frontend-design  Codex  │ Guidance for distinctive, intentional    │ references/     │
+│ project-release  Claude │ visual design...                          │ scripts/        │
+│ Personal            41 │                                           │ assets/         │
+│ agent-browser    Agents │                                           │                 │
+│ frontend-design Claude │                                           │                 │
 └──────────────────────────┴────────────────────────────────────────────────────────────┘
 ```
 
-Effective combines the user-level Skills with Skills from the active project.
-Installation and broader catalog behavior remain a separate product decision.
+The list scans `.agents/skills`, `.codex/skills`, and `.claude/skills` at the
+personal and active-project roots. Project and Personal remain continuous
+groups rather than filter modes. Same-name Skills are separate resources and
+carry a compact source label. Search filters both groups; Refresh performs a
+fresh filesystem read. Unreadable or malformed Skills remain observable in a
+collapsed warning summary without hiding valid entries.
+
+Opening a Skill creates or activates one Workbench tab. `SKILL.md` is its
+Overview; supporting directories load on expansion and files replace the
+document inside that same tab. Relative Markdown links and images resolve
+against the Skill root. The Contents state survives ordinary tab switching but
+is not encoded into the route, so a full reload returns to Overview. Skills are
+read-only: installation, editing, enablement, and remote catalogs remain later
+product decisions.
 
 ## Project Issues
 

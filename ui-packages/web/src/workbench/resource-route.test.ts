@@ -53,15 +53,15 @@ describe('resource routes', () => {
       section: 'files',
     })
     expect(parseResourcePath('/projects/herdr-roam/issues/hr-018').kind).toBe('resource')
-    expect(parseResourcePath('/skills/herdr-roam-issues')).toEqual({
+    expect(parseResourcePath('/skills/agents%3Aherdr-roam-issues')).toEqual({
       kind: 'resource',
-      resource: { type: 'skill', scope: 'user', skillId: 'herdr-roam-issues' },
+      resource: { type: 'skill', scope: 'user', skillId: 'agents:herdr-roam-issues' },
     })
     const projectSkill = {
       type: 'skill',
       scope: 'project',
       projectName: 'herdr-roam',
-      skillId: 'frontend-design',
+      skillId: 'codex:frontend-design',
     } as const
     expect(parseResourcePath(resourcePath(projectSkill))).toEqual({
       kind: 'resource',
@@ -79,10 +79,10 @@ describe('resource routes', () => {
     expect(parseResourcePath('/agents')).toEqual({ kind: 'agent-list' })
     expect(parseResourcePath('/skills')).toEqual({ kind: 'skill-list' })
     expect(routeDimension(parseResourcePath('/agents/codex'))).toBe('agents')
-    expect(routeDimension(parseResourcePath('/skills/frontend-design'))).toBe('skills')
-    expect(routeDimension(parseResourcePath('/projects/herdr-roam/skills/frontend-design'))).toBe(
-      'skills',
-    )
+    expect(routeDimension(parseResourcePath('/skills/agents%3Afrontend-design'))).toBe('skills')
+    expect(
+      routeDimension(parseResourcePath('/projects/herdr-roam/skills/codex%3Afrontend-design')),
+    ).toBe('skills')
     expect(routeDimension(parseResourcePath('/projects/herdr-roam/issues/hr-018'))).toBe('projects')
     expect(routeProjectSection(parseResourcePath('/projects/herdr-roam/issues/hr-018'))).toBe(
       'issues',

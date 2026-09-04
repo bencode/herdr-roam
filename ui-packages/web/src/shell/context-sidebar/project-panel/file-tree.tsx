@@ -1,160 +1,41 @@
-import { ChevronDown, ChevronRight, File, Folder } from 'lucide-react'
-import { useState } from 'react'
-import type { FileResource } from '../../../mock/data'
-import { files } from '../../../mock/data'
+import { RefreshCw } from 'lucide-react'
+import { useDeferredValue, useEffect, useState } from 'react'
+import { useFileCatalog } from '../../../features/file/use-file-catalog'
 import type { ResourceRef } from '../../../workbench/resource'
+import type { TreeProps } from './file-tree-items'
+import { DirectoryRow, FileRow } from './file-tree-items'
 import { ProjectBrowserFrame } from './resource-list'
+import styles from './style.module.scss'
 
-type FileNode = {
-  readonly kind: 'file'
-  readonly name: string
-  readonly path: string
-}
-
-type DirectoryNode = {
-  readonly kind: 'directory'
-  readonly name: string
-  readonly path: string
-  readonly children: readonly TreeNode[]
-}
-
-type TreeNode = FileNode | DirectoryNode
-type MutableDirectory = {
-  readonly directories: Map<string, MutableDirectory>
-  readonly files: FileResource[]
-}
-
-const directory = (): MutableDirectory => ({ directories: new Map(), files: [] })
-
-const buildNodes = (current: MutableDirectory, parentPath = ''): readonly TreeNode[] => {
-  const directories = [...current.directories.entries()]
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([name, child]) => {
-      const path = parentPath ? `${parentPath}/${name}` : name
-      return { kind: 'directory' as const, name, path, children: buildNodes(child, path) }
-    })
-  const fileNodes = current.files
-    .toSorted((left, right) => left.path.localeCompare(right.path))
-    .map(file => ({
-      kind: 'file' as const,
-      name: file.path.split('/').at(-1) ?? file.path,
-      path: file.path,
-    }))
-  return [...directories, ...fileNodes]
-}
-
-const fileTree = (values: readonly FileResource[]): readonly TreeNode[] => {
-  const root = directory()
-  values.forEach(file => {
-    const parts = file.path.split('/')
-    const fileName = parts.at(-1)
-    if (!fileName) return
-    const parent = parts.slice(0, -1).reduce((current, part) => {
-      const existing = current.directories.get(part)
-      if (existing) return existing
-      const next = directory()
-      current.directories.set(part, next)
-      return next
-    }, root)
-    parent.files.push(file)
-  })
-  return buildNodes(root)
-}
-
-const TreeItem = ({
-  node,
-  level,
-  expanded,
-  searching,
-  onFolder,
-  onOpen,
-  projectName,
-}: {
-  readonly node: TreeNode
-  readonly level: number
-  readonly expanded: ReadonlySet<string>
-  readonly searching: boolean
-  readonly onFolder: (path: string) => void
-  readonly onOpen: (resource: ResourceRef) => void
-  readonly projectName: string
-}) => {
-  const paddingLeft = `${0.5 + level * 0.875}rem`
-  if (node.kind === 'file')
-    return (
-      <button
-        type="button"
-        className="flex h-7.25 w-full min-w-0 items-center gap-1.5 rounded-sm border-0 bg-transparent pr-1.75 text-left text-muted hover:bg-hover hover:text-foreground [&>span]:truncate [&>span]:min-w-0 [&>svg]:w-3.25 [&>svg]:flex-none"
-        style={{ paddingLeft }}
-        onClick={() => onOpen({ type: 'file', projectName, path: node.path })}
-        title={node.path}
-      >
-        <File aria-hidden="true" />
-        <span>{node.name}</span>
-      </button>
-    )
-
-  const open = searching || expanded.has(node.path)
-  return (
-    <div>
-      <button
-        type="button"
-        className="flex h-7.25 w-full min-w-0 items-center gap-1.5 rounded-sm border-0 bg-transparent pr-1.75 text-left text-muted hover:bg-hover hover:text-foreground [&>span]:truncate [&>span]:min-w-0 [&>svg]:w-3.25 [&>svg]:flex-none"
-        style={{ paddingLeft }}
-        onClick={() => onFolder(node.path)}
-        aria-expanded={open}
-        title={node.path}
-      >
-        {open ? <ChevronDown aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}
-        <Folder aria-hidden="true" />
-        <span>{node.name}</span>
-      </button>
-      {open &&
-        node.children.map(child => (
-          <TreeItem
-            key={`${child.kind}:${child.path}`}
-            node={child}
-            level={level + 1}
-            expanded={expanded}
-            searching={searching}
-            onFolder={onFolder}
-            onOpen={onOpen}
-            projectName={projectName}
-          />
-        ))}
-    </div>
-  )
-}
+const parentDirectories = (path: string): readonly string[] =>
+  path
+    .split('/')
+    .slice(0, -1)
+    .map((_, index, parts) => parts.slice(0, index + 1).join('/'))
 
 export const FileTree = ({
   projectName,
+  activePath,
   query,
   onQuery,
   onOpen,
 }: {
   readonly projectName: string
+  readonly activePath: string | null
   readonly query: string
   readonly onQuery: (query: string) => void
   readonly onOpen: (resource: ResourceRef) => void
 }) => {
-  const [expanded, setExpanded] = useState<ReadonlySet<string>>(
-    () =>
-      new Set([
-        'docs',
-        'docs/architecture',
-        'docs/design',
-        'docs/product',
-        'docs/research',
-        'ui-packages',
-        'ui-packages/web',
-        'ui-packages/web/src',
-      ]),
-  )
-  const projectFiles = files.filter(file => file.projectName === projectName)
-  const normalized = query.trim().toLowerCase()
-  const visible = projectFiles.filter(
-    file => normalized === '' || file.path.toLowerCase().includes(normalized),
-  )
-  const nodes = fileTree(visible)
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
+  const [revision, setRevision] = useState(0)
+  const deferredQuery = useDeferredValue(query.trim())
+  const root = useFileCatalog({ projectName, query: deferredQuery })
+
+  useEffect(() => {
+    if (!activePath) return
+    setExpanded(current => new Set([...current, ...parentDirectories(activePath)]))
+  }, [activePath])
+
   const toggle = (path: string) =>
     setExpanded(current => {
       const next = new Set(current)
@@ -163,34 +44,80 @@ export const FileTree = ({
       return next
     })
 
+  const treeProps: TreeProps = {
+    projectName,
+    activePath,
+    expanded,
+    revision,
+    onFolder: toggle,
+    onOpen,
+  }
+
   return (
     <ProjectBrowserFrame
       title="Files"
-      total={projectFiles.length}
-      filtered={visible.length}
+      total={root.total}
+      filtered={root.total}
       query={query}
       onQuery={onQuery}
+      countLabel={
+        deferredQuery === ''
+          ? null
+          : `${root.total} ${root.total === 1 ? 'result' : 'results'}`
+      }
+      actions={
+        <button
+          type="button"
+          className={styles.refresh}
+          onClick={() => {
+            root.retry()
+            setRevision(value => value + 1)
+          }}
+          disabled={root.loading}
+          aria-label="Refresh files"
+          title="Refresh files"
+        >
+          <RefreshCw aria-hidden="true" />
+        </button>
+      }
     >
-      {nodes.length > 0 ? (
-        <div className="pt-0.5">
-          {nodes.map(node => (
-            <TreeItem
-              key={`${node.kind}:${node.path}`}
-              node={node}
-              level={0}
-              expanded={expanded}
-              searching={normalized !== ''}
-              onFolder={toggle}
-              onOpen={onOpen}
-              projectName={projectName}
-            />
-          ))}
+      {root.items.length > 0 ? (
+        <div className={styles.tree} aria-busy={root.loading}>
+          {root.items.map(entry =>
+            entry.kind === 'directory' && deferredQuery === '' ? (
+              <DirectoryRow key={entry.path} entry={entry} level={0} {...treeProps} />
+            ) : (
+              <FileRow
+                key={entry.path}
+                entry={entry}
+                level={0}
+                active={entry.path === activePath}
+                projectName={projectName}
+                onOpen={onOpen}
+              />
+            ),
+          )}
+          {root.nextCursor && (
+            <button type="button" className={styles.more} onClick={root.loadMore}>
+              Load more
+            </button>
+          )}
+        </div>
+      ) : root.loading ? (
+        <div className={styles.empty}>Loading Files…</div>
+      ) : root.error ? (
+        <div className={styles.empty} role="status">
+          <strong>Files unavailable</strong>
+          <span>{root.error.message}</span>
+          <button type="button" onClick={root.retry}>
+            Try again
+          </button>
         </div>
       ) : (
-        <div className="grid justify-items-center gap-1 px-4 py-8 text-center text-muted [&>span]:max-w-52 [&>span]:text-[0.6875rem] [&>span]:leading-normal [&>strong]:text-xs [&>strong]:text-foreground">
-          <strong>{projectFiles.length > 0 ? 'No matching Files' : 'No Files to show'}</strong>
+        <div className={styles.empty}>
+          <strong>{deferredQuery ? 'No matching Files' : 'No Files to show'}</strong>
           <span>
-            {projectFiles.length > 0 ? 'Try a different path.' : 'This project directory is empty.'}
+            {deferredQuery ? 'Try a different path.' : 'This Project directory is empty.'}
           </span>
         </div>
       )}

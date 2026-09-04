@@ -1,57 +1,70 @@
-import { Braces, Eye, FileText } from 'lucide-react'
-import { useState } from 'react'
-import { cn } from '../../../lib/cn'
-import { fileByPath, projectByName } from '../../../mock/data'
-import { Markdown } from '../../../ui/markdown'
+import { FileCode2, RefreshCw } from 'lucide-react'
+import { FileReader } from '../../../components/reader'
 import type { ResourceRef } from '../../../workbench/resource'
+import { projectFileRawUrl } from '../client'
+import { useFileView } from '../use-file-view'
+import styles from './style.module.scss'
 
-type MarkdownMode = 'preview' | 'source'
+const fileSize = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KiB`
+  return `${(bytes / 1024 / 1024).toFixed(1)} MiB`
+}
 
 export const FileTab = ({
   resource,
+  active,
+  onOpen,
 }: {
   readonly resource: Extract<ResourceRef, { type: 'file' }>
+  readonly active: boolean
+  readonly onOpen: (resource: ResourceRef) => void
 }) => {
-  const file = fileByPath(resource.projectName, resource.path)
-  const project = projectByName(resource.projectName)
-  const [mode, setMode] = useState<MarkdownMode>('preview')
-  if (!file)
-    return <p className="grid h-full place-items-center text-muted">File is unavailable.</p>
-  const code = `\`\`\`${file.language}\n${file.content}\n\`\`\``
-  const markdownPreview = file.language === 'markdown' && mode === 'preview'
+  const state = useFileView(resource.projectName, resource.path, active)
+  const rawUrl = (path: string) => projectFileRawUrl(resource.projectName, path)
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-surface">
-      <header className="flex min-h-12 items-center gap-2 border-border border-b px-4 [&>svg]:w-4 [&>svg]:flex-none [&>svg]:text-primary">
-        {file.language === 'markdown' ? <FileText /> : <Braces />}
-        <p className="m-0 min-w-0 truncate">
-          <span className="text-muted">{project?.name} / </span>
-          {file.path}
-        </p>
-        {file.language === 'markdown' && (
-          <div className="ml-auto flex rounded-md border border-border p-0.5">
-            {(['preview', 'source'] as const).map(value => (
-              <button
-                type="button"
-                key={value}
-                className={cn(
-                  'flex h-7 items-center gap-1.5 rounded-[3px] border-0 bg-transparent px-2.5 text-xs text-muted hover:text-foreground [&_svg]:w-3.5',
-                  mode === value && 'bg-raised text-foreground',
-                )}
-                onClick={() => setMode(value)}
-                aria-pressed={mode === value}
-              >
-                {value === 'preview' && <Eye />}
-                {value}
-              </button>
-            ))}
-          </div>
-        )}
-      </header>
-      <div className="min-h-0 flex-1 overflow-auto px-[clamp(1.5rem,4vw,2.5rem)] py-8">
-        <div className="mx-auto max-w-3xl">
-          {markdownPreview ? <Markdown text={file.content} /> : <Markdown text={code} />}
+    <div className={styles.tab}>
+      <header className={styles.header}>
+        <FileCode2 aria-hidden="true" />
+        <div className={styles.identity}>
+          <strong>{resource.path.split('/').at(-1) ?? resource.path}</strong>
+          <span title={resource.path}>{resource.path}</span>
         </div>
+        {state.value && (
+          <span className={styles.metadata}>
+            {fileSize(state.value.size)} · {state.value.mediaType}
+          </span>
+        )}
+        <button
+          type="button"
+          className={styles.refresh}
+          onClick={state.reload}
+          disabled={state.loading}
+          aria-label="Refresh file"
+          title="Refresh file"
+        >
+          <RefreshCw aria-hidden="true" />
+        </button>
+      </header>
+      <div className={styles.body} aria-busy={state.loading}>
+        {state.loading && !state.value ? (
+          <div className={styles.status}>Loading file…</div>
+        ) : state.error ? (
+          <div className={styles.error} role="status">
+            <strong>File unavailable</strong>
+            <span>{state.error.message}</span>
+            <button type="button" onClick={state.reload}>
+              Try again
+            </button>
+          </div>
+        ) : state.value ? (
+          <FileReader
+            file={state.value}
+            rawUrl={rawUrl}
+            onOpenPath={path => onOpen({ type: 'file', projectName: resource.projectName, path })}
+          />
+        ) : null}
       </div>
     </div>
   )

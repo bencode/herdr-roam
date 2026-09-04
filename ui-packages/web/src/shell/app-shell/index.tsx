@@ -47,12 +47,12 @@ type Props = {
   readonly activeDimension: GlobalDimension
   readonly activityPaths: Readonly<Record<GlobalDimension, string>>
   readonly projectSection: ProjectSection
+  readonly projectRouteKey: string
   readonly tabs: readonly ResourceRef[]
   readonly active: ResourceRef | null
   readonly onProject: (projectName: string) => void
   readonly onAddProject: (path: string) => Promise<Project>
   readonly onRemoveProject: (projectName: string) => Promise<void>
-  readonly onProjectSection: (section: ProjectSection) => void
   readonly onWorkbench: () => void
   readonly onOpen: (resource: ResourceRef) => void
   readonly onClose: (resource: ResourceRef) => void
@@ -67,12 +67,12 @@ export const AppShell = ({
   activeDimension,
   activityPaths,
   projectSection,
+  projectRouteKey,
   tabs,
   active,
   onProject,
   onAddProject,
   onRemoveProject,
-  onProjectSection,
   onWorkbench,
   onOpen,
   onClose,
@@ -215,8 +215,10 @@ export const AppShell = ({
                 dimension={activeDimension}
                 activeProjectName={activeProjectName}
                 activeAgentId={active?.type === 'agent' ? active.agentId : null}
+                activeFilePath={active?.type === 'file' ? active.path : null}
+                activeSkill={active?.type === 'skill' ? active : null}
                 projectSection={projectSection}
-                onProjectSection={onProjectSection}
+                projectRouteKey={projectRouteKey}
                 onOpen={onOpen}
               />
               <footer className="flex h-10.5 flex-none border-border border-t px-2">

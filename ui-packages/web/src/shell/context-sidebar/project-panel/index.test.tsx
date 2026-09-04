@@ -1,8 +1,41 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import { useState } from 'react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { vi } from 'vitest'
 import type { ProjectSection } from '../../../workbench/resource'
 import { ProjectPanel } from '.'
+
+const fileEntries = vi.hoisted(
+  (): Readonly<
+    Record<
+      string,
+      readonly {
+        readonly kind: 'directory' | 'file'
+        readonly name: string
+        readonly path: string
+      }[]
+    >
+  > => ({
+    '': [{ kind: 'directory', name: 'docs', path: 'docs' }],
+    docs: [{ kind: 'directory', name: 'product', path: 'docs/product' }],
+    'docs/product': [
+      { kind: 'file', name: 'vision-and-scope.md', path: 'docs/product/vision-and-scope.md' },
+    ],
+  }),
+)
+
+vi.mock('../../../features/file/client', () => ({
+  fetchProjectFiles: vi.fn((_projectName: string, options?: { readonly directory?: string }) => {
+    const items = fileEntries[options?.directory ?? ''] ?? []
+    return Promise.resolve({ items, total: items.length, nextCursor: null })
+  }),
+  searchProjectFiles: vi.fn(() =>
+    Promise.resolve({
+      items: fileEntries['docs/product'],
+      total: 1,
+      nextCursor: null,
+    }),
+  ),
+  FileClientError: class FileClientError extends Error {},
+}))
 
 const sessionFixtures = Array.from({ length: 14 }, (_, index) => ({
   id: `session-${index + 1}`,
@@ -35,17 +68,25 @@ vi.mock('../../../features/agent/runtime-provider', () => ({
   }),
 }))
 
-const ProjectPanelHarness = ({ projectName = 'herdr-roam' }: { readonly projectName?: string }) => {
-  const [section, setSection] = useState<ProjectSection>('sessions')
-  return (
-    <ProjectPanel
-      activeProjectName={projectName}
-      section={section}
-      onSection={setSection}
-      onOpen={() => undefined}
-    />
-  )
+type ProjectPanelHarnessProps = {
+  readonly projectName?: string
+  readonly section?: ProjectSection
+  readonly routeKey?: string
 }
+
+const ProjectPanelHarness = ({
+  projectName = 'herdr-roam',
+  section = 'sessions',
+  routeKey = `/projects/${projectName}`,
+}: ProjectPanelHarnessProps) => (
+  <ProjectPanel
+    activeProjectName={projectName}
+    activeFilePath={null}
+    section={section}
+    routeKey={routeKey}
+    onOpen={() => undefined}
+  />
+)
 
 const selectResource = (name: string) => fireEvent.click(screen.getByRole('button', { name }))
 
@@ -80,8 +121,42 @@ describe('ProjectPanel', () => {
     expect(screen.getByText('Dependency release review')).toBeVisible()
 
     selectResource('Files')
-    expect(screen.getByRole('button', { name: 'docs' })).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByRole('button', { name: 'vision-and-scope.md' })).toBeVisible()
+    const filesBrowser = screen.getByRole('region', { name: 'Files browser' })
+    const docs = await screen.findByRole('button', { name: 'docs' })
+    expect(within(filesBrowser).queryByText(/^1$/)).not.toBeInTheDocument()
+    expect(docs).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(docs)
+    fireEvent.click(await screen.findByRole('button', { name: 'product' }))
+    expect(await screen.findByRole('button', { name: 'vision-and-scope.md' })).toBeVisible()
+
+    fireEvent.change(within(filesBrowser).getByRole('textbox', { name: 'Search files' }), {
+      target: { value: 'vision' },
+    })
+    expect(await within(filesBrowser).findByText('1 result')).toBeVisible()
+  })
+
+  it('syncs the browser when the canonical resource route changes', async () => {
+    const { rerender } = render(
+      <ProjectPanelHarness
+        section="files"
+        routeKey="/projects/herdr-roam/files/docs/first.md"
+      />,
+    )
+
+    await screen.findByRole('button', { name: 'docs' })
+    selectResource('Issues')
+    expect(screen.getByRole('button', { name: 'Issues' })).toHaveAttribute('aria-pressed', 'true')
+
+    rerender(
+      <ProjectPanelHarness
+        section="files"
+        routeKey="/projects/herdr-roam/files/docs/second.md"
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: 'Files' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('region', { name: 'Files browser' })).toBeVisible()
+    expect(await screen.findByRole('button', { name: 'docs' })).toBeVisible()
   })
 
   it('shows sparse project states without hiding the resource structure', () => {

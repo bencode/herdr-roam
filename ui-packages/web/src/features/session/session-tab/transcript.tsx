@@ -1,7 +1,7 @@
 import type { SessionActivityEntry, SessionEntry, SessionProvider } from '@herdr-roam/shared'
 import { AlertTriangle, ChevronRight, Image as ImageIcon } from 'lucide-react'
+import { Markdown } from '../../../components/markdown'
 import { cn } from '../../../lib/cn'
-import { Markdown } from '../../../ui/markdown'
 import styles from './style.module.scss'
 
 const Activity = ({ activity }: { readonly activity: SessionActivityEntry }) => (
@@ -15,10 +15,7 @@ const Activity = ({ activity }: { readonly activity: SessionActivityEntry }) => 
       <ChevronRight className="size-3 transition-transform duration-150 group-open:rotate-90" />
       <span className="font-mono">{activity.name}</span>
       <span
-        className={cn(
-          'capitalize',
-          activity.status === 'failed' ? 'text-danger' : 'text-faint',
-        )}
+        className={cn('capitalize', activity.status === 'failed' ? 'text-danger' : 'text-faint')}
       >
         {activity.status}
       </span>

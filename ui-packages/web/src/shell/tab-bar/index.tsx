@@ -4,8 +4,12 @@ import { useLayoutEffect, useRef } from 'react'
 import { useAgentRuntime } from '../../features/agent/runtime-provider'
 import { useSessionData } from '../../features/session/use-session-data'
 import { cn } from '../../lib/cn'
-import { resourceTitle } from '../../mock/data'
-import { type ResourceRef, resourceKey, sameResource } from '../../workbench/resource'
+import {
+  type ResourceRef,
+  resourceKey,
+  resourceTitle,
+  sameResource,
+} from '../../workbench/resource'
 import { TabContextMenu } from './tab-context-menu'
 
 const WORKBENCH_KEY = 'workbench'

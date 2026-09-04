@@ -1,37 +1,102 @@
-import { Box, FileCode2 } from 'lucide-react'
-import { skillById } from '../../../mock/data'
-import { Markdown } from '../../../ui/markdown'
+import { Box, RefreshCw } from 'lucide-react'
+import { useState } from 'react'
+import { FileReader } from '../../../components/reader'
 import type { ResourceRef } from '../../../workbench/resource'
+import { skillTitle } from '../../../workbench/resource'
+import { skillFileRawUrl, skillSourceLabel } from '../client'
+import { useSkillDetail, useSkillFile } from '../use-skill-detail'
+import { ResourceTree } from './resource-tree'
+import styles from './style.module.scss'
 
-export const SkillTab = ({
-  resource,
+type SkillResource = Extract<ResourceRef, { type: 'skill' }>
+
+const ErrorState = ({
+  title,
+  message,
+  onRetry,
 }: {
-  readonly resource: Extract<ResourceRef, { type: 'skill' }>
-}) => {
-  const skill = skillById(resource.skillId)
-  if (!skill)
-    return <p className="grid h-full place-items-center text-muted">Skill is unavailable.</p>
+  readonly title: string
+  readonly message: string
+  readonly onRetry: () => void
+}) => (
+  <div className={styles.error} role="status">
+    <strong>{title}</strong>
+    <span>{message}</span>
+    <button type="button" onClick={onRetry}>
+      Try again
+    </button>
+  </div>
+)
+
+export const SkillTab = ({ resource }: { readonly resource: SkillResource }) => {
+  const [selectedPath, setSelectedPath] = useState<string | null>(null)
+  const [revision, setRevision] = useState(0)
+  const detail = useSkillDetail(resource)
+  const selected = useSkillFile(resource, selectedPath)
+  const file = selectedPath ? selected.value : detail.value?.document
+  const error = selectedPath ? selected.error : detail.error
+  const loading = selectedPath ? selected.loading : detail.loading
+  const reload = () => {
+    detail.reload()
+    if (selectedPath) selected.reload()
+    setRevision(value => value + 1)
+  }
+  const openPath = (path: string) => setSelectedPath(path === 'SKILL.md' ? null : path)
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-surface">
-      <header className="flex min-h-12 items-center gap-2 border-border border-b px-4 [&>svg]:w-4 [&>svg]:text-primary">
-        <Box />
-        <strong>{skill.name}</strong>
-        <span className="rounded-full bg-raised px-2 py-0.5 text-xs text-muted">{skill.scope}</span>
-      </header>
-      <div className="min-h-0 flex-1 overflow-auto px-[clamp(1.5rem,4vw,2.5rem)] py-8">
-        <div className="mx-auto grid max-w-4xl gap-10 min-[64rem]:grid-cols-[minmax(0,1fr)_220px]">
-          <Markdown text={skill.markdown} />
-          <aside className="border-border border-t pt-4 min-[64rem]:border-t-0 min-[64rem]:border-l min-[64rem]:pt-0 min-[64rem]:pl-5">
-            <p className="mt-0 mb-3 text-xs text-muted">Supporting resources</p>
-            {skill.resources.map(item => (
-              <div key={item} className="flex items-center gap-2 py-2 text-sm">
-                <FileCode2 className="w-3.5 flex-none text-primary" />
-                <span className="min-w-0 truncate font-mono text-xs">{item}</span>
-              </div>
-            ))}
-          </aside>
+    <div className={styles.tab}>
+      <header className={styles.header}>
+        <Box aria-hidden="true" />
+        <div className={styles.identity}>
+          <div>
+            <strong>{detail.value?.name ?? skillTitle(resource.skillId)}</strong>
+            <span className={styles.badge}>
+              {resource.scope === 'project' ? 'Project' : 'Personal'}
+            </span>
+            {detail.value && (
+              <span className={styles.badge}>{skillSourceLabel(detail.value.source)}</span>
+            )}
+          </div>
+          {detail.value && <span title={detail.value.location}>{detail.value.location}</span>}
         </div>
+        <button
+          type="button"
+          className={styles.refresh}
+          onClick={reload}
+          disabled={loading}
+          aria-label="Refresh Skill"
+          title="Refresh Skill"
+        >
+          <RefreshCw aria-hidden="true" />
+        </button>
+      </header>
+      <div className={styles.body}>
+        <main className={styles.reader} aria-busy={loading}>
+          {loading && !file ? (
+            <div className={styles.status}>Loading Skill…</div>
+          ) : error ? (
+            <ErrorState
+              title={selectedPath ? 'File unavailable' : 'Skill unavailable'}
+              message={error.message}
+              onRetry={selectedPath ? selected.reload : detail.reload}
+            />
+          ) : file ? (
+            <FileReader
+              file={file}
+              rawUrl={path => skillFileRawUrl(resource, path)}
+              onOpenPath={openPath}
+              showOutline={false}
+            />
+          ) : null}
+        </main>
+        {detail.value && (
+          <ResourceTree
+            resource={resource}
+            selectedPath={selectedPath}
+            revision={revision}
+            onSelect={setSelectedPath}
+          />
+        )}
       </div>
     </div>
   )

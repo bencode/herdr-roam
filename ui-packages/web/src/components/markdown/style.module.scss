@@ -1,11 +1,13 @@
 .markdown {
-  max-width: 72ch;
+  max-width: 76ch;
   font-size: 0.875rem;
   line-height: 1.75;
+  overflow-wrap: anywhere;
 
   h1,
   h2,
-  h3 {
+  h3,
+  h4 {
     color: var(--foreground);
     font-weight: 650;
     text-wrap: balance;
@@ -22,7 +24,8 @@
     font-size: 1.05rem;
   }
 
-  h3 {
+  h3,
+  h4 {
     margin: 1.4rem 0 0.5rem;
     font-size: 0.95rem;
   }
@@ -30,7 +33,9 @@
   p,
   ul,
   ol,
-  pre {
+  pre,
+  blockquote,
+  table {
     margin: 0 0 0.9rem;
   }
 
@@ -47,6 +52,31 @@
     color: var(--primary);
     text-decoration: underline;
     text-underline-offset: 0.18em;
+  }
+
+  img {
+    max-width: 100%;
+    border-radius: var(--radius);
+  }
+
+  blockquote {
+    border-left: 2px solid var(--border-strong);
+    padding-left: 0.9rem;
+    color: var(--muted);
+  }
+
+  table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    border: 1px solid var(--border);
+    padding: 0.35rem 0.6rem;
+    text-align: left;
   }
 
   code {
@@ -84,4 +114,35 @@
   :global(.hljs-comment) {
     color: var(--faint);
   }
+}
+
+.diagram,
+.diagramLoading,
+.diagramError,
+.diagramFallback {
+  margin: 1rem 0;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 1rem;
+}
+
+.diagram {
+  text-align: center;
+
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+.diagramLoading,
+.diagramError {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.diagramError {
+  color: var(--danger);
 }

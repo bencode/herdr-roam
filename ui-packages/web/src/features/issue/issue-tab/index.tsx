@@ -1,7 +1,7 @@
 import { FileText, MessagesSquare } from 'lucide-react'
+import { Markdown } from '../../../components/markdown'
 import { issueById, projectByName } from '../../../mock/data'
 import { Button } from '../../../ui/button'
-import { Markdown } from '../../../ui/markdown'
 import type { ResourceRef } from '../../../workbench/resource'
 
 export const IssueTab = ({

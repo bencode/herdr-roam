@@ -14,12 +14,14 @@ const ResourceContent = ({
   focusMode,
   onFocusModeChange,
   onOpen,
+  active,
 }: {
   readonly resource: ResourceRef
   readonly projects: readonly Project[]
   readonly focusMode: boolean
   readonly onFocusModeChange: (focused: boolean) => void
   readonly onOpen: (resource: ResourceRef) => void
+  readonly active: boolean
 }) => {
   if (resource.type === 'agent')
     return <AgentTab resource={resource} projects={projects} onOpen={onOpen} />
@@ -33,7 +35,8 @@ const ResourceContent = ({
       />
     )
   if (resource.type === 'issue') return <IssueTab resource={resource} onOpen={onOpen} />
-  if (resource.type === 'file') return <FileTab resource={resource} />
+  if (resource.type === 'file')
+    return <FileTab resource={resource} active={active} onOpen={onOpen} />
   return <SkillTab resource={resource} />
 }
 
@@ -84,6 +87,7 @@ export const ResourceHost = ({
             focusMode={focusMode}
             onFocusModeChange={onFocusModeChange}
             onOpen={onOpen}
+            active={Boolean(active && sameResource(active, resource))}
           />
         </div>
       </Activity>

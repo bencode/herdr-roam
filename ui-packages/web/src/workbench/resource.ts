@@ -60,3 +60,16 @@ export const resourceKey = (resource: ResourceRef): string => {
 
 export const sameResource = (left: ResourceRef, right: ResourceRef): boolean =>
   resourceKey(left) === resourceKey(right)
+
+export const skillTitle = (skillId: string): string => {
+  const separator = skillId.indexOf(':')
+  return separator >= 0 ? skillId.slice(separator + 1) : skillId
+}
+
+export const resourceTitle = (resource: ResourceRef): string => {
+  if (resource.type === 'agent') return resource.agentId
+  if (resource.type === 'session') return resource.sessionId
+  if (resource.type === 'issue') return resource.issueId.toUpperCase()
+  if (resource.type === 'file') return resource.path.split('/').at(-1) ?? resource.path
+  return skillTitle(resource.skillId)
+}

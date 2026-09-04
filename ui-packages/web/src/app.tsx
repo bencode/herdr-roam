@@ -3,12 +3,11 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { AgentRuntimeProvider } from './features/agent/runtime-provider'
 import { useProjectRegistry } from './features/project/use-project-registry'
 import { AppShell } from './shell/app-shell'
-import { type ProjectSection, type ResourceRef, sameResource } from './workbench/resource'
+import { type ResourceRef, sameResource } from './workbench/resource'
 import {
   canonicalPath,
   parseResourcePath,
   projectPath,
-  projectSectionPath,
   resourcePath,
   routeDimension,
   routeProjectSection,
@@ -132,15 +131,11 @@ const RoutedApp = () => {
   const selectProject = useCallback(
     (projectName: string) => {
       setActiveProject(projectName)
+      if (activeDimension === 'skills') return
       showWorkbench()
       navigate(projectPath(projectName))
     },
-    [navigate, setActiveProject, showWorkbench],
-  )
-
-  const selectProjectSection = useCallback(
-    (section: ProjectSection) => navigate(projectSectionPath(activeProjectName, section)),
-    [activeProjectName, navigate],
+    [activeDimension, navigate, setActiveProject, showWorkbench],
   )
 
   const closeResources = useCallback(
@@ -211,12 +206,12 @@ const RoutedApp = () => {
       activeDimension={activeDimension}
       activityPaths={activityPaths}
       projectSection={projectSection}
+      projectRouteKey={location.pathname}
       tabs={tabs}
       active={active}
       onProject={selectProject}
       onAddProject={addProject}
       onRemoveProject={removeProject}
-      onProjectSection={selectProjectSection}
       onWorkbench={openWorkbench}
       onOpen={openResource}
       onClose={closeResource}

@@ -24,6 +24,26 @@ export {
   AGENT_TEXT_MAX_BYTES,
 } from './api/agent.js'
 export type {
+  FileEntry,
+  FileMetadata,
+  FilePage,
+  FileView,
+  ProjectFileApiError,
+  ProjectFileEntry,
+  ProjectFileMetadata,
+  ProjectFilePage,
+  ProjectFileView,
+} from './api/file.js'
+export type {
+  SkillApiError,
+  SkillCatalog,
+  SkillCatalogWarning,
+  SkillDetail,
+  SkillScope,
+  SkillSource,
+  SkillSummary,
+} from './api/skill.js'
+export type {
   Project,
   ProjectApiError,
   ProjectCreateRequest,

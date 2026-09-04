@@ -245,7 +245,6 @@ export const useWorkbenchStore = create<WorkbenchStore>((set, get) => ({
     const next = {
       ...snapshotOf(current),
       activeProjectName,
-      lastActivity: 'projects' as const,
       activityPaths: {
         ...current.activityPaths,
         projects: activityRootPath('projects', activeProjectName),

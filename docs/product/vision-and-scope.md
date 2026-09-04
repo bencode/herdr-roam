@@ -98,7 +98,7 @@ They are not top-level product concepts in Herdr Roam.
 
 One project is active at a time. Its Workbench starts standard Sessions from a
 directory and presents a compact project activity stream. Project work includes
-Sessions, Issues, Loops, Files, and effective project Skills.
+Sessions, Issues, Loops, Files, and project-local Skills.
 
 The Workbench starts a named or automatically named Codex or Claude agent in
 the selected directory without exposing Herdr Workspace or Pane setup.
@@ -147,6 +147,11 @@ and syntax-highlighted source code. Common context files such as `README.md`
 and `AGENTS.md` are easy to reach. Git branch and working-tree state provide
 review context without turning Herdr Roam into a Git client.
 
+The tree reads the current Git-visible catalog in pages and searches paths on
+the local server without maintaining a second index. Markdown, HTML, images,
+source, and unsupported files receive explicit readers; uncommon rendering
+engines load only when content needs them.
+
 Opening a file from the tree, a Session, an Issue, a Skill, or search uses the
 same Workbench tab rather than a viewer owned by the entry point.
 
@@ -174,12 +179,14 @@ semantics.
 
 Skills are visible as a first-class resource rather than hidden in the file
 tree. A person can browse user-level and active-project Skills, read their
-instructions and supporting resources, see their source, and understand the
-effective Skill set for the active project. Roam uses the existing Agent Skill
-layout rather than introducing a proprietary Skill format or database.
+instructions and supporting resources, and see whether each resource came from
+Agents, Codex, or Claude. Same-name Skills from different sources remain
+separate and explicit; Roam does not manufacture one merged effective Skill.
+It uses the existing local Skill layouts rather than introducing a proprietary
+format, index, cache, or database.
 
-Installation, catalog, grouping, and in-browser authoring behavior remain open
-product decisions.
+The first version is read-only. Installation, enablement, remote catalogs, and
+in-browser authoring remain later product decisions.
 
 ### Herdr runtime prerequisites
 

@@ -1,4 +1,4 @@
-import type { FileResource, Issue, Loop, Project } from './data'
+import type { Issue, Loop, Project } from './data'
 
 export const projects: readonly Project[] = [
   {
@@ -219,68 +219,4 @@ export const loops: readonly Loop[] = [
     schedule: 'Every Sunday',
     nextRun: 'configuration error',
   },
-]
-
-const featuredContent: Readonly<Record<string, string>> = {
-  'docs/product/vision-and-scope.md':
-    '# Vision and Scope\n\nHerdr Roam is a local personal AI software studio for coordinating multiple coding agents managed by one Herdr server.',
-  'docs/design/workbench-interactions.md':
-    '# Workbench Interactions\n\nThe application shell uses a contextual sidebar and one tabbed work area.',
-  'docs/architecture/system-overview.md':
-    '# System Overview\n\nHerdr owns runtime processes while Roam owns the coordination and reading layer.',
-}
-
-const file = (projectName: string, path: string): FileResource => {
-  const language = path.endsWith('.md') ? 'markdown' : 'typescript'
-  const name = path.split('/').at(-1) ?? path
-  return {
-    projectName,
-    path,
-    language,
-    content:
-      featuredContent[path] ??
-      (language === 'markdown'
-        ? `# ${name.replace('.md', '')}\n\nRepresentative project fixture for ${path}.`
-        : `export const fixturePath = '${path}'\n`),
-  }
-}
-
-const roamFilePaths = [
-  'README.md',
-  'AGENTS.md',
-  'docs/product/vision-and-scope.md',
-  'docs/product/runtime-model.md',
-  'docs/product/issue-format.md',
-  'docs/design/workbench-interactions.md',
-  'docs/architecture/system-overview.md',
-  'docs/research/herdr-api.md',
-  'docs/research/session-discovery.md',
-  'ui-packages/web/src/app.tsx',
-  'ui-packages/web/src/main.tsx',
-  'ui-packages/web/src/shell/app-shell/index.tsx',
-  'ui-packages/web/src/shell/context-sidebar/index.tsx',
-  'ui-packages/web/src/shell/context-sidebar/project-panel/index.tsx',
-  'ui-packages/web/src/shell/tab-bar/index.tsx',
-  'ui-packages/web/src/features/session/session-tab/index.tsx',
-  'ui-packages/web/src/features/issue/issue-tab/index.tsx',
-  'ui-packages/web/src/features/file/file-tab/index.tsx',
-  'ui-packages/web/src/features/workbench/workbench-home/index.tsx',
-  'ui-packages/web/src/workbench/resource.ts',
-  'ui-packages/web/src/workbench/resource-route.ts',
-  'ui-packages/web/src/workbench/store.ts',
-  'ui-packages/web/src/mock/data.ts',
-  'ui-packages/web/src/mock/project-data.ts',
-] as const
-
-const missionFilePaths = [
-  'README.md',
-  'AGENTS.md',
-  'docs/architecture.md',
-  'src/mission-board.tsx',
-  'src/session-store.ts',
-] as const
-
-export const files: readonly FileResource[] = [
-  ...roamFilePaths.map(path => file('herdr-roam', path)),
-  ...missionFilePaths.map(path => file('cc-mission-control', path)),
 ]

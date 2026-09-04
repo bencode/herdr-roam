@@ -142,6 +142,21 @@ renderer is code-split from the default Inspector so terminal machinery is not
 part of the normal reading path. Exact rendering libraries should be selected
 with their implementing feature rather than preinstalled speculatively.
 
+Project file access is stateless and paged. Git supplies tracked and unignored
+paths when available; non-Git Projects use a bounded filesystem fallback. The
+shared Markdown core stays light, while math, Mermaid, syntax highlighting, and
+file-type readers load only when the selected content requires them. The exact
+catalog, size, raw-asset, and containment rules are defined in
+[Project Files](project-files.md).
+
+Skill access is likewise stateless and read-only. The server scans the direct
+children of personal and active-project `.agents/skills`, `.codex/skills`, and
+`.claude/skills` roots. It parses bounded `SKILL.md` frontmatter and reads
+supporting directories in cursor pages. A top-level Skill directory symlink is
+accepted as the trusted Skill root, while paths and nested symlinks may not
+escape that canonical root. Missing source directories are empty sources;
+malformed, broken, and unreadable Skills are returned as catalog warnings.
+
 ## Data Sources and Derived Views
 
 Herdr runtime state is authoritative for live agents. Codex and Claude session

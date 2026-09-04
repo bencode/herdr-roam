@@ -32,7 +32,8 @@ type BrowserFrameProps = {
   readonly filtered: number
   readonly query: string
   readonly onQuery: (query: string) => void
-  readonly countLabel?: string
+  readonly countLabel?: string | null
+  readonly actions?: ReactNode
   readonly children: ReactNode
 }
 
@@ -43,28 +44,37 @@ export const ProjectBrowserFrame = ({
   query,
   onQuery,
   countLabel,
+  actions,
   children,
-}: BrowserFrameProps) => (
-  <section className="flex min-h-0 flex-1 flex-col" aria-label={`${title} browser`}>
-    <div className="flex-none bg-sidebar px-2.5 py-2">
-      <label className="flex h-8 items-center gap-2 rounded-md border border-border bg-surface px-2 transition-[border-color,box-shadow] duration-150 focus-within:border-primary focus-within:shadow-[0_0_0_1px_var(--primary)] [&>svg]:w-3.5 [&>svg]:flex-none [&>svg]:text-faint">
-        <Search aria-hidden="true" />
-        <span className="sr-only">Search {title.toLowerCase()}</span>
-        <input
-          className="min-w-0 flex-1 border-0 bg-transparent text-xs outline-none! placeholder:text-faint"
-          aria-label={`Search ${title.toLowerCase()}`}
-          value={query}
-          onChange={event => onQuery(event.target.value)}
-          placeholder={`Search ${title.toLowerCase()}…`}
-        />
-        <span className="flex-none text-[0.625rem] text-muted tabular-nums" aria-live="polite">
-          {countLabel ?? (query.trim() === '' ? total : `${filtered}/${total}`)}
-        </span>
-      </label>
-    </div>
-    <div className="min-h-0 flex-1 overflow-auto px-1.75 pb-3.5">{children}</div>
-  </section>
-)
+}: BrowserFrameProps) => {
+  const resolvedCountLabel =
+    countLabel === undefined ? (query.trim() === '' ? String(total) : `${filtered}/${total}`) : countLabel
+
+  return (
+    <section className="flex min-h-0 flex-1 flex-col" aria-label={`${title} browser`}>
+      <div className="flex flex-none items-center gap-1.5 bg-sidebar px-2.5 py-2">
+        <label className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md border border-border bg-surface px-2 transition-[border-color,box-shadow] duration-150 focus-within:border-primary focus-within:shadow-[0_0_0_1px_var(--primary)] [&>svg]:w-3.5 [&>svg]:flex-none [&>svg]:text-faint">
+          <Search aria-hidden="true" />
+          <span className="sr-only">Search {title.toLowerCase()}</span>
+          <input
+            className="min-w-0 flex-1 border-0 bg-transparent text-xs outline-none! placeholder:text-faint"
+            aria-label={`Search ${title.toLowerCase()}`}
+            value={query}
+            onChange={event => onQuery(event.target.value)}
+            placeholder={`Search ${title.toLowerCase()}…`}
+          />
+          {resolvedCountLabel !== null && (
+            <span className="flex-none text-[0.625rem] text-muted tabular-nums" aria-live="polite">
+              {resolvedCountLabel}
+            </span>
+          )}
+        </label>
+        {actions}
+      </div>
+      <div className="min-h-0 flex-1 overflow-auto px-1.75 pb-3.5">{children}</div>
+    </section>
+  )
+}
 
 const matches = (query: string, ...values: readonly string[]): boolean => {
   const normalized = query.trim().toLowerCase()

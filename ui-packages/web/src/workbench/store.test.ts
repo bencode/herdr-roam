@@ -87,6 +87,22 @@ describe('workbench store', () => {
     })
   })
 
+  it('changes the browsing Project without changing the active Activity', () => {
+    const { useWorkbenchStore } = storeModule
+    useWorkbenchStore.getState().rememberActivity('skills', '/skills/agents%3Afrontend-design')
+
+    useWorkbenchStore.getState().setActiveProject('other-project')
+
+    expect(useWorkbenchStore.getState()).toMatchObject({
+      activeProjectName: 'other-project',
+      lastActivity: 'skills',
+      activityPaths: {
+        projects: '/projects/other-project',
+        skills: '/skills/agents%3Afrontend-design',
+      },
+    })
+  })
+
   it('migrates v2 tabs and the last active resource into v4 navigation memory', async () => {
     localStorage.setItem(
       'herdr-roam.workbench.v2',

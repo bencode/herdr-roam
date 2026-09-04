@@ -153,8 +153,111 @@ vi.mock('./features/session/use-session-data', () => ({
   },
 }))
 
+const projectFileItems = vi.hoisted(
+  (): Readonly<
+    Record<
+      string,
+      readonly {
+        readonly kind: 'directory' | 'file'
+        readonly name: string
+        readonly path: string
+      }[]
+    >
+  > => ({
+    '': [{ kind: 'directory', name: 'docs', path: 'docs' }],
+    docs: [{ kind: 'directory', name: 'product', path: 'docs/product' }],
+    'docs/product': [
+      { kind: 'file', name: 'vision-and-scope.md', path: 'docs/product/vision-and-scope.md' },
+    ],
+  }),
+)
+
+vi.mock('./features/file/client', () => ({
+  fetchProjectFiles: vi.fn((_projectName: string, options?: { readonly directory?: string }) => {
+    const items = projectFileItems[options?.directory ?? ''] ?? []
+    return Promise.resolve({ items, total: items.length, nextCursor: null })
+  }),
+  searchProjectFiles: vi.fn(() =>
+    Promise.resolve({ items: projectFileItems['docs/product'], total: 1, nextCursor: null }),
+  ),
+  fetchProjectFile: vi.fn((_projectName: string, path: string) =>
+    Promise.resolve({
+      kind: 'markdown',
+      path,
+      name: path.split('/').at(-1) ?? path,
+      size: 24,
+      modifiedAt: '2026-09-01T00:00:00.000Z',
+      mediaType: 'text/markdown',
+      language: 'markdown',
+      content: '# Vision and Scope\n',
+    }),
+  ),
+  projectFileRawUrl: vi.fn((_projectName: string, path: string) => `/raw/${path}`),
+  FileClientError: class FileClientError extends Error {},
+}))
+
+vi.mock('./features/skill/client', () => ({
+  fetchSkillCatalog: vi.fn((projectName: string) =>
+    Promise.resolve({
+      items: [
+        {
+          id: 'codex:frontend-design',
+          name: 'frontend-design',
+          description: 'Design intentional interfaces.',
+          source: 'codex' as const,
+          scope: 'project' as const,
+          projectName,
+          location: '.codex/skills/frontend-design',
+        },
+        {
+          id: 'agents:herdr-roam-issues',
+          name: 'herdr-roam-issues',
+          description: 'Work with local Issues.',
+          source: 'agents' as const,
+          scope: 'user' as const,
+          location: '~/.agents/skills/herdr-roam-issues',
+        },
+      ],
+      warnings: [],
+    }),
+  ),
+  fetchSkillDetail: vi.fn((resource: { readonly skillId: string }) =>
+    Promise.resolve({
+      id: resource.skillId,
+      name: resource.skillId.split(':').at(-1) ?? resource.skillId,
+      description: 'Fixture Skill.',
+      source: resource.skillId.startsWith('agents:') ? ('agents' as const) : ('codex' as const),
+      scope: resource.skillId.startsWith('agents:') ? ('user' as const) : ('project' as const),
+      location: '.skills/fixture',
+      document: {
+        kind: 'markdown' as const,
+        path: 'SKILL.md',
+        name: 'SKILL.md',
+        size: 24,
+        modifiedAt: '2026-09-01T00:00:00.000Z',
+        mediaType: 'text/markdown',
+        language: 'markdown',
+        content: '# Fixture Skill\n',
+      },
+    }),
+  ),
+  fetchSkillFiles: vi.fn(() => Promise.resolve({ items: [], total: 0, nextCursor: null })),
+  fetchSkillFile: vi.fn(),
+  skillFileRawUrl: vi.fn((_resource: unknown, path: string) => `/skill-raw/${path}`),
+  skillSourceLabel: (source: string) =>
+    ({ agents: 'Agents', codex: 'Codex', claude: 'Claude' })[source],
+  SkillClientError: class SkillClientError extends Error {},
+}))
+
 const selectProjectResource = (sidebar: ReturnType<typeof within>, resource: string) =>
   fireEvent.click(sidebar.getByRole('button', { name: resource }))
+
+const openVisionFile = async (sidebar: ReturnType<typeof within>) => {
+  fireEvent.click(await sidebar.findByRole('button', { name: 'docs' }))
+  fireEvent.click(await sidebar.findByRole('button', { name: 'product' }))
+  fireEvent.click(await sidebar.findByRole('button', { name: 'vision-and-scope.md' }))
+  await screen.findByRole('heading', { name: 'Vision and Scope' })
+}
 
 const CurrentPath = () => <output data-testid="current-path">{useLocation().pathname}</output>
 
@@ -218,15 +321,35 @@ describe('workbench application', () => {
         initialEntries={['/projects/herdr-roam/files/docs/product/vision-and-scope.md']}
       >
         <App />
+        <CurrentPath />
       </MemoryRouter>,
     )
     const source = await screen.findByRole('button', { name: 'source' })
+    await within(screen.getByTestId('context-sidebar')).findByRole('button', {
+      name: 'vision-and-scope.md',
+    })
     fireEvent.click(source)
+    await screen.findByRole('region', { name: 'markdown source' })
     const sidebar = within(screen.getByTestId('context-sidebar'))
     selectProjectResource(sidebar, 'Sessions')
+    expect(screen.getByTestId('current-path')).toHaveTextContent(
+      '/projects/herdr-roam/files/docs/product/vision-and-scope.md',
+    )
+    expect(screen.getByRole('tab', { name: /vision-and-scope.md/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    expect(screen.getByRole('button', { name: 'source' })).toHaveAttribute('aria-pressed', 'true')
+
     fireEvent.click(await sidebar.findByRole('button', { name: /Product scan/ }))
+    await waitFor(() =>
+      expect(screen.getByTestId('current-path')).toHaveTextContent(
+        '/projects/herdr-roam/sessions/codex/product-scan',
+      ),
+    )
     fireEvent.click(screen.getByRole('tab', { name: /vision-and-scope.md/ }))
     expect(screen.getByRole('button', { name: 'source' })).toHaveAttribute('aria-pressed', 'true')
+    await sidebar.findByRole('button', { name: 'vision-and-scope.md' })
   })
 
   it('preserves a Session tab across Activities and omits unavailable actions', async () => {
@@ -239,7 +362,7 @@ describe('workbench application', () => {
     expect(await screen.findByText('Session history')).toBeVisible()
     const sidebar = within(screen.getByTestId('context-sidebar'))
     selectProjectResource(sidebar, 'Files')
-    fireEvent.click(sidebar.getByRole('button', { name: 'vision-and-scope.md' }))
+    await openVisionFile(sidebar)
     fireEvent.click(screen.getByRole('tab', { name: /Product scan/ }))
 
     expect(screen.getByRole('button', { name: 'Resume Session' })).toBeVisible()
@@ -278,9 +401,9 @@ describe('workbench application', () => {
     selectProjectResource(sidebar, 'Issues')
     fireEvent.click(sidebar.getByRole('button', { name: /Clarify runtime ownership/ }))
     selectProjectResource(sidebar, 'Files')
-    fireEvent.click(sidebar.getByRole('button', { name: 'vision-and-scope.md' }))
+    await openVisionFile(sidebar)
     fireEvent.click(screen.getByRole('link', { name: 'Skills' }))
-    fireEvent.click(sidebar.getByRole('button', { name: /herdr-roam-issues/ }))
+    fireEvent.click(await sidebar.findByRole('button', { name: /herdr-roam-issues/ }))
     await waitFor(() => {
       expect(screen.getByRole('tab', { name: 'HR-018' })).toBeInTheDocument()
       expect(screen.getByRole('tab', { name: /vision-and-scope.md/ })).toBeInTheDocument()
@@ -367,7 +490,7 @@ describe('workbench application', () => {
 
   it('derives Skills selection from a project Skill route', async () => {
     render(
-      <MemoryRouter initialEntries={['/projects/herdr-roam/skills/frontend-design']}>
+      <MemoryRouter initialEntries={['/projects/herdr-roam/skills/codex%3Afrontend-design']}>
         <App />
       </MemoryRouter>,
     )
@@ -375,6 +498,23 @@ describe('workbench application', () => {
     await screen.findByRole('tab', { name: /frontend-design/ })
     expect(screen.getByRole('link', { name: 'Skills' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('textbox', { name: 'Search skills' })).toBeVisible()
+  })
+
+  it('changes the Project group without leaving Skills', async () => {
+    render(
+      <MemoryRouter initialEntries={['/skills']}>
+        <App />
+        <CurrentPath />
+      </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: /Project · herdr-roam/i })
+    fireEvent.click(screen.getByRole('button', { name: 'Active project' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'cc-mission-control' }))
+
+    await screen.findByRole('heading', { name: /Project · cc-mission-control/i })
+    expect(screen.getByTestId('current-path')).toHaveTextContent('/skills')
+    expect(screen.getByRole('link', { name: 'Skills' })).toHaveAttribute('aria-current', 'page')
   })
 
   it('updates Activity and Project section state through browser history', async () => {
