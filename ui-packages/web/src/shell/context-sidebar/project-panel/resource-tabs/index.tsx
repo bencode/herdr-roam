@@ -17,7 +17,7 @@ type Props = {
 
 export const ProjectViewTabs = ({ value, onValueChange }: Props) => (
   <nav
-    className="grid h-7.5 grid-cols-[repeat(4,minmax(0,6rem))] border-border border-b px-2"
+    className="grid h-7.5 grid-cols-[repeat(4,minmax(0,5rem))] border-border border-b px-2"
     aria-label="Project resources"
   >
     {projectSections.map(section => {
