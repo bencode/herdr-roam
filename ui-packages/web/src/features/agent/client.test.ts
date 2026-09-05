@@ -150,11 +150,36 @@ describe('Agent API client', () => {
   it('stops an Agent through an explicit DELETE mutation', async () => {
     const fetch = vi
       .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(
-        new Response(JSON.stringify({ agentId: 'terminal-1' }), { status: 200 }),
-      )
+      .mockResolvedValue(new Response(JSON.stringify({ agentId: 'terminal-1' }), { status: 200 }))
 
     await expect(stopAgent('terminal-1')).resolves.toEqual({ agentId: 'terminal-1' })
     expect(fetch).toHaveBeenCalledWith('/api/agents/terminal-1', { method: 'DELETE' })
+  })
+
+  it('opens a selected workspace without serializing a Prompt', async () => {
+    const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          agent: {
+            id: 'terminal-2',
+            name: 'codex-task',
+            provider: 'codex',
+            status: 'idle',
+            cwd: '/tmp/task',
+            attachTarget: 'w2:p1',
+            session: null,
+          },
+          workspaceId: 'w2',
+          paneId: 'w2:p1',
+        }),
+        { status: 201 },
+      ),
+    )
+    await launchProjectAgent({ projectName: 'project', provider: 'codex', workspaceId: 'task' })
+    expect(fetch).toHaveBeenCalledWith('/api/agents', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ projectName: 'project', provider: 'codex', workspaceId: 'task' }),
+    })
   })
 })

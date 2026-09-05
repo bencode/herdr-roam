@@ -1,15 +1,20 @@
 import type { AgentRuntimeSnapshot, AgentSummary } from '@herdr-roam/shared'
-import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from 'react'
 import {
-  AgentClientError,
-  fetchAgentSnapshot,
-  subscribeAgentSnapshots,
-} from '../client'
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
+import { AgentClientError, fetchAgentSnapshot, subscribeAgentSnapshots } from '../client'
 
 type AgentRuntimeValue = {
   readonly snapshot: AgentRuntimeSnapshot
   readonly transportError: AgentClientError | null
   readonly agentById: (agentId: string) => AgentSummary | undefined
+  readonly registerStartedAgent: (agent: AgentSummary) => void
 }
 
 const initialSnapshot: AgentRuntimeSnapshot = {
@@ -27,6 +32,13 @@ const AgentRuntimeContext = createContext<AgentRuntimeValue | null>(null)
 export const AgentRuntimeProvider = ({ children }: { readonly children: ReactNode }) => {
   const [snapshot, setSnapshot] = useState(initialSnapshot)
   const [transportError, setTransportError] = useState<AgentClientError | null>(null)
+  const registerStartedAgent = useCallback((agent: AgentSummary) => {
+    setSnapshot(current =>
+      current.items.some(item => item.id === agent.id)
+        ? current
+        : { ...current, items: [...current.items, agent] },
+    )
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -77,8 +89,9 @@ export const AgentRuntimeProvider = ({ children }: { readonly children: ReactNod
       snapshot,
       transportError,
       agentById: agentId => snapshot.items.find(agent => agent.id === agentId),
+      registerStartedAgent,
     }),
-    [snapshot, transportError],
+    [snapshot, transportError, registerStartedAgent],
   )
 
   return <AgentRuntimeContext.Provider value={value}>{children}</AgentRuntimeContext.Provider>

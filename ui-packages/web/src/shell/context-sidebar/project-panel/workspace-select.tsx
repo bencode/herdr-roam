@@ -2,12 +2,17 @@ import type { ProjectWorkspace } from '@herdr-roam/shared'
 import * as Popover from '@radix-ui/react-popover'
 import { Check, ChevronDown, FolderGit2, GitBranch } from 'lucide-react'
 import { useRef, useState, type KeyboardEvent } from 'react'
+import { cn } from '../../../lib/cn'
 import styles from './style.module.scss'
 
 type Props = {
   readonly items: readonly ProjectWorkspace[]
   readonly value: string
   readonly onValueChange: (workspaceId: string) => void
+  readonly label?: string
+  readonly layout?: 'toolbar' | 'field'
+  readonly disabled?: boolean
+  readonly showSingle?: boolean
 }
 
 const branchLabel = (workspace: ProjectWorkspace): string | null => {
@@ -36,29 +41,53 @@ const moveOptionFocus = (event: KeyboardEvent<HTMLDivElement>): void => {
   options[requested]?.focus()
 }
 
-export const WorkspaceSelect = ({ items, value, onValueChange }: Props) => {
+export const WorkspaceSelect = ({
+  items,
+  value,
+  onValueChange,
+  label = 'File directory',
+  layout = 'toolbar',
+  disabled = false,
+  showSingle = false,
+}: Props) => {
   const [open, setOpen] = useState(false)
   const content = useRef<HTMLDivElement>(null)
   const active = items.find(workspace => workspace.id === value) ?? items[0]
-  if (!active || items.length < 2) return null
+  if (!active || (items.length < 2 && !showSingle)) return null
   const branch = branchLabel(active)
-  const label = branch ?? active.name
+  const requiresSelection = layout === 'field' && active.id !== value
+  const selectedLabel = requiresSelection ? 'Choose a directory' : (branch ?? active.name)
+  if (items.length === 1 && !requiresSelection) {
+    return (
+      <div className={cn(styles.workspaceTrigger, layout === 'field' && styles.workspaceField)}>
+        <FolderGit2 aria-hidden="true" />
+        <span className={styles.workspaceTriggerLabel} title={active.path}>
+          {selectedLabel}
+          {active.primary && ' · Project root'}
+        </span>
+      </div>
+    )
+  }
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
         <button
           type="button"
-          className={styles.workspaceTrigger}
-          aria-label="File directory"
-          title={`${label} · ${active.path}`}
+          className={cn(styles.workspaceTrigger, layout === 'field' && styles.workspaceField)}
+          aria-label={label}
+          disabled={disabled}
+          title={requiresSelection ? label : `${selectedLabel} · ${active.path}`}
         >
           {active.kind === 'worktree' ? (
             <GitBranch aria-hidden="true" />
           ) : (
             <FolderGit2 aria-hidden="true" />
           )}
-          <span className={styles.workspaceTriggerLabel}>{label}</span>
+          <span className={styles.workspaceTriggerLabel}>
+            {selectedLabel}
+            {layout === 'field' && !requiresSelection && active.primary && ' · Project root'}
+          </span>
           <ChevronDown aria-hidden="true" />
         </button>
       </Popover.Trigger>
@@ -72,15 +101,19 @@ export const WorkspaceSelect = ({ items, value, onValueChange }: Props) => {
           onOpenAutoFocus={event => {
             event.preventDefault()
             queueMicrotask(() =>
-              content.current?.querySelector<HTMLButtonElement>('[data-selected]')?.focus(),
+              content.current
+                ?.querySelector<HTMLButtonElement>(
+                  requiresSelection ? '[role="option"]' : '[data-selected]',
+                )
+                ?.focus(),
             )
           }}
-          aria-label="File directories"
+          aria-label={label}
         >
-          <div role="listbox" aria-label="File directories">
+          <div role="listbox" aria-label={label}>
             {items.map(workspace => {
               const optionBranch = branchLabel(workspace)
-              const selected = workspace.id === active.id
+              const selected = !requiresSelection && workspace.id === active.id
               return (
                 <button
                   type="button"

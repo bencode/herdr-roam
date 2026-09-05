@@ -37,13 +37,22 @@ specific pane target, so Roam also refreshes the authoritative list every two
 seconds. The browser replaces its in-memory snapshot rather than reproducing
 Herdr's state machine.
 
-The Agent creation endpoint accepts a registered Project Name, `codex` or
-`claude`, and a non-blank initial Prompt. The server resolves the trusted
-Project path, creates one Herdr Workspace rooted there, starts the Agent in its
-root Pane, waits for the expected named Agent to become interactive, submits the
-Prompt, and returns its stable terminal ID. Agent names are deterministic and
-receive a numeric suffix on conflict. A failure after Workspace creation keeps
-that Workspace and returns its Pane, Terminal, and attach command for recovery.
+The Agent creation endpoint accepts a registered `projectName`, `provider`
+(`codex` or `claude`), optional `workspaceId`, and optional `prompt`.
+`workspaceId` defaults to `primary`. The server resolves it through the Project's
+current workspace catalog and creates one Herdr Workspace at the resolved path.
+Arbitrary browser-provided paths are not accepted. A missing or inaccessible
+selected directory returns HTTP 409 (`project_directory_unavailable`), never a
+fallback to the Project root. Workspace discovery failure returns HTTP 503
+(`agent_launch_unavailable`).
+
+Startup waits for the named Agent to become interactive and returns its stable
+terminal ID, independently of native Session discovery. Omitting `prompt` opens
+an empty Agent without sending any text or keys. Existing callers may still
+supply a non-blank initial Prompt, subject to the existing UTF-8 limit. Agent
+names are deterministic and receive a numeric suffix on conflict. A failure
+after Workspace creation keeps that Workspace and returns its Pane, Terminal,
+and attach command for recovery.
 
 The Prompt endpoint accepts non-blank text or up to four local PNG, JPEG, or
 WebP images. Text-only Prompts call Herdr `agent.prompt`. Image Prompts are
@@ -73,6 +82,20 @@ server package, and transport errors and React state stay inside the Web Agent
 feature.
 
 ## Browser behavior
+
+New Session lives on the existing Workbench, without a duplicate Sessions toolbar
+action. It submits a directory ID and Provider without a Prompt. The browser
+adds the returned Agent to its runtime snapshot before navigating to the Agent
+Inspector, unless it is already present in a newer snapshot. Connection state
+is unchanged; subsequent SSE snapshots still replace the full list. This avoids
+an unavailable page while the next periodic runtime snapshot is pending.
+
+The Agent Inspector resolves a native Session reference against registered
+Projects' workspace catalogs, using the most specific matching directory and
+preferring a primary directory on ties. Directory lookup is triggered by changes
+to Project inputs, cwd, or the Session reference, not every runtime status update.
+Lookup failures are visible and retryable without disabling Agent input. A
+resolved reference adds Open Session without changing the active resource.
 
 The Agents activity groups the raw Herdr statuses `blocked`, `working`, `idle`,
 `done`, and `unknown`. An Agent opens at `/agents/:agentId` in the shared Tab

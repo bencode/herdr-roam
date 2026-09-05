@@ -24,7 +24,7 @@ const ResourceContent = ({
   readonly active: boolean
 }) => {
   if (resource.type === 'agent')
-    return <AgentTab resource={resource} projects={projects} onOpen={onOpen} />
+    return <AgentTab resource={resource} projects={projects} onOpen={onOpen} active={active} />
   if (resource.type === 'session')
     return (
       <SessionTab
@@ -61,7 +61,7 @@ export const ResourceHost = ({
     <Activity mode={active === null ? 'visible' : 'hidden'} name="workbench">
       <div className="absolute inset-0 overflow-hidden">
         {project ? (
-          <WorkbenchHome project={project} onOpen={onOpen} />
+          <WorkbenchHome project={project} onOpen={onOpen} visible={active === null} />
         ) : (
           <div className="grid h-full place-items-center p-8 text-center">
             <div>

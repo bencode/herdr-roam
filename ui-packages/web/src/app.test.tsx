@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
 import { vi } from 'vitest'
 import { App } from './app'
+import { launchProjectAgent } from './features/agent/client'
 import { defaultWorkbenchSnapshot, useWorkbenchStore } from './workbench/store'
 
 const projectMocks = vi.hoisted(() => ({
@@ -27,6 +28,7 @@ vi.mock('./features/project/use-project-registry', () => ({
 }))
 
 vi.mock('./features/agent/client', () => ({
+  launchProjectAgent: vi.fn(),
   fetchAgentSnapshot: vi.fn().mockResolvedValue({
     source: { state: 'connected', version: '0.8.2', protocol: 20 },
     stale: false,
@@ -67,6 +69,7 @@ vi.mock('./features/agent/runtime-provider', () => {
   return {
     AgentRuntimeProvider: ({ children }: { readonly children: ReactNode }) => children,
     useAgentRuntime: () => ({
+      registerStartedAgent: vi.fn(),
       snapshot,
       transportError: null,
       agentById: (agentId: string) => snapshot.items.find(agent => agent.id === agentId),
@@ -290,6 +293,7 @@ const HistoryBack = () => {
 
 describe('workbench application', () => {
   beforeEach(() => {
+    vi.mocked(launchProjectAgent).mockClear()
     projectMocks.projects = [
       { name: 'herdr-roam', path: '/work/herdr-roam' },
       { name: 'cc-mission-control', path: '/work/cc-mission-control' },
@@ -297,6 +301,31 @@ describe('workbench application', () => {
     ]
     localStorage.clear()
     useWorkbenchStore.setState(defaultWorkbenchSnapshot)
+  })
+
+  it('keeps New Session on Workbench without a duplicate sidebar action', async () => {
+    render(
+      <MemoryRouter
+        initialEntries={['/projects/herdr-roam/files/primary/docs/product/vision-and-scope.md']}
+      >
+        <App />
+        <CurrentPath />
+      </MemoryRouter>,
+    )
+    await screen.findByRole('heading', { name: 'Vision and Scope' })
+    const sidebar = within(screen.getByTestId('context-sidebar'))
+    selectProjectResource(sidebar, 'Sessions')
+    expect(sidebar.queryByRole('button', { name: 'New Session' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: 'Workbench' }))
+    await waitFor(() =>
+      expect(screen.getByRole('tab', { name: 'Workbench' })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      ),
+    )
+    expect(screen.getByRole('heading', { name: 'New Session' })).toBeVisible()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Open Codex' })).toBeEnabled())
+    expect(launchProjectAgent).not.toHaveBeenCalled()
   })
 
   it('keeps an empty registry in Projects', async () => {
@@ -407,6 +436,7 @@ describe('workbench application', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Enter focus mode' }))
     fireEvent.click(screen.getByRole('tab', { name: 'Workbench' }))
     expect(screen.queryByRole('button', { name: 'Exit focus mode' })).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Open Codex' })).toBeEnabled())
   })
 
   it('opens Issue, File, and Skill resources in the same tablist', async () => {
@@ -462,7 +492,7 @@ describe('workbench application', () => {
     ])
   })
 
-  it('preserves project browser state while switching global activities', () => {
+  it('preserves project browser state while switching global activities', async () => {
     render(
       <MemoryRouter initialEntries={['/projects/herdr-roam']}>
         <App />
@@ -480,6 +510,7 @@ describe('workbench application', () => {
 
     expect(sidebar.getByRole('button', { name: 'Issues' })).toHaveAttribute('aria-pressed', 'true')
     expect(sidebar.getByRole('textbox', { name: 'Search issues' })).toHaveValue('runtime')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Open Codex' })).toBeEnabled())
   })
 
   it('restores the exact Project route after visiting another Activity', async () => {
@@ -557,7 +588,7 @@ describe('workbench application', () => {
     expect(screen.getByRole('button', { name: 'Files' })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('collapses to the Activity rail and expands from a global activity without losing state', () => {
+  it('collapses to the Activity rail and expands from a global activity without losing state', async () => {
     render(
       <MemoryRouter initialEntries={['/projects/herdr-roam']}>
         <App />
@@ -582,6 +613,7 @@ describe('workbench application', () => {
     fireEvent.click(sidebar.getByRole('link', { name: 'Projects' }))
     expect(sidebar.getByRole('button', { name: 'Issues' })).toHaveAttribute('aria-pressed', 'true')
     expect(sidebar.getByRole('textbox', { name: 'Search issues' })).toHaveValue('runtime')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Open Codex' })).toBeEnabled())
   })
 
   it('keeps the Active Project while opening a resource owned by another project', async () => {

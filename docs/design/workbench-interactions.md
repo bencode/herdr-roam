@@ -197,35 +197,43 @@ next product-design phase defines the problem they solve.
 
 ## Project Workbench
 
-The Workbench is the default page for the active project. It starts standard
-Sessions and summarizes recent project activity without becoming a dashboard.
+The Workbench is the default page for the active project. Its New Session form
+opens a native Agent without requiring an initial Prompt. Select the Workbench
+tab to access this form; the Sessions toolbar has no duplicate creation action.
 
 ```text
-┌────────────────────────────┬──────────────────────────────────────────────────────────┐
-│ ROAM                Herdr● │ herdr-roam / Workbench                                  │
-├────┬───────────────────────┼──────────────────────────────────────────────────────────┤
-│ P  │ herdr-roam         ▾  │                 Start work in herdr-roam                 │
-│    │ Workbench             │  Directory  /work/herdr-roam                        ▾   │
-│ A  │                       │  Agent      Codex                                    ▾   │
-│    │ Sessions          14 ▾│  Name       optional                                   │
-│ S  │ Search sessions...    │                                                          │
-│    │ ● Product scan    now │  ┌────────────────────────────────────────────────────┐  │
-│    │ ● API review      12m │  │ Describe the work...                               │  │
-│    │                       │  └────────────────────────────────────────────────────┘  │
-│    │                       │                                            Start  ↵      │
-│ ⚙  ├───────────────────────┤  Recent activity                                       │
-│    │ 4 agents · 1 blocked  │  10:42  codex-api finished a review                   │
-└────┴───────────────────────┴──────────────────────────────────────────────────────────┘
+Workbench / New Session
+
+Working directory  [ main · Project root ▾ ]
+                   /work/herdr-roam
+Provider           [ Codex ▾ ]
+
+                              [ Open Codex ]
 ```
 
-Starting work creates the required Herdr Workspace, starts the selected native
-Agent, submits the Prompt, and opens its live Agent Inspector. Workspace and
-Pane creation remain hidden implementation details. This flow does not create a
-synthetic Session or infer conversation history from terminal output.
+Directories include the registered Project root and existing Git worktrees.
+The selector uses the same menu as Files and always shows the current directory,
+including for a single-directory Project. Selection is independent of Files.
+Changing Project resets the directory to its root; the selected Provider stays
+in component memory, initially Codex. Roam does not create Git worktrees.
 
-If creation fails, Roam keeps the draft Prompt. A Workspace created before the
-failure is preserved with a terminal attach command so the user can diagnose or
-continue natively.
+Open creates a Herdr Workspace in the selected directory, starts Codex or Claude,
+waits for interactive readiness, and opens its Agent Inspector. The existing
+PromptComposer handles both initial and follow-up text, pasted images, and native
+Shift+Tab. It focuses once when the Agent page is visible and ready. Startup
+does not wait for a provider Session ID or create synthetic Session records.
+
+The form disables submission during directory loading, unavailable runtime, and
+startup. Errors preserve the selected options. If startup partially succeeded,
+Open Agent and Copy attach provide recovery; Start another Agent explicitly
+enables a separate new launch. If the user leaves during startup, the result is
+retained for its originating Project without taking over the current page.
+
+Once Herdr exposes a native Session ID, the Agent Inspector resolves its cwd
+against registered Project workspaces, including external worktrees, and offers
+Open Session. It never automatically navigates when the ID arrives. Provider
+history remains the source for the Sessions list; empty native histories may
+appear as Untitled session when discoverable.
 
 ## Session Conversation
 
@@ -327,7 +335,7 @@ selected agent.
 │ Idle                   2 │ • Updated docs/api-review.md                               │
 │ ● codex-api             │                                                            │
 │   Codex · /work/api      ├────────────────────────────────────────────────────────────┤
-│                          │ ❯ Send a follow-up…                                        │
+│                          │ ❯ Send a Prompt…                                           │
 │                          │                                               done · ↵ send │
 └──────────────────────────┴────────────────────────────────────────────────────────────┘
 ```
@@ -509,7 +517,7 @@ unsupported or oversized files return an explicit state instead of blank output.
 - **Herdr unavailable:** preserve navigation and drafts, report the failed
   prerequisite, and provide Retry and diagnostics rather than empty Agent data.
 - **No active project:** prompt the user to select or add a directory before
-  showing the Workbench composer.
+  showing the New Session form.
 - **No agents:** explain that starting work creates the first Agent.
 - **Blocked agent:** elevate the row and explain that Inspector may be enough;
   offer Browser Attach for the native approval UI.

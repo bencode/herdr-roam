@@ -57,6 +57,23 @@
   white-space: nowrap;
 }
 
+.workspaceField {
+  width: 100%;
+  max-width: 100%;
+  height: 2.25rem;
+  font-size: 0.75rem;
+
+  .workspaceTriggerLabel {
+    color: var(--foreground);
+    font-size: 0.75rem;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
 .workspaceMenu {
   z-index: var(--z-dropdown);
   width: var(--radix-popover-trigger-width);

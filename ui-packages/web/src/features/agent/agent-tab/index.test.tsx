@@ -1,4 +1,4 @@
-import type { AgentStatus } from '@herdr-roam/shared'
+import type { AgentStatus, ProjectWorkspaceCatalog } from '@herdr-roam/shared'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   input: vi.fn(),
   focus: vi.fn(),
   stop: vi.fn(),
+  directories: vi.fn(),
   present: true,
   agent: {
     id: 'terminal-1',
@@ -40,9 +41,13 @@ vi.mock('../runtime-provider', () => ({
       items: mocks.present ? [mocks.agent] : [],
     },
     transportError: null,
-    agentById: (id: string) =>
-      mocks.present && id === mocks.agent.id ? mocks.agent : undefined,
+    agentById: (id: string) => (mocks.present && id === mocks.agent.id ? mocks.agent : undefined),
   }),
+}))
+
+vi.mock('../../file/client', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../file/client')>()),
+  fetchProjectWorkspaces: mocks.directories,
 }))
 
 import { AgentTab } from '.'
@@ -63,6 +68,18 @@ describe('Agent Inspector', () => {
     mocks.input.mockResolvedValue({ agentId: 'terminal-1' })
     mocks.focus.mockResolvedValue({ agentId: 'terminal-1' })
     mocks.stop.mockResolvedValue({ agentId: 'terminal-1' })
+    mocks.directories.mockResolvedValue({
+      items: [
+        {
+          id: 'primary',
+          name: 'herdr-roam',
+          path: '/work/herdr-roam',
+          kind: 'worktree',
+          branch: 'main',
+          primary: true,
+        },
+      ],
+    })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
@@ -79,6 +96,114 @@ describe('Agent Inspector', () => {
   })
 
   afterEach(() => vi.restoreAllMocks())
+
+  it('opens the owning Session from an external worktree without navigating automatically', async () => {
+    mocks.agent.cwd = '/tmp/linked-task/src'
+    mocks.agent.session = { source: 'process', agent: 'codex', kind: 'id', value: 'session-1' }
+    mocks.directories.mockResolvedValue({
+      items: [
+        {
+          id: 'task',
+          name: 'linked-task',
+          path: '/tmp/linked-task',
+          kind: 'worktree',
+          branch: 'task',
+          primary: false,
+        },
+      ],
+    })
+    const onOpen = vi.fn()
+    render(
+      <AgentTab
+        resource={{ type: 'agent', agentId: 'terminal-1' }}
+        projects={[{ name: 'herdr-roam', path: '/work/herdr-roam' }]}
+        onOpen={onOpen}
+      />,
+    )
+    const openSession = await screen.findByRole('button', { name: 'Open Session' })
+    expect(onOpen).not.toHaveBeenCalled()
+    fireEvent.click(openSession)
+    expect(onOpen).toHaveBeenCalledWith({
+      type: 'session',
+      projectName: 'herdr-roam',
+      provider: 'codex',
+      sessionId: 'session-1',
+    })
+  })
+
+  it('keeps a valid Session link when another project fails and clears the warning after retry', async () => {
+    const projects = [
+      { name: 'herdr-roam', path: '/work/herdr-roam' },
+      { name: 'unavailable', path: '/work/unavailable' },
+    ]
+    const validCatalog: ProjectWorkspaceCatalog = await mocks.directories()
+    const error = new Error('directory removed')
+    mocks.agent.session = { source: 'process', agent: 'codex', kind: 'id', value: 'session-1' }
+    mocks.directories.mockImplementation(async name => {
+      if (name === 'unavailable') throw error
+      return validCatalog
+    })
+    const onOpen = vi.fn()
+    render(
+      <AgentTab
+        resource={{ type: 'agent', agentId: 'terminal-1' }}
+        projects={projects}
+        onOpen={onOpen}
+      />,
+    )
+    const open = await screen.findByRole('button', { name: 'Open Session' })
+    expect(screen.getByText('Some project directories could not be loaded.')).toBeVisible()
+    expect(screen.getByRole('textbox', { name: 'Send a Prompt' })).toBeEnabled()
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('unavailable'), error)
+    expect(onOpen).not.toHaveBeenCalled()
+    fireEvent.click(open)
+    expect(onOpen).toHaveBeenCalledWith({
+      type: 'session',
+      projectName: 'herdr-roam',
+      provider: 'codex',
+      sessionId: 'session-1',
+    })
+    mocks.directories.mockImplementation(async name =>
+      name === 'unavailable' ? { items: [] } : validCatalog,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Retry Session link' }))
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Retry Session link' })).not.toBeInTheDocument(),
+    )
+    expect(await screen.findByRole('button', { name: 'Open Session' })).toBeVisible()
+  })
+
+  it('keeps input usable when Session directory lookup fails and supports retry', async () => {
+    mocks.agent.session = { source: 'process', agent: 'codex', kind: 'id', value: 'session-1' }
+    mocks.directories.mockRejectedValueOnce(new Error('directory listing failed'))
+    render(
+      <AgentTab
+        resource={{ type: 'agent', agentId: 'terminal-1' }}
+        projects={[{ name: 'herdr-roam', path: '/work/herdr-roam' }]}
+      />,
+    )
+    const retry = await screen.findByRole('button', { name: 'Retry Session link' })
+    expect(screen.getByRole('textbox', { name: 'Send a Prompt' })).toBeEnabled()
+    fireEvent.click(retry)
+    expect(await screen.findByRole('button', { name: 'Open Session' })).toBeVisible()
+  })
+
+  it('focuses the visible ready composer once without taking focus on status updates', async () => {
+    mocks.agent.status = 'unknown'
+    const view = render(
+      <AgentTab resource={{ type: 'agent', agentId: 'terminal-1' }} active={false} />,
+    )
+    const composer = screen.getByRole('textbox', { name: 'Send a Prompt' })
+    expect(composer).not.toHaveFocus()
+    mocks.agent.status = 'idle'
+    view.rerender(<AgentTab resource={{ type: 'agent', agentId: 'terminal-1' }} active />)
+    expect(composer).toHaveFocus()
+    const details = screen.getByRole('button', { name: 'Details' })
+    details.focus()
+    mocks.agent.status = 'working'
+    view.rerender(<AgentTab resource={{ type: 'agent', agentId: 'terminal-1' }} active />)
+    expect(details).toHaveFocus()
+  })
 
   it('reads recent output and copies the native attach command', async () => {
     render(<AgentTab resource={{ type: 'agent', agentId: 'terminal-1' }} />)

@@ -21,6 +21,7 @@ import { z } from 'zod'
 import { SSE_HEARTBEAT_MS } from '../config.js'
 import type { ProjectRegistryApi } from '../projects/registry.js'
 import { ProjectRegistryError } from '../projects/registry.js'
+import { ProjectWorkspaceError } from '../projects/workspaces.js'
 import { PromptImageError, readPromptImages } from './images.js'
 import { AgentLaunchError } from './launch.js'
 import { type AgentPromptInput, type AgentServiceApi, AgentServiceError } from './service.js'
@@ -69,7 +70,11 @@ const inputRequestSchema: z.ZodType<AgentInputRequest> = z.discriminatedUnion('t
 const launchRequestSchema: z.ZodType<AgentLaunchRequest> = z.object({
   projectName: z.string().min(1),
   provider: z.enum(['codex', 'claude']),
-  prompt: z.string().refine(text => text.trim().length > 0 && withinTextLimit(text)),
+  workspaceId: z.string().min(1).optional(),
+  prompt: z
+    .string()
+    .refine(text => text.trim().length > 0 && withinTextLimit(text))
+    .optional(),
 })
 
 const serviceErrorStatus = (error: AgentServiceError): 404 | 409 | 503 =>
@@ -117,14 +122,14 @@ export const createAgentRoutes = (service: AgentServiceApi, projects: ProjectReg
       } catch (error) {
         if (!(error instanceof SyntaxError)) console.error('Agent launch body read failed', error)
         return context.json(
-          errorBody('invalid_agent_launch', 'Project, provider, and Prompt are required.'),
+          errorBody('invalid_agent_launch', 'A Project and supported provider are required.'),
           400,
         )
       }
       const parsed = launchRequestSchema.safeParse(body)
       if (!parsed.success) {
         return context.json(
-          errorBody('invalid_agent_launch', 'Project, provider, and Prompt are required.'),
+          errorBody('invalid_agent_launch', 'Invalid Project, provider, directory, or Prompt.'),
           400,
         )
       }
@@ -140,9 +145,20 @@ export const createAgentRoutes = (service: AgentServiceApi, projects: ProjectReg
           project,
           parsed.data.provider,
           parsed.data.prompt,
+          parsed.data.workspaceId ?? 'primary',
         )
         return context.json(receipt, 201)
       } catch (error) {
+        if (error instanceof ProjectWorkspaceError) {
+          const unavailable = error.code === 'workspace_unavailable'
+          return context.json(
+            errorBody(
+              unavailable ? 'agent_launch_unavailable' : 'project_directory_unavailable',
+              error.message,
+            ),
+            unavailable ? 503 : 409,
+          )
+        }
         if (error instanceof AgentLaunchError) {
           const status =
             error.code === 'project_directory_unavailable'

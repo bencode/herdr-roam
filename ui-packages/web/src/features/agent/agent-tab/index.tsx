@@ -9,6 +9,7 @@ import { agentProviderLabel } from '../presentation'
 import { useAgentRuntime } from '../runtime-provider'
 import { AgentRuntimeSurface } from '../runtime-surface'
 import { AgentStopControl } from '../stop-control'
+import { useAgentSessionResource } from '../use-agent-session-resource'
 import { AgentDetails } from './details'
 
 const statusClasses: Readonly<Record<AgentStatus, string>> = {
@@ -18,6 +19,8 @@ const statusClasses: Readonly<Record<AgentStatus, string>> = {
   done: 'bg-success',
   unknown: 'bg-faint',
 }
+
+const EMPTY_PROJECTS: readonly Project[] = []
 
 const unavailableMessage = (
   current: AgentSummary | undefined,
@@ -31,12 +34,14 @@ const unavailableMessage = (
 
 export const AgentTab = ({
   resource,
-  projects = [],
+  projects = EMPTY_PROJECTS,
   onOpen = () => undefined,
+  active = true,
 }: {
   readonly resource: Extract<ResourceRef, { type: 'agent' }>
   readonly projects?: readonly Project[]
   readonly onOpen?: (resource: ResourceRef) => void
+  readonly active?: boolean
 }) => {
   const { snapshot, agentById } = useAgentRuntime()
   const current = agentById(resource.agentId)
@@ -54,26 +59,8 @@ export const AgentTab = ({
   }, [current])
 
   const agent = current ?? lastAgent
-  const normalizedCwd = agent?.cwd?.replace(/\\/g, '/').replace(/\/$/, '') ?? null
-  const sessionProject = normalizedCwd
-    ? projects
-        .filter(project => {
-          const root = project.path.replace(/\\/g, '/').replace(/\/$/, '')
-          return normalizedCwd === root || normalizedCwd.startsWith(`${root}/`)
-        })
-        .toSorted((left, right) => right.path.length - left.path.length)[0]
-    : undefined
-  const sessionResource =
-    sessionProject &&
-    agent?.session?.kind === 'id' &&
-    (agent.session.agent === 'codex' || agent.session.agent === 'claude')
-      ? ({
-          type: 'session',
-          projectName: sessionProject.name,
-          provider: agent.session.agent,
-          sessionId: agent.session.value,
-        } as const)
-      : null
+  const sessionLink = useAgentSessionResource(projects, agent?.cwd ?? null, agent?.session ?? null)
+  const sessionResource = sessionLink.resource
 
   useEffect(() => {
     if (!stopAccepted || current) return
@@ -229,6 +216,17 @@ export const AgentTab = ({
           Details
         </Button>
       </header>
+      {sessionLink.error && (
+        <div
+          className="flex items-center gap-2 border-border border-b px-5 py-2 text-xs text-danger"
+          role="status"
+        >
+          <span>{sessionLink.error}</span>
+          <Button size="compact" onClick={sessionLink.retry}>
+            Retry Session link
+          </Button>
+        </div>
+      )}
       {!runtimeAvailable && (
         <div className="border-warning/30 border-b bg-warning/8 px-5 py-2 text-xs text-muted">
           {runtimeMessage}
@@ -237,6 +235,7 @@ export const AgentTab = ({
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">
           <AgentRuntimeSurface
+            focusPrompt={active}
             agent={agent}
             runtimeAvailable={runtimeAvailable}
             unavailableMessage={runtimeMessage}

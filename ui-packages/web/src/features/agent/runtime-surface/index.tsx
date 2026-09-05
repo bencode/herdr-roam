@@ -7,11 +7,13 @@ export const AgentRuntimeSurface = ({
   runtimeAvailable,
   unavailableMessage,
   onSubmitted,
+  focusPrompt = false,
 }: {
   readonly agent: AgentSummary
   readonly runtimeAvailable: boolean
   readonly unavailableMessage: string
   readonly onSubmitted?: () => void
+  readonly focusPrompt?: boolean
 }) => (
   <div className="flex min-h-0 min-w-0 flex-1 flex-col">
     <TerminalOutput
@@ -21,6 +23,7 @@ export const AgentRuntimeSurface = ({
     />
     {agent.status !== 'blocked' && (
       <PromptComposer
+        focusWhenReady={focusPrompt}
         agentId={agent.id}
         status={agent.status}
         runtimeAvailable={runtimeAvailable}

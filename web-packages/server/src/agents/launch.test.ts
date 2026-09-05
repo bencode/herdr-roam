@@ -1,9 +1,12 @@
-import { mkdtemp, realpath, rm } from 'node:fs/promises'
+import { execFile } from 'node:child_process'
+import { mkdir, mkdtemp, realpath, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { promisify } from 'node:util'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { HerdrApiError, type HerdrClient } from '../herdr/client.js'
 import type { RawAgent } from '../herdr/schema.js'
+import { listProjectWorkspaces } from '../projects/workspaces.js'
 import { type AgentLaunchError, generatedAgentName, launchAgent } from './launch.js'
 
 const directories: string[] = []
@@ -51,6 +54,65 @@ afterEach(async () => {
 })
 
 describe('Agent launch', () => {
+  it.each(['codex', 'claude'] as const)(
+    'opens an empty %s Agent without sending input',
+    async provider => {
+      const agent = rawAgent({ agent: provider, name: `${provider}-herdr-roam` })
+      const runtime = client({
+        startAgent: vi.fn().mockResolvedValue(agent),
+        getAgent: vi.fn().mockResolvedValue(agent),
+      })
+      const target = await project()
+      const receipt = await launchAgent(runtime, target, provider)
+
+      expect(runtime.createWorkspace).toHaveBeenCalledWith(target.path, `${provider}-herdr-roam`)
+      expect(receipt.agent.provider).toBe(provider)
+      expect(runtime.promptAgent).not.toHaveBeenCalled()
+      expect(runtime.sendAgentKeys).not.toHaveBeenCalled()
+      expect(runtime.sendPaneInput).not.toHaveBeenCalled()
+    },
+  )
+
+  it('starts in a linked worktree and refuses unavailable or arbitrary directories', async () => {
+    const root = await project()
+    const repository = join(root.path, 'repository')
+    const linked = join(root.path, 'linked-task')
+    await mkdir(repository)
+    const git = (...args: readonly string[]) =>
+      promisify(execFile)('git', ['-C', repository, ...args])
+    await git('init', '-b', 'main')
+    await git(
+      '-c',
+      'user.name=Test',
+      '-c',
+      'user.email=test@example.com',
+      'commit',
+      '--allow-empty',
+      '-m',
+      'initial',
+    )
+    await git('worktree', 'add', '-b', 'task', linked)
+    const target = { ...root, path: repository }
+    const workspace = (await listProjectWorkspaces(target)).find(item => !item.primary)
+    expect(workspace).toBeDefined()
+    const runtime = client()
+
+    await launchAgent(runtime, target, 'codex', undefined, workspace?.id)
+    expect(runtime.createWorkspace).toHaveBeenCalledWith(linked, 'codex-herdr-roam')
+
+    vi.mocked(runtime.createWorkspace).mockClear()
+    await expect(launchAgent(runtime, target, 'codex', undefined, linked)).rejects.toMatchObject({
+      code: 'workspace_not_found',
+    })
+    await git('worktree', 'remove', linked)
+    await expect(
+      launchAgent(runtime, target, 'codex', undefined, workspace?.id),
+    ).rejects.toMatchObject({
+      code: 'workspace_not_found',
+    })
+    expect(runtime.createWorkspace).not.toHaveBeenCalled()
+  })
+
   it('generates deterministic names within the Herdr limit', () => {
     expect(generatedAgentName('herdr.roam', 'codex', new Set(['codex-herdr-roam']))).toBe(
       'codex-herdr-roam-2',

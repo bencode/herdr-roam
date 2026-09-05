@@ -33,7 +33,8 @@ export type AgentServiceApi = {
   readonly launch: (
     project: Project,
     provider: AgentProvider,
-    prompt: string,
+    prompt?: string,
+    workspaceId?: string,
   ) => Promise<AgentLaunchReceipt>
   readonly resume: (
     project: Project,
@@ -208,7 +209,8 @@ const stopAgent = async (runtime: AgentRuntime, agentId: string): Promise<void> 
   try {
     await client.closePane(agent.attachTarget)
   } catch (error) {
-    const message = error instanceof HerdrApiError ? error.message : 'The Agent could not be stopped.'
+    const message =
+      error instanceof HerdrApiError ? error.message : 'The Agent could not be stopped.'
     throw new AgentServiceError('agent_stop_unavailable', message, { cause: error })
   }
 }
@@ -225,8 +227,8 @@ export const createAgentService = (): AgentService => {
     input: (agentId, request) => submitInput(runtime, agentId, request),
     focus: agentId => focusAgent(runtime, agentId),
     stopAgent: agentId => stopAgent(runtime, agentId),
-    launch: (project, provider, prompt) =>
-      launchAgent(connectedClient(runtime), project, provider, prompt),
+    launch: (project, provider, prompt, workspaceId) =>
+      launchAgent(connectedClient(runtime), project, provider, prompt, workspaceId),
     resume: (project, session, latestCwd) =>
       resumeAgent(connectedClient(runtime), project, session, latestCwd),
   }

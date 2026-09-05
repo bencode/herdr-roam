@@ -29,12 +29,14 @@ export const PromptComposer = ({
   runtimeAvailable,
   unavailableMessage,
   onSubmitted,
+  focusWhenReady = false,
 }: {
   readonly agentId: string
   readonly status: AgentStatus
   readonly runtimeAvailable: boolean
   readonly unavailableMessage: string
   readonly onSubmitted?: () => void
+  readonly focusWhenReady?: boolean
 }) => {
   const [draft, setDraft] = useState('')
   const promptImages = usePromptImages()
@@ -44,6 +46,7 @@ export const PromptComposer = ({
     readonly text: string
   } | null>(null)
   const fieldRef = useRef<HTMLTextAreaElement>(null)
+  const focusedInitially = useRef(false)
   const fieldId = useId()
   const statusId = useId()
   const ready = runtimeAvailable && (status === 'idle' || status === 'done' || status === 'working')
@@ -53,6 +56,12 @@ export const PromptComposer = ({
     textWithinLimit &&
     (draft.trim().length > 0 || promptImages.images.length > 0) &&
     !submitting
+
+  useLayoutEffect(() => {
+    if (!focusWhenReady || !ready || focusedInitially.current) return
+    fieldRef.current?.focus()
+    focusedInitially.current = true
+  }, [focusWhenReady, ready])
 
   useLayoutEffect(() => {
     const field = fieldRef.current
@@ -165,7 +174,7 @@ export const PromptComposer = ({
           }}
           onKeyDown={handleKeyDown}
           onPaste={pasteImages}
-          placeholder="Send a follow-up…"
+          placeholder="Send a Prompt…"
           rows={2}
           value={draft}
         />

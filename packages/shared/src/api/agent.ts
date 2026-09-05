@@ -94,7 +94,8 @@ export type AgentStopReceipt = {
 export type AgentLaunchRequest = {
   readonly projectName: string
   readonly provider: AgentProvider
-  readonly prompt: string
+  readonly workspaceId?: string
+  readonly prompt?: string
 }
 
 export type AgentLaunchReceipt = {

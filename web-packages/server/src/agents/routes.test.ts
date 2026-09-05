@@ -1,6 +1,7 @@
 import { AGENT_TEXT_MAX_BYTES, type AgentRuntimeSnapshot } from '@herdr-roam/shared'
 import { describe, expect, it, vi } from 'vitest'
 import type { ProjectRegistryApi } from '../projects/registry.js'
+import { ProjectWorkspaceError } from '../projects/workspaces.js'
 import { createAgentRoutes } from './routes.js'
 import { type AgentServiceApi, AgentServiceError } from './service.js'
 
@@ -45,6 +46,57 @@ const projects: ProjectRegistryApi = {
 const routes = (agentService = service()) => createAgentRoutes(agentService, projects)
 
 describe('Agent routes', () => {
+  it('accepts an empty launch in the selected directory', async () => {
+    const launch = vi.fn().mockResolvedValue({ agent: { id: 'terminal-1' } })
+    const response = await routes(service({ launch })).request('/', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ projectName: 'herdr-roam', provider: 'claude', workspaceId: 'task' }),
+    })
+    expect(response.status).toBe(201)
+    expect(launch).toHaveBeenCalledWith(
+      { name: 'herdr-roam', path: '/work/herdr-roam' },
+      'claude',
+      undefined,
+      'task',
+    )
+  })
+
+  it.each([
+    { prompt: '' },
+    { prompt: '  ' },
+    { prompt: 'a'.repeat(AGENT_TEXT_MAX_BYTES + 1) },
+    { workspaceId: '' },
+    { provider: 'unsupported' },
+  ])('rejects invalid launch options before starting (%#)', async options => {
+    const launch = vi.fn()
+    const response = await routes(service({ launch })).request('/', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ projectName: 'herdr-roam', provider: 'codex', ...options }),
+    })
+    expect([400, 413]).toContain(response.status)
+    expect(launch).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['workspace_not_found', 409, 'project_directory_unavailable'],
+    ['workspace_directory_unavailable', 409, 'project_directory_unavailable'],
+    ['workspace_unavailable', 503, 'agent_launch_unavailable'],
+  ] as const)('reports directory failure %s without retrying', async (code, status, publicCode) => {
+    const launch = vi
+      .fn()
+      .mockRejectedValue(new ProjectWorkspaceError(code, 'Selected directory unavailable.'))
+    const response = await routes(service({ launch })).request('/', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ projectName: 'herdr-roam', provider: 'codex' }),
+    })
+    expect(response.status).toBe(status)
+    await expect(response.json()).resolves.toMatchObject({ error: { code: publicCode } })
+    expect(launch).toHaveBeenCalledTimes(1)
+  })
+
   it('returns the current snapshot', async () => {
     const response = await routes().request('/')
     expect(response.status).toBe(200)
@@ -234,6 +286,7 @@ describe('Agent routes', () => {
       { name: 'herdr-roam', path: '/work/herdr-roam' },
       'codex',
       'Review the change.',
+      'primary',
     )
 
     const focused = await agentRoutes.request('/terminal-1/focus', { method: 'POST' })
