@@ -6,7 +6,7 @@ import { Button } from '../../../ui/button'
 import type { ResourceRef } from '../../../workbench/resource'
 import { AgentClientError, launchProjectAgent } from '../../agent/client'
 import { useAgentRuntime } from '../../agent/runtime-provider'
-import { useProjectWorkspaces } from '../../file/use-project-workspaces'
+import { useProjectWorkspaces } from '../../project/use-project-workspaces'
 
 type LaunchOutcome = {
   readonly projectName: string

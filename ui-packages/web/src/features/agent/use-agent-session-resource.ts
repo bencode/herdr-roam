@@ -1,7 +1,7 @@
 import type { AgentSessionRef, Project } from '@herdr-roam/shared'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ResourceRef } from '../../workbench/resource'
-import { fetchProjectWorkspaces } from '../file/client'
+import { fetchProjectWorkspaces } from '../project/workspace-client'
 
 type SessionResource = Extract<ResourceRef, { type: 'session' }>
 type Resolution = {

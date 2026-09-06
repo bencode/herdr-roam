@@ -23,7 +23,7 @@ const ResourceContent = ({
     return <AgentTab resource={resource} projects={projects} onOpen={onOpen} active={active} />
   if (resource.type === 'session')
     return <SessionTab resource={resource} active={active} onOpen={onOpen} />
-  if (resource.type === 'issue') return <IssueTab resource={resource} onOpen={onOpen} />
+  if (resource.type === 'issue') return <IssueTab resource={resource} active={active} />
   if (resource.type === 'file')
     return <FileTab resource={resource} active={active} onOpen={onOpen} />
   return <SkillTab resource={resource} />

@@ -1,7 +1,7 @@
 # Herdr Roam Documentation
 
-Herdr Roam is in its early design stage. These documents record the product
-decisions and technical boundaries that guide its first implementation.
+These documents record the product decisions and technical boundaries for the
+current local implementation and its first small release.
 
 ## Documents
 
@@ -13,6 +13,8 @@ decisions and technical boundaries that guide its first implementation.
 - [Project registry and routing](architecture/project-registry-and-routing.md)
   defines stable Project Names, the local registry contract, canonical URLs,
   and Tab restoration.
+- [Project Issues](architecture/project-issues.md) defines the Git-backed Issue
+  contract, read-only API, Worktree identity, and refresh behavior.
 - [Herdr Agent runtime](architecture/herdr-agent-runtime.md) documents the
   implemented Agent connection, inspection and Prompt API, and persistence
   boundary.

@@ -2,9 +2,8 @@
 
 ## Status
 
-Draft. This document records the agreed desktop interaction model for Herdr
-Roam. It is a product wireframe, not a visual design system or an implementation
-specification.
+This document records the implemented desktop interaction model for Herdr Roam.
+It is a product wireframe, not a visual design system.
 
 The target is a 1440px desktop browser with compact but calm information density.
 Labels, spacing, and component placement may evolve, but the hierarchy and
@@ -32,19 +31,17 @@ Herdr Roam
 │       ├── Workbench
 │       ├── Sessions
 │       ├── Issues
-│       ├── Loops
 │       └── Files
 ├── Agents                 cross-project live runtime
 └── Skills                 user skills and active-project skills
 ```
 
-Projects, Agents, and Skills are global dimensions. Sessions, Issues, Loops,
-and Files live inside the active project. Theme is a direct utility control,
+Projects, Agents, and Skills are global dimensions. Sessions, Issues, and Files
+live inside the active project. Theme is a direct utility control,
 not another resource dimension or route-backed destination.
 
-These resources remain orthogonal. A Loop can create a Session, and a Session
-can use a Skill to read or write Issues, but one resource does not own the
-others.
+These resources remain orthogonal. A Session can use a Skill to read or write
+Issues, but one resource does not own the others.
 
 ## Application Shell
 
@@ -73,8 +70,8 @@ the work area.
 The Activity Bar contains Projects, Agents, and Skills at the top, with a Theme
 control at the bottom. Each global Activity is a route-backed
 navigation link with an inset selected surface, an accessible label, and
-`aria-current`. The project panel begins with one compact row for Sessions,
-Issues, Loops, and Files, followed by the selected resource browser. Switching
+`aria-current`. The project panel begins with one compact row for Issues,
+Sessions, and Files, followed by the selected resource browser. Switching
 that row changes only the sidebar browser; it does not navigate, replace the
 active Workbench tab, or clear resource-local state. A concrete list item opens
 or reuses its resource tab and updates the canonical route. Collection routes
@@ -121,14 +118,15 @@ explicit refresh controls. Selecting the already-open file activates its tab,
 and the active file is highlighted in the tree when its ancestors are open.
 
 A Git Project groups its existing worktree directories under one Project. When
-more than one directory exists, Files places a compact directory selector above
-search. The collapsed control leads with the directory name and shows the
+more than one directory exists, Issues and Files place the same compact
+directory selector beside search and share its last selection. The collapsed
+control leads with the directory name and shows the
 branch as metadata; the menu adds the full path for disambiguation. Arrow keys,
 Home, End, Enter, and Escape work without introducing a separate management
-screen. Selecting a directory clears Files search and expansion state but does
-not navigate. Only opening a file updates the route. Existing File tabs remain
-bound to the Workspace in which they were opened, while activating a File tab
-selects its Workspace in the sidebar.
+screen. Selecting a directory clears the current browser search and Files
+expansion state but does not navigate. Only opening a concrete resource updates
+the route. Existing File and Issue tabs remain bound to the Workspace in which
+they were opened, while activating one selects its Workspace in the sidebar.
 
 The File tab keeps identity and path in a compact header, then gives the rest of
 the workbench to a content-specific reader. Markdown provides Preview/Source,
@@ -397,54 +395,30 @@ location is stored in a minimal Git-tracked project configuration.
 
 ```text
 ┌──────────────────────────┬────────────────────────────────────────────────────────────┐
-│ herdr-roam / Issues      │ HR-018  Clarify automatic runtime ownership                │
-│                          │ open · runtime · discovered                                │
-│ Search issues...        │────────────────────────────────────────────────────────────│
-│ Open 24  Closed 81       │ Roam should start Herdr for regular users while preserving │
-│                          │ an external-server mode for advanced users.                 │
-│ HR-018 Runtime ownership │                                                            │
-│ HR-017 Session fallback  │ Labels                                                     │
-│ HR-014 Skill discovery   │ runtime  onboarding                                        │
-│                          │                                                            │
-│                          │ Referenced files                                            │
-│                          │ docs/design/workbench-interactions.md                       │
-│                          │                                                            │
-│                          │                                           Edit   Close      │
+│ Issues · main       ↻    │ 1f0d3edd · docs/issues/1f0d3edd-….md                 ↻    │
+│ Search issues...      1  │────────────────────────────────────────────────────────────│
+│ Open 1                   │ Prepare the first Herdr Roam release                       │
+│ ● Prepare first release  │ open · task · p0 · release                                 │
+│   1f0d3edd · task · p0   │                                                            │
+│                          │ Prepare a small, reproducible first release.                │
+│ Closed 0                 │                                                            │
+│                          │ ☑ Integrate the real Git-backed Issue view                 │
+│                          │ ☐ Add installation and startup documentation               │
 └──────────────────────────┴────────────────────────────────────────────────────────────┘
 ```
 
-Each Issue is one Markdown file. YAML Front Matter holds the minimal structured
-GitHub-like core, while the Markdown body holds the description and reviewable
-context. Roam presents this through a dedicated structured Issue interface;
-Skills may interpret labels or an optional stage without forcing a global
-production lifecycle.
+Each Issue is one Markdown file. YAML Front Matter holds its status and optional
+type, priority, and labels, while the Markdown body holds the description and
+task list. The dedicated interface is read-only; task checkboxes reflect source
+state and cannot be changed in the browser. An Agent writes through the
+`herdr-roam-issues` Skill, and explicit Sidebar or Detail Refresh reads the new
+file state. Invalid files remain visible as warnings without hiding valid Issues.
 
-## Project Loops
+## Deferred Loops
 
-A Loop is a saved trigger that creates a normal Session in a directory and sends
-a Prompt. It is not a second agent runtime or a special conversation type.
-
-```text
-┌──────────────────────────┬────────────────────────────────────────────────────────────┐
-│ herdr-roam / Loops       │ Product exploration                         enabled        │
-│                          │────────────────────────────────────────────────────────────│
-│ + New loop               │ Trigger       Every day at 09:00                          │
-│                          │ Directory     /work/herdr-roam                             │
-│ ● Product exploration   │ Agent         Codex                                       │
-│   next 09:00             │ Prompt        Use the product exploration Skill...         │
-│                          │                                                            │
-│ ○ Ready issue producer  │ Next run      Tomorrow at 09:00                            │
-│   paused                 │ Last run      Session: Product scan             [Open]     │
-│                          │                                                            │
-│                          │ Run history                                                │
-│                          │ today 09:00     done      Product scan                      │
-│                          │ yesterday      done      Product scan                      │
-│                          │                                  Run now   Pause   Edit     │
-└──────────────────────────┴────────────────────────────────────────────────────────────┘
-```
-
-Triggers may be time-based or condition-based. Once triggered, everything after
-Session creation follows standard Herdr and agent behavior.
+Loops are not exposed in the first release. A future Loop may save a time-based
+or condition-based trigger that creates an ordinary Session in a selected
+directory; it must not introduce a second runtime or conversation type.
 
 ## Project Files
 

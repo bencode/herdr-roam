@@ -16,7 +16,7 @@ Herdr Roam Server
    ├── Codex and Claude session metadata
    ├── project files and Git metadata
    ├── user-level and project-level skills
-   └── file-backed Issues, Loops, and project configuration
+   └── file-backed Issues and project configuration
 ```
 
 The browser cannot connect directly to a local Unix socket. The Herdr Roam
@@ -39,10 +39,9 @@ The server:
 - discovers and connects to the default local Herdr server;
 - connects to the default Herdr server and reports when it is absent;
 - translates Herdr runtime concepts into project, agent, and conversation views;
-- reads bounded project, session, and skill resources;
+- reads bounded project, session, Issue, and skill resources;
 - creates the Herdr runtime location required to start an agent from the Web;
-- persists and evaluates time-based and condition-based Loop triggers;
-- reads and updates configured Git-backed Issue stores;
+- reads configured Git-backed Issue stores without mutating them;
 - provides read APIs and a small set of explicit control operations;
 - streams state changes to the browser;
 - proxies Herdr terminal session control/observe while an Agent resource Tab is active;
@@ -50,7 +49,7 @@ The server:
 
 ### Browser application
 
-The browser presents Project, Agent, Session, Issue, Loop, File, and Skill views
+The browser presents Project, Agent, Session, Issue, File, and Skill views
 inside one tabbed work area. It does not access the filesystem or Herdr socket
 directly. Session pages render provider-owned conversation history, while Agent
 pages expose the native Terminal for output and input, without a separate composer.
@@ -173,8 +172,9 @@ in [Project Registry and Routing](project-registry-and-routing.md).
 Projects may opt into the `herdr-roam-issues` convention. A minimal Git-tracked
 project configuration points to the project-selected Issue directory. Each
 Issue is one Markdown file with structured YAML Front Matter and a human-readable
-Markdown body. Loop definitions are also file-backed. Git, not an application
-database, supplies durable history for this project state.
+Markdown body. Git, not an application database, supplies durable history for
+this project state. The `herdr-roam-issues` Skill performs explicit writes;
+Roam's server remains an independent reader.
 
 Herdr Roam derives global and per-project views from those sources. It does not
 persist a duplicate task, agent, artifact, or conversation model in a database
@@ -209,8 +209,7 @@ Runtime terms are translated at the server boundary:
 - provider session identifiers become conversation references;
 - panes remain attachment and diagnostic details;
 - readable project outputs become artifact candidates without moving or copying
-  the underlying files;
-- Loop triggers create ordinary Sessions rather than a second run type.
+  the underlying files.
 
 ## Filesystem Security
 
@@ -223,11 +222,10 @@ is read. Symbolic links and parent-directory traversal must not escape that
 root. Unsupported, inaccessible, or oversized files return explicit errors
 rather than guessed or empty content.
 
-Project, artifact, Session, and Skill readers are read-only. Dedicated writes
-are limited to Roam's minimal tracked project configuration, configured Issue
-directories, and file-backed Loop definitions. Each write target is resolved
-and validated independently; an Issue or Loop operation must not become a
-general project-file mutation API.
+Project, artifact, Session, Issue, and Skill readers are read-only. Issue writes
+are performed directly against the selected Worktree by the separate
+`herdr-roam-issues` Skill; the server exposes no general or Issue-specific file
+mutation API.
 
 ## Local Security and Persistence
 
@@ -241,7 +239,7 @@ may remain in browser storage. The
 browser may persist the ordered set of open resource references, but not copied
 resource content; the active resource remains a deep-linkable URL. Portable
 project coordination state remains in Git-backed files. Connection, read,
-runtime-start, Issue, and Loop errors are observable in the interface and server
+runtime-start and Issue errors are observable in the interface and server
 logs; unknown errors must not be replaced with empty fallback data.
 
 ## Herdr References

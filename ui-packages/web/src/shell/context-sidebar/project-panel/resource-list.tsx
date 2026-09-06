@@ -1,29 +1,17 @@
 import type { AgentStatus, AgentSummary, SessionSummary } from '@herdr-roam/shared'
-import { CircleDot, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useAgentRuntime } from '../../../features/agent/runtime-provider'
 import { useProjectSessions } from '../../../features/session/use-session-data'
 import { cn } from '../../../lib/cn'
-import type { Issue, Loop, LoopStatus } from '../../../mock/data'
-import { issues, loops, projectByName } from '../../../mock/data'
-import type { ProjectSection, ResourceRef } from '../../../workbench/resource'
+import type { ResourceRef } from '../../../workbench/resource'
 
-export type { ProjectSection } from '../../../workbench/resource'
-
-const statusClasses: Readonly<Record<AgentStatus | LoopStatus, string>> = {
+const statusClasses: Readonly<Record<AgentStatus, string>> = {
   working: 'bg-primary',
   blocked: 'bg-warning',
   idle: 'bg-primary',
   done: 'bg-success',
   unknown: 'bg-faint',
-  enabled: 'bg-primary',
-  paused: 'bg-faint',
-  error: 'bg-danger',
-}
-
-const issueStatusClasses: Readonly<Record<Issue['status'], string>> = {
-  open: 'text-primary',
-  closed: 'text-success',
 }
 
 type BrowserFrameProps = {
@@ -84,11 +72,6 @@ export const ProjectBrowserFrame = ({
       <div className="min-h-0 flex-1 overflow-auto px-1.75 pb-3.5">{children}</div>
     </section>
   )
-}
-
-const matches = (query: string, ...values: readonly string[]): boolean => {
-  const normalized = query.trim().toLowerCase()
-  return normalized === '' || values.some(value => value.toLowerCase().includes(normalized))
 }
 
 const Status = ({ value }: { readonly value: AgentStatus | 'not-running' }) => (
@@ -172,70 +155,14 @@ const SessionRows = ({
   )
 }
 
-const IssueRows = ({
-  values,
-  onOpen,
-}: {
-  readonly values: readonly Issue[]
-  readonly onOpen: (resource: ResourceRef) => void
-}) => (
-  <div className="grid gap-px">
-    {values.map(issue => (
-      <button
-        type="button"
-        key={issue.id}
-        className="flex min-h-12 w-full min-w-0 items-start gap-2.5 rounded-sm border-0 bg-transparent px-2 py-2.25 text-left text-foreground hover:bg-hover [&>span]:grid [&>span]:min-w-0 [&>span]:flex-1 [&>span]:gap-0.75 [&_small]:truncate [&_small]:text-[0.625rem] [&_small]:text-faint [&_strong]:truncate [&_strong]:text-xs [&_strong]:font-semibold"
-        onClick={() => onOpen({ type: 'issue', projectName: issue.projectName, issueId: issue.id })}
-        title={`${issue.id.toUpperCase()} · ${issue.title}`}
-      >
-        <CircleDot
-          className={cn('mt-0.5 w-3 flex-none', issueStatusClasses[issue.status])}
-          aria-hidden="true"
-        />
-        <span>
-          <strong>{issue.title}</strong>
-          <small>
-            {issue.id.toUpperCase()} · {issue.stage}
-          </small>
-        </span>
-      </button>
-    ))}
-  </div>
-)
-
-const LoopRows = ({ values }: { readonly values: readonly Loop[] }) => (
-  <div className="grid gap-px">
-    {values.map(loop => (
-      <div
-        key={loop.id}
-        className="flex min-h-12 w-full min-w-0 items-start gap-2.5 rounded-sm border-0 bg-transparent px-2 py-2.25 text-left text-foreground [&>span]:grid [&>span]:min-w-0 [&>span]:flex-1 [&>span]:gap-0.75 [&_small]:truncate [&_small]:text-[0.625rem] [&_small]:text-faint [&_strong]:truncate [&_strong]:text-xs [&_strong]:font-semibold"
-        title={loop.title}
-      >
-        <i
-          className={cn('mt-[0.3rem] size-1.5 flex-none rounded-full', statusClasses[loop.status])}
-          role="img"
-          aria-label={loop.status}
-        />
-        <span>
-          <strong>{loop.title}</strong>
-          <small>
-            {loop.schedule} · {loop.nextRun}
-          </small>
-        </span>
-      </div>
-    ))}
-  </div>
-)
-
 type Props = {
-  readonly section: Exclude<ProjectSection, 'files'>
   readonly projectName: string
   readonly query: string
   readonly onQuery: (query: string) => void
   readonly onOpen: (resource: ResourceRef) => void
 }
 
-const SessionBrowser = ({ projectName, query, onQuery, onOpen }: Omit<Props, 'section'>) => {
+export const ResourceList = ({ projectName, query, onQuery, onOpen }: Props) => {
   const sessionState = useProjectSessions(projectName, { query })
   const { snapshot } = useAgentRuntime()
   const visible = sessionState.value.items
@@ -301,62 +228,6 @@ const SessionBrowser = ({ projectName, query, onQuery, onOpen }: Omit<Props, 'se
         </>
       ) : (
         <Empty filtered={query.trim() !== ''} resource="Sessions" />
-      )}
-    </ProjectBrowserFrame>
-  )
-}
-
-export const ResourceList = ({ section, projectName, query, onQuery, onOpen }: Props) => {
-  if (section === 'sessions') {
-    return (
-      <SessionBrowser projectName={projectName} query={query} onQuery={onQuery} onOpen={onOpen} />
-    )
-  }
-
-  if (section === 'issues') {
-    const project = projectByName(projectName)
-    const all = issues.filter(issue => issue.projectName === projectName)
-    const visible = all.filter(issue =>
-      matches(query, issue.id, issue.title, issue.stage, ...issue.labels),
-    )
-    return (
-      <ProjectBrowserFrame
-        title="Issues"
-        total={all.length}
-        filtered={visible.length}
-        query={query}
-        onQuery={onQuery}
-      >
-        {!project?.issuesConfigured ? (
-          <div className="grid justify-items-center gap-1 px-4 py-8 text-center text-muted [&>span]:max-w-52 [&>span]:text-[0.6875rem] [&>span]:leading-normal [&>strong]:text-xs [&>strong]:text-foreground">
-            <strong>Issue store not configured</strong>
-            <span>This project does not use the optional Roam Issue convention.</span>
-          </div>
-        ) : visible.length > 0 ? (
-          <IssueRows values={visible} onOpen={onOpen} />
-        ) : (
-          <Empty filtered={all.length > 0} resource="Issues" />
-        )}
-      </ProjectBrowserFrame>
-    )
-  }
-
-  const all = loops.filter(loop => loop.projectName === projectName)
-  const visible = all.filter(loop =>
-    matches(query, loop.title, loop.status, loop.schedule, loop.nextRun),
-  )
-  return (
-    <ProjectBrowserFrame
-      title="Loops"
-      total={all.length}
-      filtered={visible.length}
-      query={query}
-      onQuery={onQuery}
-    >
-      {visible.length > 0 ? (
-        <LoopRows values={visible} />
-      ) : (
-        <Empty filtered={all.length > 0} resource="Loops" />
       )}
     </ProjectBrowserFrame>
   )

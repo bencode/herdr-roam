@@ -13,8 +13,8 @@ vi.mock('../../agent/client', async importOriginal => {
   const original = await importOriginal<typeof import('../../agent/client')>()
   return { ...original, launchProjectAgent: mocks.launch }
 })
-vi.mock('../../file/client', async importOriginal => ({
-  ...(await importOriginal<typeof import('../../file/client')>()),
+vi.mock('../../project/workspace-client', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../project/workspace-client')>()),
   fetchProjectWorkspaces: mocks.directories,
 }))
 vi.mock('../../agent/runtime-provider', () => ({

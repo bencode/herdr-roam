@@ -4,7 +4,12 @@ const session = {
   provider: 'codex',
   sessionId: 'scan',
 } as const
-const issue = { type: 'issue', projectName: 'other-project', issueId: 'hr-018' } as const
+const issue = {
+  type: 'issue',
+  projectName: 'other-project',
+  workspaceId: 'primary',
+  issueId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+} as const
 const agent = { type: 'agent', agentId: 'terminal-codex' } as const
 const primaryFile = {
   type: 'file',
@@ -64,8 +69,8 @@ describe('workbench store', () => {
   it('persists only the versioned workbench snapshot', () => {
     const { useWorkbenchStore } = storeModule
     useWorkbenchStore.getState().open(agent)
-    expect(JSON.parse(localStorage.getItem('herdr-roam.workbench.v5') ?? '')).toEqual({
-      version: 5,
+    expect(JSON.parse(localStorage.getItem('herdr-roam.workbench.v6') ?? '')).toEqual({
+      version: 6,
       activeProjectName: 'herdr-roam',
       tabs: [agent],
       lastActive: agent,
@@ -92,12 +97,17 @@ describe('workbench store', () => {
 
   it('remembers one canonical path per Activity', () => {
     const { useWorkbenchStore } = storeModule
-    useWorkbenchStore.getState().rememberActivity('projects', '/projects/herdr-roam/issues/hr-018')
+    useWorkbenchStore
+      .getState()
+      .rememberActivity(
+        'projects',
+        '/projects/herdr-roam/issues/primary/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      )
     useWorkbenchStore.getState().rememberActivity('agents', '/agents/terminal-codex')
 
     expect(useWorkbenchStore.getState().lastActivity).toBe('agents')
     expect(useWorkbenchStore.getState().activityPaths).toEqual({
-      projects: '/projects/herdr-roam/issues/hr-018',
+      projects: '/projects/herdr-roam/issues/primary/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       agents: '/agents/terminal-codex',
       skills: '/skills',
     })
@@ -119,11 +129,11 @@ describe('workbench store', () => {
     })
   })
 
-  it('discards legacy workbench state after the File resource identity change', async () => {
+  it('discards v5 workbench state after the Issue resource identity change', async () => {
     localStorage.setItem(
-      'herdr-roam.workbench.v2',
+      'herdr-roam.workbench.v5',
       JSON.stringify({
-        version: 2,
+        version: 5,
         activeProjectName: 'herdr-roam',
         tabs: [agent],
         lastActive: agent,
@@ -132,7 +142,7 @@ describe('workbench store', () => {
     vi.resetModules()
     const { useWorkbenchStore } = await import('./store')
 
-    expect(useWorkbenchStore.getState()).toMatchObject({ version: 5, tabs: [], lastActive: null })
-    expect(localStorage.getItem('herdr-roam.workbench.v5')).toBeNull()
+    expect(useWorkbenchStore.getState()).toMatchObject({ version: 6, tabs: [], lastActive: null })
+    expect(localStorage.getItem('herdr-roam.workbench.v6')).toBeNull()
   })
 })

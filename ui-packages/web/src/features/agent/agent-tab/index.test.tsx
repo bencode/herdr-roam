@@ -37,8 +37,8 @@ vi.mock('../runtime-provider', () => ({
   }),
 }))
 
-vi.mock('../../file/client', async importOriginal => ({
-  ...(await importOriginal<typeof import('../../file/client')>()),
+vi.mock('../../project/workspace-client', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../project/workspace-client')>()),
   fetchProjectWorkspaces: mocks.directories,
 }))
 

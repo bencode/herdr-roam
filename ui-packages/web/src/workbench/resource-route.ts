@@ -14,7 +14,7 @@ export type RouteTarget =
   | { readonly kind: 'resource'; readonly resource: ResourceRef }
   | { readonly kind: 'unknown' }
 
-const projectSections: readonly ProjectSection[] = ['sessions', 'issues', 'loops', 'files']
+const projectSections: readonly ProjectSection[] = ['sessions', 'issues', 'files']
 
 const isProjectSection = (value: string | undefined): value is ProjectSection =>
   projectSections.some(section => section === value)
@@ -46,7 +46,7 @@ export const resourcePath = (resource: ResourceRef): string => {
   if (resource.type === 'session')
     return `${projectSectionPath(resource.projectName, 'sessions')}/${encoded(resource.provider)}/${encoded(resource.sessionId)}`
   if (resource.type === 'issue')
-    return `${projectSectionPath(resource.projectName, 'issues')}/${encoded(resource.issueId)}`
+    return `${projectSectionPath(resource.projectName, 'issues')}/${encoded(resource.workspaceId)}/${encoded(resource.issueId)}`
   if (resource.type === 'file')
     return `${projectSectionPath(resource.projectName, 'files')}/${encoded(resource.workspaceId)}/${encodePath(resource.path)}`
   if (resource.scope === 'project')
@@ -76,8 +76,11 @@ const projectTarget = (parts: readonly string[]): RouteTarget | null => {
       resource: { type: 'session', projectName, provider: id, sessionId },
     }
   }
-  if (section === 'issues' && id && parts.length === 4)
-    return { kind: 'resource', resource: { type: 'issue', projectName, issueId: id } }
+  if (section === 'issues' && id && sessionId && parts.length === 5)
+    return {
+      kind: 'resource',
+      resource: { type: 'issue', projectName, workspaceId: id, issueId: sessionId },
+    }
   if (section === 'skills' && id && parts.length === 4)
     return {
       kind: 'resource',

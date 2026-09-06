@@ -3,7 +3,6 @@ import {
   type FileClientError,
   fetchProjectFile,
   fetchProjectFiles,
-  fetchProjectWorkspaces,
   projectFileRawUrl,
 } from './client'
 
@@ -50,32 +49,5 @@ describe('Project file client', () => {
       code: 'file_not_found',
       message: 'File not found.',
     } satisfies Partial<FileClientError>)
-  })
-
-  it('loads the Project Workspace catalog', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          items: [
-            {
-              id: 'primary',
-              name: 'project',
-              path: '/work/project',
-              kind: 'worktree',
-              branch: 'main',
-              primary: true,
-            },
-          ],
-        }),
-      ),
-    )
-    vi.stubGlobal('fetch', fetchMock)
-
-    await expect(fetchProjectWorkspaces('my project')).resolves.toMatchObject({
-      items: [expect.objectContaining({ id: 'primary', branch: 'main' })],
-    })
-    expect(fetchMock).toHaveBeenCalledWith('/api/projects/my%20project/workspaces', {
-      signal: undefined,
-    })
   })
 })

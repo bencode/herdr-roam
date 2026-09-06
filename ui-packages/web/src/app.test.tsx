@@ -177,20 +177,6 @@ const projectFileItems = vi.hoisted(
 )
 
 vi.mock('./features/file/client', () => ({
-  fetchProjectWorkspaces: vi.fn(() =>
-    Promise.resolve({
-      items: [
-        {
-          id: 'primary',
-          name: 'herdr-roam',
-          path: '/work/herdr-roam',
-          kind: 'worktree' as const,
-          branch: 'main',
-          primary: true,
-        },
-      ],
-    }),
-  ),
   fetchProjectFiles: vi.fn(
     (_projectName: string, _workspaceId: string, options?: { readonly directory?: string }) => {
       const items = projectFileItems[options?.directory ?? ''] ?? []
@@ -198,7 +184,11 @@ vi.mock('./features/file/client', () => ({
     },
   ),
   searchProjectFiles: vi.fn(() =>
-    Promise.resolve({ items: projectFileItems['docs/product'], total: 1, nextCursor: null }),
+    Promise.resolve({
+      items: projectFileItems['docs/product'],
+      total: 1,
+      nextCursor: null,
+    }),
   ),
   fetchProjectFile: vi.fn((_projectName: string, _workspaceId: string, path: string) =>
     Promise.resolve({
@@ -216,6 +206,60 @@ vi.mock('./features/file/client', () => ({
     (_projectName: string, _workspaceId: string, path: string) => `/raw/${path}`,
   ),
   FileClientError: class FileClientError extends Error {},
+}))
+
+vi.mock('./features/project/workspace-client', () => ({
+  fetchProjectWorkspaces: vi.fn(() =>
+    Promise.resolve({
+      items: [
+        {
+          id: 'primary',
+          name: 'herdr-roam',
+          path: '/work/herdr-roam',
+          kind: 'worktree' as const,
+          branch: 'main',
+          primary: true,
+        },
+      ],
+    }),
+  ),
+  WorkspaceClientError: class WorkspaceClientError extends Error {},
+}))
+
+const issueMocks = vi.hoisted(() => ({
+  id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+}))
+
+vi.mock('./features/issue/client', () => ({
+  fetchIssues: vi.fn(() =>
+    Promise.resolve({
+      items: [
+        {
+          id: issueMocks.id,
+          title: 'Prepare release',
+          status: 'open' as const,
+          type: 'task' as const,
+          priority: 'p0' as const,
+          labels: ['release'],
+          path: `docs/issues/${issueMocks.id}.md`,
+        },
+      ],
+      warnings: [],
+    }),
+  ),
+  fetchIssue: vi.fn(() =>
+    Promise.resolve({
+      id: issueMocks.id,
+      title: 'Prepare release',
+      status: 'open' as const,
+      type: 'task' as const,
+      priority: 'p0' as const,
+      labels: ['release'],
+      path: `docs/issues/${issueMocks.id}.md`,
+      body: '- [ ] Verify release\n',
+    }),
+  ),
+  IssueClientError: class IssueClientError extends Error {},
 }))
 
 vi.mock('./features/skill/client', () => ({
@@ -443,13 +487,13 @@ describe('workbench application', () => {
     )
     const sidebar = within(screen.getByTestId('context-sidebar'))
     selectProjectResource(sidebar, 'Issues')
-    fireEvent.click(sidebar.getByRole('button', { name: /Clarify runtime ownership/ }))
+    fireEvent.click(await sidebar.findByRole('button', { name: /Prepare release/ }))
     selectProjectResource(sidebar, 'Files')
     await openVisionFile(sidebar)
     fireEvent.click(screen.getByRole('link', { name: 'Skills' }))
     fireEvent.click(await sidebar.findByRole('button', { name: /herdr-roam-issues/ }))
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'HR-018' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'aaaaaaaa' })).toBeInTheDocument()
       expect(screen.getByRole('tab', { name: /vision-and-scope.md/ })).toBeInTheDocument()
       expect(screen.getByRole('tab', { name: /herdr-roam-issues/ })).toBeInTheDocument()
     })
@@ -468,7 +512,7 @@ describe('workbench application', () => {
     selectProjectResource(sidebar, 'Sessions')
     fireEvent.click(await sidebar.findByRole('button', { name: /Product scan/ }))
     selectProjectResource(sidebar, 'Issues')
-    fireEvent.click(sidebar.getByRole('button', { name: /Clarify runtime ownership/ }))
+    fireEvent.click(await sidebar.findByRole('button', { name: /Prepare release/ }))
 
     fireEvent.contextMenu(screen.getByRole('tab', { name: /vision-and-scope.md/ }))
     fireEvent.click(await screen.findByRole('menuitem', { name: 'Close Other Tabs' }))
@@ -511,13 +555,17 @@ describe('workbench application', () => {
 
   it('restores the exact Project route after visiting another Activity', async () => {
     render(
-      <MemoryRouter initialEntries={['/projects/herdr-roam/issues/hr-018']}>
+      <MemoryRouter
+        initialEntries={[
+          '/projects/herdr-roam/issues/primary/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        ]}
+      >
         <App />
         <CurrentPath />
       </MemoryRouter>,
     )
 
-    await screen.findByRole('tab', { name: 'HR-018' })
+    await screen.findByRole('tab', { name: 'aaaaaaaa' })
     expect(screen.getByRole('link', { name: 'Projects' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('button', { name: 'Issues' })).toHaveAttribute('aria-pressed', 'true')
 
@@ -528,7 +576,7 @@ describe('workbench application', () => {
     fireEvent.click(screen.getByRole('link', { name: 'Projects' }))
     await waitFor(() =>
       expect(screen.getByTestId('current-path')).toHaveTextContent(
-        '/projects/herdr-roam/issues/hr-018',
+        '/projects/herdr-roam/issues/primary/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       ),
     )
     expect(screen.getByRole('button', { name: 'Issues' })).toHaveAttribute('aria-pressed', 'true')

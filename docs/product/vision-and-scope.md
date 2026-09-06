@@ -2,8 +2,7 @@
 
 ## Status
 
-Herdr Roam is in its early design stage. This document defines the direction and
-the boundary of its first implementation.
+This document defines the direction and boundary of the first local release.
 
 ## Product Definition
 
@@ -12,7 +11,7 @@ coding agents managed by one Herdr server.
 
 It gives a human one place to understand concurrent work across projects,
 inspect the artifacts agents produce, identify work that needs attention, and
-keep software work moving through reusable Skills, Issues, and Loops.
+keep software work moving through reusable Skills and Git-backed Issues.
 
 Herdr Roam does not replace Herdr or terminal-oriented clients such as
 herdr-gui. Herdr owns processes, PTYs, and runtime state. Herdr Roam owns the
@@ -56,9 +55,8 @@ should be presented in human-readable views suited to their content.
 
 ### Keep the human in the coordination loop
 
-Herdr Roam helps a person notice, inspect, decide, and redirect. Saved Loops can
-create ordinary Sessions on a schedule or condition, but they do not introduce
-a second agent runtime or an opaque agent-to-agent coordination system.
+Herdr Roam helps a person notice, inspect, decide, and redirect. It does not
+introduce an opaque agent-to-agent coordination system.
 
 ### Preserve native agent behavior
 
@@ -81,8 +79,8 @@ external terminal.
   or not an agent is currently running for it.
 - **Issue**: an optional Git-backed unit of work stored through an open format
   supplied by the `herdr-roam-issues` Skill.
-- **Loop**: a saved time-based or condition-based trigger that creates a normal
-  Session in a selected directory and sends a Prompt.
+- **Loop**: a deferred time-based or condition-based trigger that would create a
+  normal Session in a selected directory and send a Prompt.
 - **Artifact**: a human-reviewable result associated with work, such as a
   Markdown document, source file, or diff.
 - **Skill**: an existing user-level or project-level instruction resource
@@ -100,7 +98,7 @@ They are not top-level product concepts in Herdr Roam.
 One project is active at a time. Its Workbench starts standard Sessions from a
 directory. Session browsing and global Runtime status remain in persistent
 navigation instead of being repeated on the Workbench. Project work includes
-Sessions, Issues, Loops, Files, and project-local Skills.
+Sessions, Issues, Files, and project-local Skills.
 
 The Workbench starts a named or automatically named Codex or Claude agent in
 the selected directory without exposing Herdr Workspace or Pane setup.
@@ -175,19 +173,19 @@ version.
 
 ### Git-backed Issues
 
-The optional `herdr-roam-issues` Skill gives agents deterministic tools and
-instructions for producing and consuming local Issues. A project selects its
-Issue directory in a minimal Git-tracked configuration. Each Issue is one
-Markdown file: YAML Front Matter contains its structured GitHub-like core and
-the Markdown body contains human-readable context. Skills may use labels or an
-optional stage without forcing one production workflow on every project.
+The optional `herdr-roam-issues` Skill gives agents deterministic tools for
+creating and updating local Issues. A project selects its Issue directory in a
+minimal Git-tracked configuration in each Worktree. Each Issue is one Markdown
+file: YAML Front Matter contains `id`, `title`, `status`, and optional `type`,
+`priority`, and `labels`; the Markdown body contains human-readable context and
+task lists. The browser and server remain read-only. They display the current
+files and refresh only when the user explicitly requests it.
 
-### Loops
+### Deferred Loops
 
-A Loop persists a trigger, project directory, agent choice, and Prompt. When a
-time or condition trigger fires, Roam creates an ordinary Session and submits
-the Prompt. The resulting Agent, Session, files, and Issues retain their normal
-semantics.
+The Loops interface and scheduler are not part of the first release. A future
+Loop may persist a trigger, project directory, agent choice, and Prompt while
+creating an ordinary Session rather than a second run type.
 
 ### Existing Skills
 
@@ -222,7 +220,6 @@ Herdr Roam
 │       ├── Workbench
 │       ├── Sessions
 │       ├── Issues
-│       ├── Loops
 │       └── Files
 ├── Agents
 └── Skills
@@ -248,6 +245,7 @@ The first version does not include:
 - a Codex SDK or Claude Agent SDK runtime;
 - cross-project conversation history and search; Sessions are browsed within
   the active Project in the first version;
+- scheduled or condition-based Loops;
 - a database for Issues, Loops, artifacts, or copied runtime state.
 
 These boundaries keep the first version focused on concurrent visibility,

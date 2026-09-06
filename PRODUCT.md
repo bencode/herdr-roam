@@ -10,7 +10,7 @@ Herdr Roam serves experienced individual software developers who coordinate mult
 
 ## Product Purpose
 
-Herdr Roam is a personal AI software studio built above one local Herdr server. It provides a durable coordination workspace for Projects, Agents, Sessions, Issues, Loops, files, and Skills while preserving native agent and Git workflows. Success means a developer can understand current work, intervene deliberately, and reuse accumulated capabilities without treating every agent session as an isolated chat.
+Herdr Roam is a personal AI software studio built above one local Herdr server. It provides a durable coordination workspace for Projects, Agents, Sessions, Git-backed Issues, files, and Skills while preserving native agent and Git workflows. Success means a developer can understand current work, intervene deliberately, and reuse accumulated capabilities without treating every agent session as an isolated chat. Scheduled Loops remain a later product direction rather than part of the current interface.
 
 ## Brand Personality
 

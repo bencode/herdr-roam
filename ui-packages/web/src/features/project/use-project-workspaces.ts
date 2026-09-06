@@ -1,23 +1,28 @@
 import type { ProjectWorkspace } from '@herdr-roam/shared'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchProjectWorkspaces, FileClientError } from './client'
+import { fetchProjectWorkspaces, WorkspaceClientError } from './workspace-client'
 
-type State = {
+export type ProjectWorkspaceState = {
   readonly items: readonly ProjectWorkspace[]
   readonly loading: boolean
-  readonly error: FileClientError | null
+  readonly error: WorkspaceClientError | null
+  readonly retry: () => void
 }
 
-const initialState: State = { items: [], loading: true, error: null }
+const initialState: Omit<ProjectWorkspaceState, 'retry'> = {
+  items: [],
+  loading: true,
+  error: null,
+}
 
-const clientError = (error: unknown): FileClientError =>
-  error instanceof FileClientError
+const clientError = (error: unknown): WorkspaceClientError =>
+  error instanceof WorkspaceClientError
     ? error
-    : new FileClientError('network_error', 'Project Workspaces could not be loaded.', {
+    : new WorkspaceClientError('network_error', 'Project Workspaces could not be loaded.', {
         cause: error,
       })
 
-export const useProjectWorkspaces = (projectName: string) => {
+export const useProjectWorkspaces = (projectName: string): ProjectWorkspaceState => {
   const [state, setState] = useState({ projectName, value: initialState })
   const pending = useRef<AbortController | null>(null)
 

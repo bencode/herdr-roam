@@ -35,6 +35,16 @@ export type {
   ProjectFileView,
 } from './api/file.js'
 export type {
+  IssueApiError,
+  IssueCatalog,
+  IssueCatalogWarning,
+  IssueDetail,
+  IssuePriority,
+  IssueStatus,
+  IssueSummary,
+  IssueType,
+} from './api/issue.js'
+export type {
   Project,
   ProjectApiError,
   ProjectCreateRequest,

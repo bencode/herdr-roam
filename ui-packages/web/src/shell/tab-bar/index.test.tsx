@@ -14,7 +14,12 @@ vi.mock('../../features/session/use-session-data', () => ({
   useSessionData: () => ({ value: null }),
 }))
 
-const issue = { type: 'issue', projectName: 'herdr-roam', issueId: 'hr-018' } as const
+const issue = {
+  type: 'issue',
+  projectName: 'herdr-roam',
+  workspaceId: 'primary',
+  issueId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+} as const
 const file = {
   type: 'file',
   projectName: 'herdr-roam',
@@ -43,7 +48,7 @@ describe('TabBar', () => {
       />,
     )
 
-    fireEvent.keyDown(screen.getByRole('tab', { name: 'HR-018' }), {
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'aaaaaaaa' }), {
       key: 'F10',
       shiftKey: true,
     })

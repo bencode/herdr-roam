@@ -1,12 +1,6 @@
-import type {
-  ProjectApiError,
-  ProjectFileApiError,
-  ProjectFilePage,
-  ProjectFileView,
-  ProjectWorkspaceCatalog,
-} from '@herdr-roam/shared'
+import type { ProjectFileApiError, ProjectFilePage, ProjectFileView } from '@herdr-roam/shared'
 import { z } from 'zod'
-import { filePageSchema, fileViewSchema, workspaceCatalogSchema } from './schema'
+import { filePageSchema, fileViewSchema } from './schema'
 const errorSchema = z.object({
   error: z.object({
     code: z.enum([
@@ -16,7 +10,6 @@ const errorSchema = z.object({
       'project_directory_unavailable',
       'workspace_not_found',
       'workspace_directory_unavailable',
-      'workspace_unavailable',
       'file_not_found',
       'file_unavailable',
       'file_unsupported',
@@ -28,11 +21,7 @@ const errorSchema = z.object({
 })
 
 export class FileClientError extends Error {
-  readonly code:
-    | ProjectFileApiError['error']['code']
-    | ProjectApiError['error']['code']
-    | 'invalid_response'
-    | 'network_error'
+  readonly code: ProjectFileApiError['error']['code'] | 'invalid_response' | 'network_error'
 
   constructor(code: FileClientError['code'], message: string, options?: ErrorOptions) {
     super(message, options)
@@ -148,9 +137,3 @@ export const fetchProjectFile = (
 
 export const projectFileRawUrl = (projectName: string, workspaceId: string, path: string): string =>
   `${fileRoot(projectName, workspaceId)}/raw/${path.split('/').map(encodeURIComponent).join('/')}`
-
-export const fetchProjectWorkspaces = (
-  projectName: string,
-  signal?: AbortSignal,
-): Promise<ProjectWorkspaceCatalog> =>
-  request(`${projectRoot(projectName)}/workspaces`, workspaceCatalogSchema.parse, signal)

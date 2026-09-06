@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'herdr-roam.file-workspaces.v1'
+const STORAGE_KEY = 'herdr-roam.project-workspaces.v1'
 
 type Preferences = Readonly<Record<string, string>>
 
@@ -15,7 +15,7 @@ const preferences = (): Preferences => {
       ),
     )
   } catch (error) {
-    console.error('File Workspace preference read failed', error)
+    console.error('Project Workspace preference read failed', error)
     return {}
   }
 }
@@ -30,6 +30,6 @@ export const writeWorkspacePreference = (projectName: string, workspaceId: strin
       JSON.stringify({ ...preferences(), [projectName]: workspaceId }),
     )
   } catch (error) {
-    console.error('File Workspace preference write failed', error)
+    console.error('Project Workspace preference write failed', error)
   }
 }

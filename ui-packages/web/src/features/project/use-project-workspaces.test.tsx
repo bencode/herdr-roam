@@ -1,11 +1,11 @@
 import type { ProjectWorkspaceCatalog } from '@herdr-roam/shared'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchProjectWorkspaces } from './client'
 import { useProjectWorkspaces } from './use-project-workspaces'
+import { fetchProjectWorkspaces } from './workspace-client'
 
-vi.mock('./client', async importOriginal => ({
-  ...(await importOriginal<typeof import('./client')>()),
+vi.mock('./workspace-client', async importOriginal => ({
+  ...(await importOriginal<typeof import('./workspace-client')>()),
   fetchProjectWorkspaces: vi.fn(),
 }))
 
@@ -19,7 +19,7 @@ const fetchDirectories = vi.mocked(fetchProjectWorkspaces)
 
 beforeEach(() => fetchDirectories.mockReset())
 
-describe('Project directory requests', () => {
+describe('Project Workspace requests', () => {
   it.each(['success', 'failure'] as const)(
     'ignores a previous project retry that finishes with %s',
     async completion => {
@@ -47,7 +47,7 @@ describe('Project directory requests', () => {
     },
   )
 
-  it('preserves directories during retry and accepts only the newest retry', async () => {
+  it('preserves Workspaces during retry and accepts only the newest retry', async () => {
     const earlier = Promise.withResolvers<ProjectWorkspaceCatalog>()
     const latest = Promise.withResolvers<ProjectWorkspaceCatalog>()
     fetchDirectories
@@ -68,7 +68,7 @@ describe('Project directory requests', () => {
     expect(result.current).toMatchObject({ items: [], loading: false, error: null })
   })
 
-  it('hides previous directories on the first render of another project', async () => {
+  it('hides previous Workspaces on the first render of another Project', async () => {
     const pending = Promise.withResolvers<ProjectWorkspaceCatalog>()
     fetchDirectories.mockResolvedValueOnce(catalog('alpha')).mockReturnValueOnce(pending.promise)
     const observed: ReturnType<typeof useProjectWorkspaces>[] = []

@@ -1,11 +1,7 @@
 import { RefreshCw } from 'lucide-react'
-import { useDeferredValue, useEffect, useRef, useState } from 'react'
+import { useDeferredValue, useEffect, useState } from 'react'
 import { useFileCatalog } from '../../../features/file/use-file-catalog'
-import { useProjectWorkspaces } from '../../../features/file/use-project-workspaces'
-import {
-  readWorkspacePreference,
-  writeWorkspacePreference,
-} from '../../../features/file/workspace-preference'
+import type { ProjectWorkspaceState } from '../../../features/project/use-project-workspaces'
 import type { ResourceRef } from '../../../workbench/resource'
 import type { TreeProps } from './file-tree-items'
 import { DirectoryRow, FileRow } from './file-tree-items'
@@ -24,48 +20,27 @@ const parentDirectories = (path: string): readonly string[] =>
 export const FileTree = ({
   projectName,
   activeFile,
-  routeKey,
+  workspaceId,
+  workspaces,
   query,
   onQuery,
+  onWorkspace,
   onOpen,
 }: {
   readonly projectName: string
   readonly activeFile: FileResource | null
-  readonly routeKey: string
+  readonly workspaceId: string
+  readonly workspaces: ProjectWorkspaceState
   readonly query: string
   readonly onQuery: (query: string) => void
+  readonly onWorkspace: (workspaceId: string) => void
   readonly onOpen: (resource: ResourceRef) => void
 }) => {
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
   const [revision, setRevision] = useState(0)
-  const [workspaceId, setWorkspaceId] = useState(() => readWorkspacePreference(projectName))
-  const syncedRoute = useRef('')
   const deferredQuery = useDeferredValue(query.trim())
-  const workspaces = useProjectWorkspaces(projectName)
   const activePath = activeFile?.workspaceId === workspaceId ? activeFile.path : null
   const root = useFileCatalog({ projectName, workspaceId, query: deferredQuery })
-
-  useEffect(() => {
-    if (workspaces.loading || workspaces.items.length === 0) return
-    if (workspaces.items.some(workspace => workspace.id === workspaceId)) return
-    const fallback = workspaces.items.find(workspace => workspace.primary) ?? workspaces.items[0]
-    if (!fallback) return
-    setWorkspaceId(fallback.id)
-    writeWorkspacePreference(projectName, fallback.id)
-  }, [projectName, workspaceId, workspaces.items, workspaces.loading])
-
-  useEffect(() => {
-    if (syncedRoute.current === routeKey || workspaces.items.length === 0) return
-    syncedRoute.current = routeKey
-    if (
-      !activeFile ||
-      activeFile.projectName !== projectName ||
-      !workspaces.items.some(workspace => workspace.id === activeFile.workspaceId)
-    )
-      return
-    setWorkspaceId(activeFile.workspaceId)
-    writeWorkspacePreference(projectName, activeFile.workspaceId)
-  }, [activeFile, projectName, routeKey, workspaces.items])
 
   useEffect(() => {
     if (!activePath) return
@@ -91,11 +66,9 @@ export const FileTree = ({
   }
 
   const selectWorkspace = (nextWorkspaceId: string) => {
-    setWorkspaceId(nextWorkspaceId)
-    writeWorkspacePreference(projectName, nextWorkspaceId)
+    onWorkspace(nextWorkspaceId)
     setExpanded(new Set())
     setRevision(value => value + 1)
-    onQuery('')
   }
 
   return (
