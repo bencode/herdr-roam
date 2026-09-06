@@ -190,7 +190,7 @@ those integrations is an advanced runtime concern and does not block basic
 startup.
 
 Runtime availability remains contextual: the sidebar summary reports aggregate
-availability, while the Agent list and Inspector explain connection failures or
+availability, while the Agent list and Terminal page explain connection failures or
 stale data where those conditions block an action. A dedicated Runtime page,
 diagnostics workflow, and server-ownership preference are deferred until the
 next product-design phase defines the problem they solve.
@@ -218,9 +218,9 @@ Changing Project resets the directory to its root; the selected Provider stays
 in component memory, initially Codex. Roam does not create Git worktrees.
 
 Open creates a Herdr Workspace in the selected directory, starts Codex or Claude,
-waits for interactive readiness, and opens its Agent Inspector. The existing
-PromptComposer handles both initial and follow-up text, pasted images, and native
-Shift+Tab. It focuses once when the Agent page is visible and ready. Startup
+waits for interactive readiness, and opens its Agent Terminal. Native terminal
+input handles the initial and follow-up conversation, including provider-owned
+keyboard shortcuts. Startup
 does not wait for a provider Session ID or create synthetic Session records.
 
 The form disables submission during directory loading, unavailable runtime, and
@@ -229,7 +229,7 @@ Open Agent and Copy attach provide recovery; Start another Agent explicitly
 enables a separate new launch. If the user leaves during startup, the result is
 retained for its originating Project without taking over the current page.
 
-Once Herdr exposes a native Session ID, the Agent Inspector resolves its cwd
+Once Herdr exposes a native Session ID, the Agent page resolves its cwd
 against registered Project workspaces, including external worktrees, and offers
 Open Session. It never automatically navigates when the ID arrives. Provider
 history remains the source for the Sessions list; empty native histories may
@@ -239,8 +239,8 @@ appear as Untitled session when discoverable.
 
 Selecting a Session opens or reuses its Workbench tab. Multiple Sessions can
 remain open across projects. Herdr runtime state marks a Session as live when
-an Agent reports the same provider Session ID. A live Session accepts another
-Prompt; a historical Session remains readable and offers Resume.
+an Agent reports the same provider Session ID. A live Session offers Open Agent
+for further interaction; a historical Session remains readable and offers Resume.
 
 ```text
 ┌────────────────────────────┬──────────────────────────────────────────────────────────┐
@@ -255,9 +255,9 @@ Prompt; a historical Session remains readable and offers Resume.
 │    │ Product scan  working │ Artifacts                                                 │
 │    │ Auth design      idle │ docs/api-review.md                              [Open]    │
 │    │                       │                                                          │
-│ ⚙  ├───────────────────────┤ ┌──────────────────────────────────────────────────────┐ │
-│    │ 4 agents · 1 blocked  │ │ Continue this Session...                            │ │
-└────┴───────────────────────┴─┴──────────────────────────────────────────────────────┴─┘
+│ ⚙  ├───────────────────────┤                                              [Resume]  │
+│    │ 4 agents · 1 blocked  │                                                        │
+└────┴───────────────────────┴────────────────────────────────────────────────────────┘
 ```
 
 Provider adapters read the native Codex and Claude JSONL histories directly.
@@ -269,8 +269,8 @@ shown as an explicit Session error.
 
 Large Session catalogs use server-side cursor pages rather than mounting every
 row. The sidebar keeps one 50-row page and offers Newer and Older navigation;
-title filtering runs on the server after a short input debounce. The Workbench
-home requests only its eight recent rows.
+title filtering runs on the server after a short input debounce. Session browsing
+stays in the sidebar; the Workbench remains focused on opening a new Session.
 
 Long transcripts open at the latest bounded page. Earlier, Newer, and Latest
 replace the visible page instead of accumulating unbounded Markdown nodes. Each
@@ -279,44 +279,22 @@ size. A native record above the per-record safety limit becomes an explicit
 omission row. Live Sessions consume append-only deltas while viewing the latest
 page and suspend polling on older pages.
 
-An offline Session opens in History and has no composer. Resume asks the server
-to start Codex or Claude with its native Session ID in the historical working
-directory. The directory must still resolve inside one of the registered
-Project's existing Workspaces. A successful Resume switches directly to Live;
-a currently running Session is reused rather than resumed a second time.
-
-Live uses the same dark runtime surface as an Agent tab, including recent ANSI
-output, blocked input, and the shared Prompt composer. Session and Agent routes
-remain distinct because their surrounding task context differs. A compact
-Live/History control switches between the native transcript and runtime surface;
-React Activity keeps each mounted view's local state. Runtime status changes do
-not override an explicit History selection. If the matching Agent disappears
-while Live is selected, the Session returns to History. `Open Agent` remains an
-explicit route transition to the Agent-oriented header and controls.
+Session always displays the durable native transcript, with no composer, runtime
+view switch, Stop action, or focus-mode control. Resume starts or reuses the
+native Session in its valid historical working directory and opens the Agent.
+If the user has left the Session before Resume completes, it does not change
+the active page. A running Session offers Open Agent. Reading remains available
+when Herdr is disconnected; older pages are not replaced by runtime updates.
 
 Session History centers the message body itself as a technical reading column
 capped at 48rem. Provider and user labels sit in a narrow metadata rail
 beside that column and move above the message when the panel is too narrow.
 Tool activity, omission notices, and history pagination share the same reading
 axis. History pagination is an in-flow control above the transcript rather than
-a sticky toolbar, so it never overlaps message metadata. Focus Mode temporarily
-overlays the whole workbench over the sidebar while
-retaining the Tab Bar and Session header. Escape or any resource navigation
-exits Focus Mode; it does not invoke browser fullscreen.
+a sticky toolbar, so it never overlaps message metadata.
 
-When the selected Agent is `blocked`, the Prompt composer is replaced by a
-click-to-focus terminal input bridge, without adding a visible response toolbar.
-Before input activation, the surface remains read-only, is reachable with Tab,
-and entering `blocked` never steals keyboard input. Enter or an unselected click
-activates input. Native navigation keys, Enter, Escape, Tab, Shift+Tab, ordinary
-text, IME commits, and paste are then sent to the Agent in order. Escape is
-queued, then focus returns to the safe terminal surface; Shift+Tab stays in input
-mode and is forwarded unchanged. A subtle focus ring and screen-reader
-instructions are the only added state indicators. Clicking outside stops input, while selecting
-terminal text does not activate it. Successful input requests output refreshes
-without waiting for those reads. Roam coalesces concurrent refresh requests and
-does not parse ANSI output into browser-owned questions or assign meaning to
-provider-owned keys such as `Shift+Tab`.
+Blocked Agents use their native Terminal for approval interaction. No hidden
+keyboard bridge or automatic approval is used.
 
 ## Agents
 
@@ -324,57 +302,39 @@ Agents is the cross-project live-runtime view. The left pane answers how many
 agents are working and which ones need attention. The main pane inspects one
 selected agent.
 
-```text
-┌──────────────────────────┬────────────────────────────────────────────────────────────┐
-│ ROAM                    ● │ ● codex-api  idle · Codex  Focus in Herdr  Copy attach    │
-│                          │   /work/herdr-roam                                      │
-│ Projects [Agents] Skills ├────────────────────────────────────────────────────────────┤
-│ Blocked                1 │                                                            │
-│ ◉ claude-ui              │ • Read server routes                                      │
-│                          │ • Found two compatibility risks                            │
-│ Idle                   2 │ • Updated docs/api-review.md                               │
-│ ● codex-api             │                                                            │
-│   Codex · /work/api      ├────────────────────────────────────────────────────────────┤
-│                          │ ❯ Send a Prompt…                                           │
-│                          │                                               done · ↵ send │
-└──────────────────────────┴────────────────────────────────────────────────────────────┘
-```
+Agent Tabs use `/agents/:agentId` and remain independent of the active Project.
+The main pane directly shows the native Terminal. There is no Preview switch,
+separate Prompt composer, or Focus in Herdr action. The header retains Open
+Session when resolvable, Stop Agent… with confirmation, and Copy attach. A separated
+Details icon toggles the metadata panel on demand. Terminal connection status
+shares this header and is labeled separately from Agent work status. Connected
+Terminal has no second toolbar or Disconnect action. Reconnect appears in the
+header after failure or disconnection; busy ownership offers Observe and Take
+over. Only recovery states show an explanatory row above the terminal screen.
 
-The implemented Inspector reads recent unwrapped ANSI terminal output on a
-fixed dark surface without a separate output heading. It sends bounded Prompts
-through Herdr while the Agent is `working`, `idle`, or `done`: Enter sends and
-Shift+Enter inserts a newline. Shift+Tab is sent directly to the Agent instead
-of changing browser focus or introducing a Roam-owned mode selector. Pasting a
-PNG, JPEG, or WebP into the composer adds a removable thumbnail. Images remain
-browser-local until submission, then the local server stages temporary files
-and pastes their paths into the native Agent composer. Text, images, or both may
-form a Prompt. It does not reconstruct a chat transcript.
-Details open on demand instead of permanently reducing the reading surface.
-Agent Tabs use `/agents/:agentId`; they remain independent of the active
-Project. `Focus in Herdr` selects the Agent's native Pane without simulating
-terminal control in Roam. Direct terminal input is available only while the
-Agent reports `blocked`; it is a focused response bridge rather than a persistent
-browser Attach session.
+## Browser Terminal
 
-## Deferred Browser Terminal Attach
+Terminal lazy-loads xterm.js on Agent entry and attempts one control connection
+without takeover. If the runtime is initially unavailable, it waits until the
+runtime first becomes available. Ordinary rerenders and status refreshes do not
+reconnect. Terminal handles native keyboard input, IME and text paste; Escape
+is native input, not a view-exit shortcut.
 
-Terminal is an explicit secondary mode inside Agent detail. It replaces the
-Inspector in the main pane and loads a terminal renderer only while attached.
+Switching away from or closing the Agent resource Tab unmounts Terminal and
+releases its connection and control, not the Agent. Returning mounts Terminal
+again and attempts a fresh connection. Within one visit, connection failure,
+takeover, or runtime loss after connection requires explicit Reconnect.
+Disconnection preserves the last visible screen and disables input;
+input is never replayed.
 
-```text
-┌──────────────────────────┬────────────────────────────────────────────────────────────┐
-│ Live agents              │ codex-api                                      attached   │
-│                          │ [Inspector] [Terminal]          Copy command     Detach     │
-│ ● codex-api             │────────────────────────────────────────────────────────────│
-│ ◉ claude-ui             │                                                            │
-│ ◌ codex-tests           │  native Codex terminal                                    │
-│                          │                                                            │
-│                          │  › continue with the compatibility report                  │
-│                          │                                                            │
-│                          │                                                            │
-│                          │                                                            │
-└──────────────────────────┴────────────────────────────────────────────────────────────┘
-```
+Closing the browser page also releases its connection when the WebSocket closes;
+merely switching browser tabs does not. Stop Agent… closes the native Agent
+process and Herdr Pane, not just the browser connection, and requires confirmation.
+
+Images use ordinary local file-path text. Recognition and file reading belong
+to the native Agent, not xterm.js. There is no separate upload or clipboard-image
+component. Paths must be accessible on the Agent host; another machine's local
+paths are not supported by this flow.
 
 Only one direct attach client owns input. When another client already controls
 the terminal, Roam never takes over silently:
@@ -382,10 +342,10 @@ the terminal, Roam never takes over silently:
 ```text
 This terminal is controlled by another client.
 
-[Observe read-only]   [Take over]   [Cancel]
+[Observe]   [Take over]
 ```
 
-`Copy command` copies the standard `herdr agent attach <target>` command. Roam
+`Copy attach` copies the standard `herdr agent attach <target>` command. Roam
 does not launch an external terminal process.
 
 ## Deferred Cross-Project Sessions
@@ -519,12 +479,12 @@ unsupported or oversized files return an explicit state instead of blank output.
 - **No active project:** prompt the user to select or add a directory before
   showing the New Session form.
 - **No agents:** explain that starting work creates the first Agent.
-- **Blocked agent:** elevate the row and explain that Inspector may be enough;
-  offer Browser Attach for the native approval UI.
+- **Blocked agent:** elevate the row; opening the Agent shows its native Terminal
+  for approval interaction without automatically approving anything.
 - **Stale connection:** show reconnecting state, then reload an authoritative
   Herdr snapshot before applying live updates.
 - **Keyboard use:** support command search, dimension switching, list movement,
-  opening the selected item, and focusing the Prompt without requiring a mouse.
+  opening the selected item, and using the native Terminal without requiring a mouse.
 
 ## Deferred Visual Decisions
 

@@ -25,7 +25,6 @@
     0 4px 8px oklch(0.05 0.01 250 / 0.42)
   );
   --z-dropdown: 20;
-  --z-focus: 30;
 }
 
 :root[data-theme="light"] {
@@ -94,14 +93,6 @@ select:focus-visible {
 button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
-}
-
-.terminal-output {
-  font-variant-ligatures: none;
-}
-
-.prompt-composer-field:focus-visible {
-  outline: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

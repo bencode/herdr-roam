@@ -45,7 +45,7 @@ The server:
 - reads and updates configured Git-backed Issue stores;
 - provides read APIs and a small set of explicit control operations;
 - streams state changes to the browser;
-- may later proxy a direct terminal stream during explicit Browser Attach;
+- proxies Herdr terminal session control/observe while an Agent resource Tab is active;
 - serves only local clients by default.
 
 ### Browser application
@@ -53,7 +53,7 @@ The server:
 The browser presents Project, Agent, Session, Issue, Loop, File, and Skill views
 inside one tabbed work area. It does not access the filesystem or Herdr socket
 directly. Session pages render provider-owned conversation history, while Agent
-pages expose recent terminal output and operational input.
+pages expose the native Terminal for output and input, without a separate composer.
 
 ## Herdr Discovery
 
@@ -82,14 +82,15 @@ startup flow.
 
 ## Communication Model
 
-Browser reads and ordinary control actions use HTTP. Live agent status,
-activity, and recent-output updates use Server-Sent Events.
+Browser reads and ordinary control actions use HTTP. Live agent status and
+activity use Server-Sent Events; terminal screen updates use WebSocket.
 
-SSE matches the predominantly server-to-browser default flow. Browser Attach
-uses a separate bidirectional stream for terminal bytes, resize events, and
-input. Closing or detaching the terminal tears down that stream without
-affecting the Herdr Agent. Reconnection must trigger a fresh authoritative
-snapshot before incremental updates resume.
+SSE carries runtime snapshots independently of Terminal connections. Opening an
+Agent Tab automatically attempts one bidirectional connection for terminal
+bytes, resize events, and input. Leaving or closing that resource Tab tears down
+the stream without stopping the Herdr Agent. Returning opens a new connection;
+unexpected disconnection and connection failures require Reconnect during the current
+visit. Each connection starts with a full screen before incremental updates resume.
 
 Herdr allows one direct attach controller. Roam exposes read-only observation
 and explicit takeover when another client controls the terminal; it never
@@ -129,7 +130,7 @@ already contain the source data Herdr Roam reads.
 - **Server:** Hono on Node.js.
 - **Boundary validation:** Zod.
 - **Live updates:** Server-Sent Events.
-- **Future Browser Attach:** an on-demand terminal renderer over a bidirectional
+- **Browser Terminal:** an on-demand terminal renderer over a bidirectional
   transport.
 - **Quality tooling:** Biome and Vitest.
 
@@ -138,8 +139,8 @@ filters, and panel state. Server-derived runtime data must not be copied into an
 unbounded global client store without a clear invalidation model.
 
 Markdown and source-code viewers belong to the Web application. The terminal
-renderer is code-split from the default Inspector so terminal machinery is not
-part of the normal reading path. Exact rendering libraries should be selected
+renderer is code-split from Session and artifact readers and loads when an Agent
+page is opened. Exact rendering libraries should be selected
 with their implementing feature rather than preinstalled speculatively.
 
 Project file access is stateless and paged. Git supplies tracked and unignored

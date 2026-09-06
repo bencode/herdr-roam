@@ -45,9 +45,10 @@ vi.mock('./features/agent/client', () => ({
     ],
   }),
   subscribeAgentSnapshots: vi.fn(() => () => undefined),
-  fetchAgentOutput: vi
-    .fn()
-    .mockResolvedValue({ agentId: 'terminal-codex', text: 'Recent output', truncated: false }),
+}))
+
+vi.mock('./features/agent/browser-terminal', () => ({
+  BrowserTerminal: () => <section aria-label="Agent terminal" />,
 }))
 
 vi.mock('./features/agent/runtime-provider', () => {
@@ -303,7 +304,7 @@ describe('workbench application', () => {
     useWorkbenchStore.setState(defaultWorkbenchSnapshot)
   })
 
-  it('keeps New Session on Workbench without a duplicate sidebar action', async () => {
+  it('keeps Workbench focused on opening a new Session', async () => {
     render(
       <MemoryRouter
         initialEntries={['/projects/herdr-roam/files/primary/docs/product/vision-and-scope.md']}
@@ -324,6 +325,9 @@ describe('workbench application', () => {
       ),
     )
     expect(screen.getByRole('heading', { name: 'New Session' })).toBeVisible()
+    expect(screen.queryByRole('heading', { name: 'Recent Sessions' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Global runtime' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Runtime status:/ })).toBeVisible()
     await waitFor(() => expect(screen.getByRole('button', { name: 'Open Codex' })).toBeEnabled())
     expect(launchProjectAgent).not.toHaveBeenCalled()
   })
@@ -419,24 +423,16 @@ describe('workbench application', () => {
     expect(screen.queryByRole('button', { name: /Attach/ })).not.toBeInTheDocument()
   })
 
-  it('focuses a Session workbench and exits with Escape', async () => {
+  it('keeps Session in the regular workbench without runtime or fullscreen controls', async () => {
     render(
       <MemoryRouter initialEntries={['/projects/herdr-roam/sessions/codex/product-scan']}>
         <App />
       </MemoryRouter>,
     )
-
-    await screen.findByText('Session history')
-    fireEvent.click(screen.getByRole('button', { name: 'Enter focus mode' }))
-    expect(screen.getByRole('button', { name: 'Exit focus mode' }).closest('.fixed')).not.toBeNull()
-
-    fireEvent.keyDown(document, { key: 'Escape' })
-    expect(screen.getByRole('button', { name: 'Enter focus mode' }).closest('.fixed')).toBeNull()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Enter focus mode' }))
-    fireEvent.click(screen.getByRole('tab', { name: 'Workbench' }))
-    expect(screen.queryByRole('button', { name: 'Exit focus mode' })).not.toBeInTheDocument()
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Open Codex' })).toBeEnabled())
+    expect(await screen.findByText('Session history')).toBeVisible()
+    for (const name of ['Live', 'History', 'Stop', 'Enter focus mode']) {
+      expect(screen.queryByRole('button', { name })).not.toBeInTheDocument()
+    }
   })
 
   it('opens Issue, File, and Skill resources in the same tablist', async () => {
@@ -680,7 +676,7 @@ describe('workbench application', () => {
     expect(screen.getByRole('button', { name: /codex-product/, current: 'page' })).toBeVisible()
     expect(screen.getByRole('tab', { name: /codex-product/ })).toBeVisible()
     expect(screen.getByRole('button', { name: 'Copy attach command' })).toBeVisible()
-    expect(await screen.findByText('Recent output')).toBeVisible()
+    expect(await screen.findByRole('region', { name: 'Agent terminal' })).toBeVisible()
     expect(useWorkbenchStore.getState().tabs).toEqual([
       { type: 'agent', agentId: 'terminal-codex' },
     ])

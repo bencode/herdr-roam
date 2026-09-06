@@ -6,20 +6,15 @@ import {
   CircleAlert,
   Copy,
   ExternalLink,
-  Maximize2,
   MessageSquare,
-  Minimize2,
   RotateCcw,
   TerminalSquare,
 } from 'lucide-react'
-import { Activity, type RefObject, useEffect, useRef, useState } from 'react'
+import { type RefObject, useEffect, useRef, useState } from 'react'
 import { cn } from '../../../lib/cn'
 import { Button } from '../../../ui/button'
 import type { ResourceRef } from '../../../workbench/resource'
 import { useAgentRuntime } from '../../agent/runtime-provider'
-import { AgentRuntimeSurface } from '../../agent/runtime-surface'
-import { AgentStopControl } from '../../agent/stop-control'
-import { stopAgent } from '../../agent/client'
 import { resumeSession, SessionClientError } from '../client'
 import { type SessionDataState, useSessionData } from '../use-session-data'
 import styles from './style.module.scss'
@@ -34,7 +29,6 @@ const statusClasses: Readonly<Record<AgentSummary['status'], string>> = {
 }
 
 type SessionResource = Extract<ResourceRef, { type: 'session' }>
-type SessionView = 'history' | 'live'
 type ResumeFailure = {
   readonly message: string
   readonly recovery: AgentLaunchRecovery | null
@@ -125,13 +119,11 @@ const HistoryPanel = ({
 
 export const SessionTab = ({
   resource,
-  focusMode,
-  onFocusModeChange,
+  active = true,
   onOpen,
 }: {
   readonly resource: SessionResource
-  readonly focusMode: boolean
-  readonly onFocusModeChange: (focused: boolean) => void
+  readonly active?: boolean
   readonly onOpen: (resource: ResourceRef) => void
 }) => {
   const { snapshot } = useAgentRuntime()
@@ -140,22 +132,26 @@ export const SessionTab = ({
   const resumedRuntimeAgent = resumedAgent
     ? snapshot.items.find(agent => agent.id === resumedAgent.id)
     : undefined
-  const stoppableAgent = linkedAgent ?? resumedRuntimeAgent
   const agent = linkedAgent ?? resumedRuntimeAgent ?? resumedAgent ?? undefined
-  const [view, setView] = useState<SessionView>(linkedAgent ? 'live' : 'history')
   const data = useSessionData(
     resource.projectName,
     resource.provider,
     resource.sessionId,
-    view === 'history' && agent?.status === 'working',
+    active && agent?.status === 'working',
   )
   const [resuming, setResuming] = useState(false)
-  const [stoppingAgentId, setStoppingAgentId] = useState<string | null>(null)
   const [resumeFailure, setResumeFailure] = useState<ResumeFailure | null>(null)
-  const [stopFailure, setStopFailure] = useState<string | null>(null)
   const [copiedAttach, setCopiedAttach] = useState(false)
   const transcript = useRef<HTMLDivElement>(null)
-  const previousAgentId = useRef<string | null>(agent?.id ?? null)
+  const previousStatus = useRef(agent?.status)
+  const resumeNavigation = useRef(false)
+
+  useEffect(() => {
+    if (!active) resumeNavigation.current = false
+    return () => {
+      resumeNavigation.current = false
+    }
+  }, [active])
   const runtimeAvailable = snapshot.source.state === 'connected' && !snapshot.stale
   const sessionLoaded = data.value !== null
 
@@ -164,30 +160,22 @@ export const SessionTab = ({
   }, [linkedAgent, resumedAgent?.id])
 
   useEffect(() => {
-    const currentAgentId = agent?.id ?? null
-    if (!previousAgentId.current && currentAgentId) setView('live')
-    if (previousAgentId.current && !currentAgentId) setView('history')
-    previousAgentId.current = currentAgentId
-  }, [agent?.id])
+    if (previousStatus.current === 'working' && agent?.status !== 'working' && !data.hasNewer) {
+      data.reload()
+    }
+    previousStatus.current = agent?.status
+  }, [agent?.status, data.hasNewer, data.reload])
 
   useEffect(() => {
-    if (!stoppingAgentId || snapshot.items.some(item => item.id === stoppingAgentId)) return
-    setStoppingAgentId(null)
-    setResumedAgent(null)
-    setView('history')
-    data.reload()
-  }, [data.reload, snapshot.items, stoppingAgentId])
-
-  useEffect(() => {
-    if (view !== 'history' || data.loading || !sessionLoaded || !transcript.current) return
+    if (data.loading || !sessionLoaded || !transcript.current) return
     transcript.current.scrollTop = data.navigation === 'newer' ? 0 : transcript.current.scrollHeight
-  }, [data.loading, data.navigation, sessionLoaded, view])
+  }, [data.loading, data.navigation, sessionLoaded])
 
   const resume = async () => {
     if (!runtimeAvailable || resuming) return
+    resumeNavigation.current = active
     setResuming(true)
     setResumeFailure(null)
-    setStopFailure(null)
     setCopiedAttach(false)
     try {
       const receipt = await resumeSession(
@@ -196,7 +184,7 @@ export const SessionTab = ({
         resource.sessionId,
       )
       setResumedAgent(receipt.agent)
-      setView('live')
+      if (resumeNavigation.current) onOpen({ type: 'agent', agentId: receipt.agent.id })
       data.reload()
     } catch (error) {
       console.error('Session resume failed', error)
@@ -206,20 +194,6 @@ export const SessionTab = ({
       })
     } finally {
       setResuming(false)
-    }
-  }
-
-  const stop = async () => {
-    if (!stoppableAgent || stoppingAgentId) return
-    setStoppingAgentId(stoppableAgent.id)
-    setResumeFailure(null)
-    setStopFailure(null)
-    try {
-      await stopAgent(stoppableAgent.id)
-    } catch (error) {
-      console.error('Session stop failed', error)
-      setStoppingAgentId(null)
-      setStopFailure(error instanceof Error ? error.message : 'The Agent could not be stopped.')
     }
   }
 
@@ -236,12 +210,6 @@ export const SessionTab = ({
     }
   }
 
-  const unavailableMessage =
-    snapshot.source.state === 'connected'
-      ? snapshot.stale
-        ? 'Agent runtime state is stale.'
-        : 'This Session is not running.'
-      : snapshot.source.message
   const title = data.value?.title ?? agent?.name ?? resource.sessionId
   const cwd = agent?.cwd ?? data.value?.cwd ?? ''
   const recoveryAgentId = resumeFailure?.recovery?.agentId
@@ -272,71 +240,23 @@ export const SessionTab = ({
           )}
         </div>
         <div className="ml-auto flex flex-none items-center gap-1.5">
-          <fieldset className="m-0 flex h-8 items-center rounded-md border-0 bg-raised p-0.5">
-            <legend className="sr-only">Session view</legend>
-            <button
-              type="button"
-              className={cn(
-                'h-7 rounded-sm px-2.5 text-xs text-muted disabled:cursor-not-allowed disabled:opacity-40',
-                view === 'live' && 'bg-surface text-foreground shadow-sm',
-              )}
-              disabled={!agent}
-              aria-pressed={view === 'live'}
-              onClick={() => setView('live')}
+          {!agent && data.value && (
+            <Button
+              aria-label="Resume Session"
+              disabled={!runtimeAvailable || resuming}
+              variant="primary"
+              onClick={() => void resume()}
             >
-              Live
-            </button>
-            <button
-              type="button"
-              className={cn(
-                'h-7 rounded-sm px-2.5 text-xs text-muted',
-                view === 'history' && 'bg-surface text-foreground shadow-sm',
-              )}
-              aria-pressed={view === 'history'}
-              onClick={() => setView('history')}
-            >
-              History
-            </button>
-          </fieldset>
-          {agent ? (
-            <AgentStopControl
-              status={agent.status}
-              stopping={stoppingAgentId === agent.id}
-              disabled={!stoppableAgent || !runtimeAvailable}
-              historyAvailable
-              onStop={() => void stop()}
-            />
-          ) : (
-            data.value && (
-              <Button
-                aria-label="Resume Session"
-                disabled={!runtimeAvailable || resuming}
-                variant="primary"
-                onClick={() => void resume()}
-              >
-                <RotateCcw aria-hidden="true" />
-                {resuming ? 'Resuming…' : 'Resume'}
-              </Button>
-            )
+              <RotateCcw aria-hidden="true" />
+              {resuming ? 'Resuming…' : 'Resume'}
+            </Button>
           )}
           {agent && (
-            <Button
-              onClick={() => onOpen({ type: 'agent', agentId: agent.id })}
-            >
+            <Button onClick={() => onOpen({ type: 'agent', agentId: agent.id })}>
               <TerminalSquare aria-hidden="true" />
               Open Agent
             </Button>
           )}
-          <Button
-            size="defaultIcon"
-            aria-label={focusMode ? 'Exit focus mode' : 'Enter focus mode'}
-            aria-pressed={focusMode}
-            data-state={focusMode ? 'open' : 'closed'}
-            title={focusMode ? 'Exit focus mode (Esc)' : 'Enter focus mode'}
-            onClick={() => onFocusModeChange(!focusMode)}
-          >
-            {focusMode ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}
-          </Button>
         </div>
       </header>
 
@@ -368,35 +288,7 @@ export const SessionTab = ({
         </div>
       )}
 
-      {stopFailure && (
-        <div
-          className="flex min-h-10 flex-none items-center gap-2 border-danger/30 border-b bg-danger/8 px-5 py-2 text-xs"
-          role="alert"
-        >
-          <CircleAlert className="size-3.5 flex-none text-danger" aria-hidden="true" />
-          <span className="min-w-0 flex-1 text-danger">{stopFailure}</span>
-        </div>
-      )}
-
-      <div className="relative min-h-0 flex-1">
-        <Activity mode={view === 'history' ? 'visible' : 'hidden'} name="session-history">
-          <div className="absolute inset-0 flex min-h-0 flex-col">
-            <HistoryPanel data={data} provider={resource.provider} transcript={transcript} />
-          </div>
-        </Activity>
-        <Activity mode={view === 'live' && agent ? 'visible' : 'hidden'} name="session-live">
-          <div className="absolute inset-0 flex min-h-0 flex-col bg-background">
-            {agent && (
-              <AgentRuntimeSurface
-                agent={agent}
-                runtimeAvailable={runtimeAvailable}
-                unavailableMessage={unavailableMessage}
-                onSubmitted={data.reload}
-              />
-            )}
-          </div>
-        </Activity>
-      </div>
+      <HistoryPanel data={data} provider={resource.provider} transcript={transcript} />
     </div>
   )
 }

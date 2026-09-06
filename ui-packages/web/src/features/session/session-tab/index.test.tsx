@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, vi } from 'vitest'
 import type { ResourceRef } from '../../../workbench/resource'
 import { SessionClientError } from '../client'
@@ -6,13 +6,12 @@ import { SessionTab } from '.'
 
 const mocks = vi.hoisted(() => ({
   resume: vi.fn(),
-  stop: vi.fn(),
   reload: vi.fn(),
   agents: [] as Array<{
     id: string
     name: string
     provider: string
-    status: 'idle' | 'blocked'
+    status: 'idle' | 'blocked' | 'working'
     cwd: string
     attachTarget: string
     session: { source: string; agent: string; kind: 'id'; value: string }
@@ -67,15 +66,6 @@ vi.mock('../../agent/runtime-provider', () => ({
     agentById: (agentId: string) => mocks.agents.find(agent => agent.id === agentId),
   }),
 }))
-vi.mock('../../agent/client', () => ({
-  stopAgent: mocks.stop,
-}))
-vi.mock('../../agent/runtime-surface', () => ({
-  AgentRuntimeSurface: ({ agent }: { readonly agent: { readonly id: string } }) => (
-    <div data-testid="agent-runtime-surface">{agent.id}</div>
-  ),
-}))
-
 const resource = {
   type: 'session',
   projectName: 'herdr-roam',
@@ -83,25 +73,14 @@ const resource = {
   sessionId: 'session-1',
 } as const
 
-const renderSession = (
-  onOpen: (resource: ResourceRef) => void = () => undefined,
-  onFocusModeChange: (focused: boolean) => void = () => undefined,
-) =>
-  render(
-    <SessionTab
-      resource={resource}
-      focusMode={false}
-      onFocusModeChange={onFocusModeChange}
-      onOpen={onOpen}
-    />,
-  )
+const renderSession = (onOpen: (resource: ResourceRef) => void = () => undefined) =>
+  render(<SessionTab resource={resource} onOpen={onOpen} />)
 
 describe('Session tab', () => {
   beforeEach(() => {
     mocks.agents = []
     mocks.reload.mockReset()
     mocks.resume.mockReset()
-    mocks.stop.mockReset()
   })
 
   afterEach(() => vi.restoreAllMocks())
@@ -119,7 +98,8 @@ describe('Session tab', () => {
         session: { source: 'process', agent: 'codex', kind: 'id', value: 'session-1' },
       },
     })
-    renderSession()
+    const onOpen = vi.fn()
+    renderSession(onOpen)
 
     expect(screen.getByText('Historical answer')).toBeVisible()
     expect(screen.getByRole('heading', { name: 'Historical answer', level: 2 })).toBeVisible()
@@ -129,8 +109,8 @@ describe('Session tab', () => {
       expect(mocks.resume).toHaveBeenCalledWith('herdr-roam', 'codex', 'session-1'),
     )
     expect(mocks.reload).toHaveBeenCalled()
-    expect(screen.getByTestId('agent-runtime-surface')).toHaveTextContent('terminal-1')
-    expect(screen.getByRole('button', { name: 'Live' })).toHaveAttribute('aria-pressed', 'true')
+    expect(onOpen).toHaveBeenCalledWith({ type: 'agent', agentId: 'terminal-1' })
+    expect(screen.getByText('Historical answer')).toBeVisible()
     expect(screen.getByTitle('/work/herdr-roam/.worktrees/release')).toBeVisible()
   })
 
@@ -167,7 +147,7 @@ describe('Session tab', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
-  it('uses the shared composer and opens the linked live Agent', () => {
+  it('keeps the transcript visible and opens the linked Agent', () => {
     mocks.agents = [
       {
         id: 'terminal-1',
@@ -182,139 +162,45 @@ describe('Session tab', () => {
     const onOpen = vi.fn<(resource: ResourceRef) => void>()
     renderSession(onOpen)
 
-    expect(screen.getByTestId('agent-runtime-surface')).toHaveTextContent('terminal-1')
+    expect(screen.getByText('Historical answer')).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Open Agent' }))
     expect(onOpen).toHaveBeenCalledWith({ type: 'agent', agentId: 'terminal-1' })
   })
 
-  it('keeps an explicit History selection while the Agent remains available', () => {
-    mocks.agents = [
-      {
-        id: 'terminal-1',
-        name: 'codex-herdr-roam',
-        provider: 'codex',
-        status: 'idle',
-        cwd: '/work/herdr-roam',
-        attachTarget: 'w1:p1',
-        session: { source: 'process', agent: 'codex', kind: 'id', value: 'session-1' },
-      },
-    ]
-    const { rerender } = renderSession()
-    fireEvent.click(screen.getByRole('button', { name: 'History' }))
-    expect(screen.getByText('Historical answer')).toBeVisible()
-
-    rerender(
-      <SessionTab
-        resource={resource}
-        focusMode={false}
-        onFocusModeChange={() => undefined}
-        onOpen={() => undefined}
-      />,
+  it('does not navigate when Resume finishes after leaving the Session', async () => {
+    let complete: ((receipt: unknown) => void) | undefined
+    mocks.resume.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          complete = resolve
+        }),
     )
-    expect(screen.getByRole('button', { name: 'History' })).toHaveAttribute('aria-pressed', 'true')
+    const onOpen = vi.fn()
+    const { rerender } = renderSession(onOpen)
+    fireEvent.click(screen.getByRole('button', { name: 'Resume Session' }))
+    rerender(<SessionTab resource={resource} active={false} onOpen={onOpen} />)
+    await act(async () => complete?.({ agent: { id: 'terminal-1', status: 'idle' } }))
+    expect(onOpen).not.toHaveBeenCalled()
   })
 
-  it('returns to History when the matching live Agent disappears', async () => {
+  it('refreshes the latest transcript when a working Agent disappears', () => {
     mocks.agents = [
       {
         id: 'terminal-1',
-        name: 'codex-herdr-roam',
+        name: 'Agent',
         provider: 'codex',
-        status: 'idle',
+        status: 'working',
         cwd: '/work/herdr-roam',
         attachTarget: 'w1:p1',
         session: { source: 'process', agent: 'codex', kind: 'id', value: 'session-1' },
       },
     ]
     const { rerender } = renderSession()
-    expect(screen.getByRole('button', { name: 'Live' })).toHaveAttribute('aria-pressed', 'true')
-
     mocks.agents = []
-    rerender(
-      <SessionTab
-        resource={resource}
-        focusMode={false}
-        onFocusModeChange={() => undefined}
-        onOpen={() => undefined}
-      />,
-    )
-
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'History' })).toHaveAttribute(
-        'aria-pressed',
-        'true',
-      ),
-    )
+    rerender(<SessionTab resource={resource} onOpen={() => undefined} />)
+    expect(mocks.reload).toHaveBeenCalledOnce()
+    expect(screen.getByRole('button', { name: 'Resume Session' })).toBeVisible()
     expect(screen.getByText('Historical answer')).toBeVisible()
-  })
-
-  it('stops the linked Agent and returns to resumable History after it disappears', async () => {
-    mocks.stop.mockResolvedValue({ agentId: 'terminal-1' })
-    mocks.agents = [
-      {
-        id: 'terminal-1',
-        name: 'codex-herdr-roam',
-        provider: 'codex',
-        status: 'idle',
-        cwd: '/work/herdr-roam',
-        attachTarget: 'w1:p1',
-        session: { source: 'process', agent: 'codex', kind: 'id', value: 'session-1' },
-      },
-    ]
-    const { rerender } = renderSession()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm stop' }))
-    await waitFor(() => expect(mocks.stop).toHaveBeenCalledWith('terminal-1'))
-    expect(screen.getByRole('button', { name: 'Stopping…' })).toBeDisabled()
-
-    mocks.agents = []
-    rerender(
-      <SessionTab
-        resource={resource}
-        focusMode={false}
-        onFocusModeChange={() => undefined}
-        onOpen={() => undefined}
-      />,
-    )
-
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Resume Session' })).toBeVisible(),
-    )
-    expect(screen.getByRole('button', { name: 'History' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByText('Historical answer')).toBeVisible()
-    expect(mocks.reload).toHaveBeenCalled()
-  })
-
-  it('keeps the live Session visible when stopping fails', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    mocks.stop.mockRejectedValue(new Error('The pane could not be closed.'))
-    mocks.agents = [
-      {
-        id: 'terminal-1',
-        name: 'codex-herdr-roam',
-        provider: 'codex',
-        status: 'idle',
-        cwd: '/work/herdr-roam',
-        attachTarget: 'w1:p1',
-        session: { source: 'process', agent: 'codex', kind: 'id', value: 'session-1' },
-      },
-    ]
-    renderSession()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm stop' }))
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('The pane could not be closed.')
-    expect(screen.getByTestId('agent-runtime-surface')).toHaveTextContent('terminal-1')
-    expect(screen.getByRole('button', { name: 'Live' })).toHaveAttribute('aria-pressed', 'true')
-  })
-
-  it('delegates focus mode ownership to the shell', () => {
-    const onFocusModeChange = vi.fn()
-    renderSession(() => undefined, onFocusModeChange)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Enter focus mode' }))
-    expect(onFocusModeChange).toHaveBeenCalledWith(true)
   })
 })

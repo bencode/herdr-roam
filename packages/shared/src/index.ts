@@ -35,15 +35,6 @@ export type {
   ProjectFileView,
 } from './api/file.js'
 export type {
-  SkillApiError,
-  SkillCatalog,
-  SkillCatalogWarning,
-  SkillDetail,
-  SkillScope,
-  SkillSource,
-  SkillSummary,
-} from './api/skill.js'
-export type {
   Project,
   ProjectApiError,
   ProjectCreateRequest,
@@ -67,3 +58,21 @@ export type {
   SessionResumeReceipt,
   SessionSummary,
 } from './api/session.js'
+export type {
+  SkillApiError,
+  SkillCatalog,
+  SkillCatalogWarning,
+  SkillDetail,
+  SkillScope,
+  SkillSource,
+  SkillSummary,
+} from './api/skill.js'
+export type {
+  TerminalCommand,
+  TerminalConnection,
+  TerminalErrorCode,
+  TerminalEvent,
+  TerminalFrame,
+  TerminalMode,
+} from './api/terminal.js'
+export { TERMINAL_FRAME_MAX_BYTES, TERMINAL_INPUT_MAX_BYTES } from './api/terminal.js'

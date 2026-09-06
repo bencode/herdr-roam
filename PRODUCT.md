@@ -26,11 +26,11 @@ Restrained, precise, and technical. The interface should feel trustworthy and fo
 ## Design Principles
 
 - Keep the work artifact primary; chrome and metadata remain secondary.
-- Reveal control deliberately: inspection is safe by default, while runtime control is explicit.
+- Keep Session and artifact reading separate from runtime control: opening an Agent connects its native Terminal; taking over another controller remains explicit.
 - Represent runtime truth honestly instead of inferring unsupported turns, ownership, or completion.
 - Preserve context across resources so users can compare and coordinate without restarting their mental model.
 - Prefer familiar IDE interactions and compact, consistent component behavior over novelty.
 
 ## Accessibility & Inclusion
 
-Use WCAG AA as the baseline for text contrast, focus visibility, keyboard operation, and state communication. Do not rely on color alone, respect reduced-motion preferences, and keep core Agent inspection and Prompt submission operable without a pointer.
+Use WCAG AA as the baseline for text contrast, focus visibility, keyboard operation, and state communication. Do not rely on color alone, respect reduced-motion preferences, and keep Session reading and native Agent interaction operable without a pointer.

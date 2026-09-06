@@ -1,8 +1,10 @@
 import { existsSync } from 'node:fs'
+import { Server } from 'node:http'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { serve } from '@hono/node-server'
 import { createAgentService } from './agents/service.js'
+import { registerAgentTerminals } from './agents/terminal.js'
 import { createApp } from './app.js'
 import { projectConfigPath, serverConfig, sessionRoots } from './config.js'
 import { startProjectDiscovery } from './projects/discovery.js'
@@ -30,10 +32,13 @@ const server = serve({
 })
 
 console.info(`Herdr Roam listening on http://${serverConfig.host}:${serverConfig.port}`)
+if (!(server instanceof Server)) throw new Error('Browser terminals require an HTTP/1 server.')
+const stopTerminals = registerAgentTerminals(server, agentService)
 
 const shutdown = (signal: NodeJS.Signals) => {
   console.info(`Received ${signal}; shutting down.`)
   stopProjectDiscovery()
+  stopTerminals()
   agentService.stop()
   server.close(error => {
     if (error) {

@@ -16,8 +16,8 @@ keep software work moving through reusable Skills, Issues, and Loops.
 
 Herdr Roam does not replace Herdr or terminal-oriented clients such as
 herdr-gui. Herdr owns processes, PTYs, and runtime state. Herdr Roam owns the
-coordination and human-readable layer above them, with an explicit Browser
-Attach mode when native terminal interaction is required.
+coordination and human-readable layer above them. Agent pages provide native
+Terminal interaction; Session and artifact pages provide durable reading.
 
 ## The Problem
 
@@ -67,9 +67,10 @@ Roam does not rebuild their execution loop with an SDK.
 
 ### Keep terminal interaction explicit
 
-The Web interface defaults to overview, reading, and lightweight control. A
-person explicitly enters Browser Attach or copies a standard Herdr attach
-command when the native terminal interface is required.
+Overview, Session, and artifact pages do not acquire terminal control. Opening
+an Agent page connects its native Terminal automatically without taking over
+another controller. A copied Herdr attach command remains available for an
+external terminal.
 
 ## Core Concepts
 
@@ -97,7 +98,8 @@ They are not top-level product concepts in Herdr Roam.
 ### Active project workbench
 
 One project is active at a time. Its Workbench starts standard Sessions from a
-directory and presents a compact project activity stream. Project work includes
+directory. Session browsing and global Runtime status remain in persistent
+navigation instead of being repeated on the Workbench. Project work includes
 Sessions, Issues, Loops, Files, and project-local Skills.
 
 The Workbench starts a named or automatically named Codex or Claude agent in
@@ -130,15 +132,27 @@ A person can inspect recent output, start a named Codex or Claude agent in a
 selected project, interrupt or stop an agent, and send a bounded instruction
 when that operation is supported safely by Herdr.
 
-The default Agent detail uses a text Inspector and Prompt input. Browser Attach
-loads the native terminal only after an explicit action. Roam also copies the
-standard attach command for use in an existing terminal, but it does not launch
-external terminal processes.
+Agent detail directly shows a lazy-loaded native Terminal, without a Preview
+mode or separate Prompt composer. Roam also copies the standard attach command
+for use in an existing terminal, but it does not launch external terminal processes.
 
-When Herdr reports an Agent as blocked, the Prompt input gives way to a focused
-terminal input bridge. Roam forwards validated navigation keys, Enter, Escape,
-Tab, Shift+Tab, text, IME commits, and paste through Herdr without interpreting
-the native screen or inventing provider-specific question semantics.
+Session pages always read durable native history; Resume and Open Agent lead
+to the runtime page. All Prompt input, terminal interaction and Stop actions
+belong to Agent pages.
+
+Terminal uses xterm.js through Herdr's existing control/observe interface,
+including native approval interaction for blocked Agents. Each entry attempts
+one control connection when the runtime is available, without takeover. Leaving
+the resource Tab releases control without stopping the Agent; returning starts
+a new connection. Disconnection, failure, or takeover does not trigger automatic
+retries within the current visit. Connection status shares the Agent header,
+with Reconnect for recovery and no manual Disconnect action. Busy ownership
+offers Observe and explicit Take over. Stop Agent… ends the native process only
+after confirmation.
+
+On the local host, users can enter an image file path directly into the native
+Agent. The Agent interprets and reads that path; Terminal only transports text.
+Roam adds no image uploader and does not promise access to paths on other machines.
 
 ### Artifact and project reading
 
@@ -194,7 +208,7 @@ Herdr and at least one authenticated agent CLI are prerequisites. Roam detects
 missing prerequisites and provides a concise installation or startup command,
 but the user runs that command in a terminal. Roam connects automatically when
 the default Herdr server becomes available; it does not own the server process.
-Runtime availability is reported in the Agent list, Agent Inspector, and
+Runtime availability is reported in the Agent list, Agent page, and
 sidebar summary where it affects the current task. A dedicated Runtime surface
 and configurable server ownership remain deferred until their product purpose
 and required operations are defined.

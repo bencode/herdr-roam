@@ -1,16 +1,19 @@
 import type { AgentStatus, AgentSummary, Project } from '@herdr-roam/shared'
-import { Check, Copy, Crosshair, Info, MessageSquare, TerminalSquare } from 'lucide-react'
-import { useEffect, useId, useState } from 'react'
+import { Check, Copy, MessageSquare, PanelRight, TerminalSquare } from 'lucide-react'
+import { lazy, Suspense, useEffect, useId, useState } from 'react'
 import { cn } from '../../../lib/cn'
 import { Button } from '../../../ui/button'
 import type { ResourceRef } from '../../../workbench/resource'
-import { focusAgentInHerdr, stopAgent } from '../client'
+import { stopAgent } from '../client'
 import { agentProviderLabel } from '../presentation'
 import { useAgentRuntime } from '../runtime-provider'
-import { AgentRuntimeSurface } from '../runtime-surface'
 import { AgentStopControl } from '../stop-control'
 import { useAgentSessionResource } from '../use-agent-session-resource'
 import { AgentDetails } from './details'
+
+const BrowserTerminal = lazy(() =>
+  import('../browser-terminal').then(module => ({ default: module.BrowserTerminal })),
+)
 
 const statusClasses: Readonly<Record<AgentStatus, string>> = {
   blocked: 'bg-warning',
@@ -49,7 +52,7 @@ export const AgentTab = ({
   const [copied, setCopied] = useState<'attach' | 'working-directory' | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
-  const [focusing, setFocusing] = useState(false)
+  const [terminalControls, setTerminalControls] = useState<HTMLDivElement | null>(null)
   const [stopping, setStopping] = useState(false)
   const [stopAccepted, setStopAccepted] = useState(false)
   const detailsId = useId()
@@ -106,20 +109,6 @@ export const AgentTab = ({
     }
   }
 
-  const focusInHerdr = async () => {
-    if (!runtimeAvailable || focusing) return
-    setFocusing(true)
-    setActionError(null)
-    try {
-      await focusAgentInHerdr(resource.agentId)
-    } catch (error) {
-      console.error('Agent focus failed', error)
-      setActionError(error instanceof Error ? error.message : 'The Agent could not be focused.')
-    } finally {
-      setFocusing(false)
-    }
-  }
-
   const stop = async () => {
     if (!current || stopping) return
     setStopping(true)
@@ -147,7 +136,7 @@ export const AgentTab = ({
           role="img"
           aria-label={displayedStatus}
         />
-        <div className="min-w-0">
+        <div className="mr-auto min-w-0">
           <div className="flex items-center gap-2">
             <h1 className="m-0 truncate text-sm font-semibold">{agent.name}</h1>
             <span className="text-xs capitalize text-muted">{displayedStatus}</span>
@@ -169,6 +158,7 @@ export const AgentTab = ({
             {actionError}
           </span>
         )}
+        <div ref={setTerminalControls} className="flex flex-none items-center gap-2 text-xs" />
         {sessionResource && (
           <Button
             className={cn('flex-none', !actionError && 'ml-auto')}
@@ -178,14 +168,6 @@ export const AgentTab = ({
             Open Session
           </Button>
         )}
-        <Button
-          className={cn('flex-none', !actionError && !sessionResource && 'ml-auto')}
-          disabled={!runtimeAvailable || focusing}
-          onClick={() => void focusInHerdr()}
-        >
-          <Crosshair aria-hidden="true" />
-          {focusing ? 'Focusing…' : 'Focus in Herdr'}
-        </Button>
         {current && (
           <AgentStopControl
             status={agent.status}
@@ -206,14 +188,16 @@ export const AgentTab = ({
           {copied === 'attach' ? 'Copied' : 'Copy attach'}
         </Button>
         <Button
+          size="defaultIcon"
+          aria-label={detailsOpen ? 'Hide Agent details' : 'Show Agent details'}
+          title={detailsOpen ? 'Hide Agent details' : 'Show Agent details'}
           aria-controls={detailsId}
           aria-expanded={detailsOpen}
-          className="flex-none"
+          className="ml-2 flex-none border-border border-l rounded-none pl-2"
           data-state={detailsOpen ? 'open' : 'closed'}
           onClick={() => setDetailsOpen(open => !open)}
         >
-          <Info aria-hidden="true" />
-          Details
+          <PanelRight aria-hidden="true" />
         </Button>
       </header>
       {sessionLink.error && (
@@ -234,12 +218,22 @@ export const AgentTab = ({
       )}
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">
-          <AgentRuntimeSurface
-            focusPrompt={active}
-            agent={agent}
-            runtimeAvailable={runtimeAvailable}
-            unavailableMessage={runtimeMessage}
-          />
+          {active && (
+            <Suspense
+              fallback={
+                <p className="p-4 text-sm text-muted" role="status">
+                  Loading terminal…
+                </p>
+              }
+            >
+              <BrowserTerminal
+                key={agent.id}
+                agentId={agent.id}
+                available={runtimeAvailable}
+                controlsContainer={terminalControls}
+              />
+            </Suspense>
+          )}
         </div>
         {detailsOpen && (
           <AgentDetails

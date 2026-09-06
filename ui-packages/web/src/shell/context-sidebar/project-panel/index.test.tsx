@@ -123,6 +123,13 @@ describe('ProjectPanel', () => {
   it('uses one project resource browser and filters dense Session fixtures', async () => {
     render(<ProjectPanelHarness />)
 
+    const tabs = within(screen.getByRole('navigation', { name: 'Project resources' }))
+    expect(tabs.getAllByRole('button').map(button => button.textContent)).toEqual([
+      'Issues',
+      'Sessions',
+      'Files',
+      'Loops',
+    ])
     expect(screen.getByRole('button', { name: 'Sessions' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.queryByRole('combobox', { name: 'Project resource' })).not.toBeInTheDocument()
     expect(screen.getByRole('region', { name: 'Sessions browser' })).toBeVisible()

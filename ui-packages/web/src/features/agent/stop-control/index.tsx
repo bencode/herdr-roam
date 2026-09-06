@@ -21,9 +21,9 @@ export const AgentStopControl = ({
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
-        <Button disabled={disabled || stopping}>
+        <Button className="flex-none whitespace-nowrap" disabled={disabled || stopping}>
           <Square aria-hidden="true" />
-          {stopping ? 'Stopping…' : 'Stop'}
+          {stopping ? 'Stopping…' : 'Stop Agent…'}
         </Button>
       </Popover.Trigger>
       <Popover.Portal>
@@ -47,13 +47,8 @@ export const AgentStopControl = ({
               <Button size="compact">Cancel</Button>
             </Popover.Close>
             <Popover.Close asChild>
-              <Button
-                aria-label="Confirm stop"
-                size="compact"
-                variant="danger"
-                onClick={onStop}
-              >
-                Stop
+              <Button aria-label="Confirm stop" size="compact" variant="danger" onClick={onStop}>
+                Stop Agent
               </Button>
             </Popover.Close>
           </div>

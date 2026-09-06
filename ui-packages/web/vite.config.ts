@@ -8,7 +8,7 @@ export default defineConfig({
   server: {
     port: 4310,
     proxy: {
-      '/api': 'http://127.0.0.1:4311',
+      '/api': { target: 'http://127.0.0.1:4311', ws: true, changeOrigin: false },
       '/healthz': 'http://127.0.0.1:4311',
     },
   },

@@ -1,7 +1,7 @@
 import { cn } from '../../../../lib/cn'
 import type { ProjectSection } from '../resource-list'
 
-export const projectSections: readonly ProjectSection[] = ['sessions', 'issues', 'loops', 'files']
+export const projectSections: readonly ProjectSection[] = ['issues', 'sessions', 'files', 'loops']
 
 const labels: Readonly<Record<ProjectSection, string>> = {
   sessions: 'Sessions',

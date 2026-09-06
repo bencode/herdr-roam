@@ -11,29 +11,18 @@ import { type ResourceRef, resourceKey, sameResource } from '../../workbench/res
 const ResourceContent = ({
   resource,
   projects,
-  focusMode,
-  onFocusModeChange,
   onOpen,
   active,
 }: {
   readonly resource: ResourceRef
   readonly projects: readonly Project[]
-  readonly focusMode: boolean
-  readonly onFocusModeChange: (focused: boolean) => void
   readonly onOpen: (resource: ResourceRef) => void
   readonly active: boolean
 }) => {
   if (resource.type === 'agent')
     return <AgentTab resource={resource} projects={projects} onOpen={onOpen} active={active} />
   if (resource.type === 'session')
-    return (
-      <SessionTab
-        resource={resource}
-        focusMode={focusMode}
-        onFocusModeChange={onFocusModeChange}
-        onOpen={onOpen}
-      />
-    )
+    return <SessionTab resource={resource} active={active} onOpen={onOpen} />
   if (resource.type === 'issue') return <IssueTab resource={resource} onOpen={onOpen} />
   if (resource.type === 'file')
     return <FileTab resource={resource} active={active} onOpen={onOpen} />
@@ -45,16 +34,12 @@ export const ResourceHost = ({
   projects,
   tabs,
   active,
-  focusMode,
-  onFocusModeChange,
   onOpen,
 }: {
   readonly project: Project | null
   readonly projects: readonly Project[]
   readonly tabs: readonly ResourceRef[]
   readonly active: ResourceRef | null
-  readonly focusMode: boolean
-  readonly onFocusModeChange: (focused: boolean) => void
   readonly onOpen: (resource: ResourceRef) => void
 }) => (
   <main className="relative min-h-0 min-w-0 flex-1 bg-surface">
@@ -84,8 +69,6 @@ export const ResourceHost = ({
           <ResourceContent
             resource={resource}
             projects={projects}
-            focusMode={focusMode}
-            onFocusModeChange={onFocusModeChange}
             onOpen={onOpen}
             active={Boolean(active && sameResource(active, resource))}
           />

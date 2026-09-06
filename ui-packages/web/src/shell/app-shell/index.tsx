@@ -1,15 +1,10 @@
 import type { Project } from '@herdr-roam/shared'
 import { PanelLeft } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Group, Panel, Separator, useDefaultLayout, usePanelRef } from 'react-resizable-panels'
 import { useAgentRuntime } from '../../features/agent/runtime-provider'
 import { cn } from '../../lib/cn'
-import {
-  type GlobalDimension,
-  type ProjectSection,
-  type ResourceRef,
-  resourceKey,
-} from '../../workbench/resource'
+import type { GlobalDimension, ProjectSection, ResourceRef } from '../../workbench/resource'
 import { ActivityBar } from '../activity-bar'
 import { BrandMark } from '../brand-mark'
 import { ContextSidebar } from '../context-sidebar'
@@ -80,29 +75,13 @@ export const AppShell = ({
 }: Props) => {
   const { snapshot, transportError } = useAgentRuntime()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [focusedResourceKey, setFocusedResourceKey] = useState<string | null>(null)
   const sidebarRef = usePanelRef()
   const expandedWidth = useRef(readSidebarWidth())
-  const activeResourceKey = active ? resourceKey(active) : null
-  const focusMode = activeResourceKey !== null && focusedResourceKey === activeResourceKey
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({
     id: 'herdr-roam.app-shell.v1',
     panelIds: ['context-sidebar', 'workbench'],
     storage: globalThis.localStorage,
   })
-
-  useEffect(() => {
-    setFocusedResourceKey(current => (current && current !== activeResourceKey ? null : current))
-  }, [activeResourceKey])
-
-  useEffect(() => {
-    if (!focusMode) return
-    const exitFocusMode = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setFocusedResourceKey(null)
-    }
-    document.addEventListener('keydown', exitFocusMode)
-    return () => document.removeEventListener('keydown', exitFocusMode)
-  }, [focusMode])
 
   const setCollapsed = (collapsed: boolean) => {
     setSidebarCollapsed(collapsed)
@@ -231,14 +210,7 @@ export const AppShell = ({
           </div>
         </Panel>
         <Separator className="w-px bg-border transition-colors duration-150 hover:bg-primary data-[resize-handle-active]:bg-primary" />
-        <Panel
-          id="workbench"
-          minSize={560}
-          className={cn(
-            'flex min-h-0 min-w-0 flex-col bg-surface',
-            focusMode && 'fixed inset-0 z-[var(--z-focus)] !w-auto !max-w-none',
-          )}
-        >
+        <Panel id="workbench" minSize={560} className="flex min-h-0 min-w-0 flex-col bg-surface">
           <TabBar
             tabs={tabs}
             active={active}
@@ -253,8 +225,6 @@ export const AppShell = ({
             tabs={tabs}
             active={active}
             onOpen={onOpen}
-            focusMode={focusMode}
-            onFocusModeChange={focused => setFocusedResourceKey(focused ? activeResourceKey : null)}
           />
         </Panel>
       </Group>

@@ -5,16 +5,9 @@ import { AgentStopControl } from '.'
 describe('Agent stop control', () => {
   it('requires confirmation before stopping', () => {
     const onStop = vi.fn()
-    render(
-      <AgentStopControl
-        status="idle"
-        stopping={false}
-        historyAvailable
-        onStop={onStop}
-      />,
-    )
+    render(<AgentStopControl status="idle" stopping={false} historyAvailable onStop={onStop} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Stop Agent…' }))
     expect(screen.getByRole('heading', { name: 'Stop this Agent?' })).toBeVisible()
     expect(screen.getByText(/Session history stays available/)).toBeVisible()
     expect(onStop).not.toHaveBeenCalled()
@@ -23,7 +16,7 @@ describe('Agent stop control', () => {
     expect(screen.queryByRole('heading', { name: 'Stop this Agent?' })).not.toBeInTheDocument()
     expect(onStop).not.toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Stop Agent…' }))
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByRole('heading', { name: 'Stop this Agent?' })).not.toBeInTheDocument()
     expect(onStop).not.toHaveBeenCalled()
@@ -40,7 +33,7 @@ describe('Agent stop control', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Stop Agent…' }))
     expect(screen.getByText('Current work or pending input will be interrupted.')).toBeVisible()
     expect(screen.queryByText(/Session history stays available/)).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Confirm stop' }))
@@ -49,12 +42,7 @@ describe('Agent stop control', () => {
 
   it('disables repeated actions while stopping', () => {
     render(
-      <AgentStopControl
-        status="idle"
-        stopping
-        historyAvailable={false}
-        onStop={() => undefined}
-      />,
+      <AgentStopControl status="idle" stopping historyAvailable={false} onStop={() => undefined} />,
     )
     expect(screen.getByRole('button', { name: 'Stopping…' })).toBeDisabled()
   })
