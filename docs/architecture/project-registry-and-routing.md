@@ -19,11 +19,11 @@ configuration directory. The default path is
   "projects": [
     {
       "name": "herdr-roam",
-      "path": "/Users/bencode/work/herdr-roam"
+      "path": "/Users/alice/work/herdr-roam"
     },
     {
       "name": "archive-herdr-roam",
-      "path": "/Users/bencode/archive/herdr-roam"
+      "path": "/Users/alice/archive/herdr-roam"
     }
   ],
   "ignoredProjectPaths": []
