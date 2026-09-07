@@ -2,7 +2,6 @@ import type { Project } from '@herdr-roam/shared'
 import { Activity } from 'react'
 import { AgentTab } from '../../features/agent/agent-tab'
 import { FileTab } from '../../features/file/file-tab'
-import { IssueTab } from '../../features/issue/issue-tab'
 import { SessionTab } from '../../features/session/session-tab'
 import { SkillTab } from '../../features/skill/skill-tab'
 import { WorkbenchHome } from '../../features/workbench/workbench-home'
@@ -23,7 +22,6 @@ const ResourceContent = ({
     return <AgentTab resource={resource} projects={projects} onOpen={onOpen} active={active} />
   if (resource.type === 'session')
     return <SessionTab resource={resource} active={active} onOpen={onOpen} />
-  if (resource.type === 'issue') return <IssueTab resource={resource} active={active} />
   if (resource.type === 'file')
     return <FileTab resource={resource} active={active} onOpen={onOpen} />
   return <SkillTab resource={resource} />

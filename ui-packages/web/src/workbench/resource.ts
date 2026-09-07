@@ -1,5 +1,5 @@
 export type GlobalDimension = 'projects' | 'agents' | 'skills'
-export type ProjectSection = 'sessions' | 'issues' | 'files'
+export type ProjectSection = 'sessions' | 'files'
 
 export type ResourceRef =
   | { readonly type: 'agent'; readonly agentId: string }
@@ -8,12 +8,6 @@ export type ResourceRef =
       readonly projectName: string
       readonly provider: 'codex' | 'claude'
       readonly sessionId: string
-    }
-  | {
-      readonly type: 'issue'
-      readonly projectName: string
-      readonly workspaceId: string
-      readonly issueId: string
     }
   | {
       readonly type: 'file'
@@ -47,12 +41,6 @@ export const isResourceRef = (value: unknown): value is ResourceRef => {
           stringField(record, 'provider') === 'claude') &&
         stringField(record, 'sessionId'),
     )
-  if (type === 'issue')
-    return Boolean(
-      stringField(record, 'projectName') &&
-        stringField(record, 'workspaceId') &&
-        stringField(record, 'issueId'),
-    )
   if (type === 'file')
     return Boolean(
       stringField(record, 'projectName') &&
@@ -70,8 +58,6 @@ export const resourceKey = (resource: ResourceRef): string => {
   if (resource.type === 'agent') return `agent:${resource.agentId}`
   if (resource.type === 'session')
     return `session:${resource.projectName}:${resource.provider}:${resource.sessionId}`
-  if (resource.type === 'issue')
-    return `issue:${resource.projectName}:${resource.workspaceId}:${resource.issueId}`
   if (resource.type === 'file')
     return `file:${resource.projectName}:${resource.workspaceId}:${resource.path}`
   const owner = resource.scope === 'project' ? resource.projectName : 'user'
@@ -89,7 +75,6 @@ export const skillTitle = (skillId: string): string => {
 export const resourceTitle = (resource: ResourceRef): string => {
   if (resource.type === 'agent') return resource.agentId
   if (resource.type === 'session') return resource.sessionId
-  if (resource.type === 'issue') return resource.issueId.slice(0, 8)
   if (resource.type === 'file') return resource.path.split('/').at(-1) ?? resource.path
   return skillTitle(resource.skillId)
 }

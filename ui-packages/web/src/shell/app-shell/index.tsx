@@ -195,7 +195,6 @@ export const AppShell = ({
                 activeProjectName={activeProjectName}
                 activeAgentId={active?.type === 'agent' ? active.agentId : null}
                 activeFile={active?.type === 'file' ? active : null}
-                activeIssue={active?.type === 'issue' ? active : null}
                 activeSkill={active?.type === 'skill' ? active : null}
                 projectSection={projectSection}
                 projectRouteKey={projectRouteKey}

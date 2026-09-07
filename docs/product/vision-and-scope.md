@@ -11,7 +11,7 @@ coding agents managed by one Herdr server.
 
 It gives a human one place to understand concurrent work across projects,
 inspect the artifacts agents produce, identify work that needs attention, and
-keep software work moving through reusable Skills and Git-backed Issues.
+keep software work moving through reusable Skills and native project tools.
 
 Herdr Roam does not replace Herdr or terminal-oriented clients such as
 herdr-gui. Herdr owns processes, PTYs, and runtime state. Herdr Roam owns the
@@ -77,8 +77,6 @@ external terminal.
 - **Agent**: a Codex or Claude process currently managed by Herdr.
 - **Conversation Session**: a resumable Codex or Claude conversation, whether
   or not an agent is currently running for it.
-- **Issue**: an optional Git-backed unit of work stored through an open format
-  supplied by the `herdr-roam-issues` Skill.
 - **Loop**: a deferred time-based or condition-based trigger that would create a
   normal Session in a selected directory and send a Prompt.
 - **Artifact**: a human-reviewable result associated with work, such as a
@@ -98,13 +96,13 @@ They are not top-level product concepts in Herdr Roam.
 One project is active at a time. Its Workbench starts standard Sessions from a
 directory. Session browsing and global Runtime status remain in persistent
 navigation instead of being repeated on the Workbench. Project work includes
-Sessions, Issues, Files, and project-local Skills.
+Sessions, Files, and project-local Skills.
 
 The Workbench starts a named or automatically named Codex or Claude agent in
 the selected directory without exposing Herdr Workspace or Pane setup.
 
-The main work area uses one shared tab foundation. Sessions, Issues, files,
-artifacts, and Skills can remain open together, including resources from
+The main work area uses one shared tab foundation. Sessions, files, artifacts,
+and Skills can remain open together, including resources from
 different projects. Closing a tab closes only its view and never changes the
 underlying resource or Agent.
 
@@ -164,22 +162,19 @@ the local server without maintaining a second index. Markdown, HTML, images,
 source, and unsupported files receive explicit readers; uncommon rendering
 engines load only when content needs them.
 
-Opening a file from the tree, a Session, an Issue, a Skill, or search uses the
+Opening a file from the tree, a Session, a Skill, or search uses the
 same Workbench tab rather than a viewer owned by the entry point.
 
 Artifact discovery starts from files and runtime context already available on
 the local machine. A separate task or artifact database is not part of the first
 version.
 
-### Git-backed Issues
+### External task trackers
 
-The optional `herdr-roam-issues` Skill gives agents deterministic tools for
-creating and updating local Issues. A project selects its Issue directory in a
-minimal Git-tracked configuration in each Worktree. Each Issue is one Markdown
-file: YAML Front Matter contains `id`, `title`, `status`, and optional `type`,
-`priority`, and `labels`; the Markdown body contains human-readable context and
-task lists. The browser and server remain read-only. They display the current
-files and refresh only when the user explicitly requests it.
+Task tracking remains in systems such as GitHub Issues. Agents use the selected
+tracker through its native tools and associate tasks with the repository there.
+Herdr Roam does not define a local Issue format, mirror tracker data, or add a
+tracker-specific browser and API.
 
 ### Deferred Loops
 
@@ -219,7 +214,6 @@ Herdr Roam
 │   └── Active Project
 │       ├── Workbench
 │       ├── Sessions
-│       ├── Issues
 │       └── Files
 ├── Agents
 └── Skills
@@ -245,8 +239,9 @@ The first version does not include:
 - a Codex SDK or Claude Agent SDK runtime;
 - cross-project conversation history and search; Sessions are browsed within
   the active Project in the first version;
+- a built-in Issue tracker or a mirror of external task records;
 - scheduled or condition-based Loops;
-- a database for Issues, Loops, artifacts, or copied runtime state.
+- a database for tasks, Loops, artifacts, or copied runtime state.
 
 These boundaries keep the first version focused on concurrent visibility,
 human-readable review, and human-directed coordination.

@@ -14,11 +14,11 @@ vi.mock('../../features/session/use-session-data', () => ({
   useSessionData: () => ({ value: null }),
 }))
 
-const issue = {
-  type: 'issue',
+const session = {
+  type: 'session',
   projectName: 'herdr-roam',
-  workspaceId: 'primary',
-  issueId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  provider: 'codex',
+  sessionId: 'product-scan',
 } as const
 const file = {
   type: 'file',
@@ -32,7 +32,7 @@ const skill = {
   projectName: 'herdr-roam',
   skillId: 'frontend-design',
 } as const
-const tabs: readonly ResourceRef[] = [issue, file, skill]
+const tabs: readonly ResourceRef[] = [session, file, skill]
 
 describe('TabBar', () => {
   it('exposes contextual bulk-close actions for resource tabs', async () => {
@@ -40,7 +40,7 @@ describe('TabBar', () => {
     render(
       <TabBar
         tabs={tabs}
-        active={issue}
+        active={session}
         onWorkbench={() => undefined}
         onActivate={() => undefined}
         onClose={() => undefined}
@@ -48,7 +48,7 @@ describe('TabBar', () => {
       />,
     )
 
-    fireEvent.keyDown(screen.getByRole('tab', { name: 'aaaaaaaa' }), {
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'product-scan' }), {
       key: 'F10',
       shiftKey: true,
     })

@@ -226,42 +226,6 @@ vi.mock('./features/project/workspace-client', () => ({
   WorkspaceClientError: class WorkspaceClientError extends Error {},
 }))
 
-const issueMocks = vi.hoisted(() => ({
-  id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-}))
-
-vi.mock('./features/issue/client', () => ({
-  fetchIssues: vi.fn(() =>
-    Promise.resolve({
-      items: [
-        {
-          id: issueMocks.id,
-          title: 'Prepare release',
-          status: 'open' as const,
-          type: 'task' as const,
-          priority: 'p0' as const,
-          labels: ['release'],
-          path: `docs/issues/${issueMocks.id}.md`,
-        },
-      ],
-      warnings: [],
-    }),
-  ),
-  fetchIssue: vi.fn(() =>
-    Promise.resolve({
-      id: issueMocks.id,
-      title: 'Prepare release',
-      status: 'open' as const,
-      type: 'task' as const,
-      priority: 'p0' as const,
-      labels: ['release'],
-      path: `docs/issues/${issueMocks.id}.md`,
-      body: '- [ ] Verify release\n',
-    }),
-  ),
-  IssueClientError: class IssueClientError extends Error {},
-}))
-
 vi.mock('./features/skill/client', () => ({
   fetchSkillCatalog: vi.fn((projectName: string) =>
     Promise.resolve({
@@ -276,12 +240,12 @@ vi.mock('./features/skill/client', () => ({
           location: '.codex/skills/frontend-design',
         },
         {
-          id: 'agents:herdr-roam-issues',
-          name: 'herdr-roam-issues',
-          description: 'Work with local Issues.',
+          id: 'agents:frontend-api-docs',
+          name: 'frontend-api-docs',
+          description: 'Document frontend API integration.',
           source: 'agents' as const,
           scope: 'user' as const,
-          location: '~/.agents/skills/herdr-roam-issues',
+          location: '~/.agents/skills/frontend-api-docs',
         },
       ],
       warnings: [],
@@ -479,23 +443,20 @@ describe('workbench application', () => {
     }
   })
 
-  it('opens Issue, File, and Skill resources in the same tablist', async () => {
+  it('opens File and Skill resources in the same tablist', async () => {
     render(
       <MemoryRouter initialEntries={['/projects/herdr-roam']}>
         <App />
       </MemoryRouter>,
     )
     const sidebar = within(screen.getByTestId('context-sidebar'))
-    selectProjectResource(sidebar, 'Issues')
-    fireEvent.click(await sidebar.findByRole('button', { name: /Prepare release/ }))
     selectProjectResource(sidebar, 'Files')
     await openVisionFile(sidebar)
     fireEvent.click(screen.getByRole('link', { name: 'Skills' }))
-    fireEvent.click(await sidebar.findByRole('button', { name: /herdr-roam-issues/ }))
+    fireEvent.click(await sidebar.findByRole('button', { name: /frontend-api-docs/ }))
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'aaaaaaaa' })).toBeInTheDocument()
       expect(screen.getByRole('tab', { name: /vision-and-scope.md/ })).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: /herdr-roam-issues/ })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: /frontend-api-docs/ })).toBeInTheDocument()
     })
   })
 
@@ -511,8 +472,6 @@ describe('workbench application', () => {
     const sidebar = within(screen.getByTestId('context-sidebar'))
     selectProjectResource(sidebar, 'Sessions')
     fireEvent.click(await sidebar.findByRole('button', { name: /Product scan/ }))
-    selectProjectResource(sidebar, 'Issues')
-    fireEvent.click(await sidebar.findByRole('button', { name: /Prepare release/ }))
 
     fireEvent.contextMenu(screen.getByRole('tab', { name: /vision-and-scope.md/ }))
     fireEvent.click(await screen.findByRole('menuitem', { name: 'Close Other Tabs' }))
@@ -539,8 +498,8 @@ describe('workbench application', () => {
       </MemoryRouter>,
     )
     const sidebar = within(screen.getByTestId('context-sidebar'))
-    selectProjectResource(sidebar, 'Issues')
-    fireEvent.change(sidebar.getByRole('textbox', { name: 'Search issues' }), {
+    selectProjectResource(sidebar, 'Files')
+    fireEvent.change(sidebar.getByRole('textbox', { name: 'Search files' }), {
       target: { value: 'runtime' },
     })
 
@@ -548,8 +507,8 @@ describe('workbench application', () => {
     expect(sidebar.getByRole('textbox', { name: 'Search agents' })).toBeVisible()
     fireEvent.click(screen.getByRole('link', { name: 'Projects' }))
 
-    expect(sidebar.getByRole('button', { name: 'Issues' })).toHaveAttribute('aria-pressed', 'true')
-    expect(sidebar.getByRole('textbox', { name: 'Search issues' })).toHaveValue('runtime')
+    expect(sidebar.getByRole('button', { name: 'Files' })).toHaveAttribute('aria-pressed', 'true')
+    expect(sidebar.getByRole('textbox', { name: 'Search files' })).toHaveValue('runtime')
     await waitFor(() => expect(screen.getByRole('button', { name: 'Open Codex' })).toBeEnabled())
   })
 
@@ -557,7 +516,7 @@ describe('workbench application', () => {
     render(
       <MemoryRouter
         initialEntries={[
-          '/projects/herdr-roam/issues/primary/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          '/projects/herdr-roam/files/primary/docs/product/vision-and-scope.md',
         ]}
       >
         <App />
@@ -565,9 +524,9 @@ describe('workbench application', () => {
       </MemoryRouter>,
     )
 
-    await screen.findByRole('tab', { name: 'aaaaaaaa' })
+    await screen.findByRole('tab', { name: /vision-and-scope.md/ })
     expect(screen.getByRole('link', { name: 'Projects' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('button', { name: 'Issues' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Files' })).toHaveAttribute('aria-pressed', 'true')
 
     fireEvent.click(screen.getByRole('link', { name: 'Agents' }))
     await waitFor(() => expect(screen.getByTestId('current-path')).toHaveTextContent('/agents'))
@@ -576,10 +535,10 @@ describe('workbench application', () => {
     fireEvent.click(screen.getByRole('link', { name: 'Projects' }))
     await waitFor(() =>
       expect(screen.getByTestId('current-path')).toHaveTextContent(
-        '/projects/herdr-roam/issues/primary/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        '/projects/herdr-roam/files/primary/docs/product/vision-and-scope.md',
       ),
     )
-    expect(screen.getByRole('button', { name: 'Issues' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Files' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('derives Skills selection from a project Skill route', async () => {
@@ -642,8 +601,8 @@ describe('workbench application', () => {
     expect(sidebar.getByRole('img', { name: 'Roam' })).toBeVisible()
     expect(sidebar.getByRole('button', { name: 'Active project' })).toBeVisible()
 
-    selectProjectResource(sidebar, 'Issues')
-    fireEvent.change(sidebar.getByRole('textbox', { name: 'Search issues' }), {
+    selectProjectResource(sidebar, 'Files')
+    fireEvent.change(sidebar.getByRole('textbox', { name: 'Search files' }), {
       target: { value: 'runtime' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
@@ -655,8 +614,8 @@ describe('workbench application', () => {
     fireEvent.click(sidebar.getByRole('link', { name: 'Agents' }))
     expect(sidebar.getByRole('textbox', { name: 'Search agents' })).toBeVisible()
     fireEvent.click(sidebar.getByRole('link', { name: 'Projects' }))
-    expect(sidebar.getByRole('button', { name: 'Issues' })).toHaveAttribute('aria-pressed', 'true')
-    expect(sidebar.getByRole('textbox', { name: 'Search issues' })).toHaveValue('runtime')
+    expect(sidebar.getByRole('button', { name: 'Files' })).toHaveAttribute('aria-pressed', 'true')
+    expect(sidebar.getByRole('textbox', { name: 'Search files' })).toHaveValue('runtime')
     await waitFor(() => expect(screen.getByRole('button', { name: 'Open Codex' })).toBeEnabled())
   })
 

@@ -30,18 +30,16 @@ Herdr Roam
 │   └── Active Project
 │       ├── Workbench
 │       ├── Sessions
-│       ├── Issues
 │       └── Files
 ├── Agents                 cross-project live runtime
 └── Skills                 user skills and active-project skills
 ```
 
-Projects, Agents, and Skills are global dimensions. Sessions, Issues, and Files
-live inside the active project. Theme is a direct utility control,
+Projects, Agents, and Skills are global dimensions. Sessions and Files live
+inside the active project. Theme is a direct utility control,
 not another resource dimension or route-backed destination.
 
-These resources remain orthogonal. A Session can use a Skill to read or write
-Issues, but one resource does not own the others.
+These resources remain orthogonal; none owns another.
 
 ## Application Shell
 
@@ -70,8 +68,8 @@ the work area.
 The Activity Bar contains Projects, Agents, and Skills at the top, with a Theme
 control at the bottom. Each global Activity is a route-backed
 navigation link with an inset selected surface, an accessible label, and
-`aria-current`. The project panel begins with one compact row for Issues,
-Sessions, and Files, followed by the selected resource browser. Switching
+`aria-current`. The project panel begins with one compact row for Sessions and
+Files, followed by the selected resource browser. Switching
 that row changes only the sidebar browser; it does not navigate, replace the
 active Workbench tab, or clear resource-local state. A concrete list item opens
 or reuses its resource tab and updates the canonical route. Collection routes
@@ -80,7 +78,7 @@ reload, and browser history navigation.
 
 Switching to Agents or Skills does not clear the active project. Each Activity
 remembers its last canonical path in browser storage; returning to Projects can
-therefore restore the exact Session, Issue, File, or Project collection that was
+therefore restore the exact Session, File, or Project collection that was
 previously active. React Activity keeps each contextual panel mounted during the
 page lifetime, preserving its local resource-browser selection, search, and
 scroll position as well. A full reload derives the browser selection from the
@@ -95,14 +93,14 @@ reload.
 
 ### Workbench tabs
 
-Workbench is a fixed project home. Session, Issue, File, and Skill resources
+Workbench is a fixed project home. Session, File, and Skill resources
 open to its right using one shared tab foundation. Opening an existing resource
 activates its tab instead of creating a duplicate. Tabs can span projects and
 show project context when names collide; activating a cross-project tab does
 not silently change the active project.
 
-Closing a tab closes only the view. It does not stop an Agent, close an Issue,
-or modify a file. Closing the active tab selects its right neighbor, then its
+Closing a tab closes only the view. It does not stop an Agent or modify a file.
+Closing the active tab selects its right neighbor, then its
 left neighbor, then Workbench. A resource tab context menu can close that tab,
 the other tabs, the tabs to its right, or all resource tabs. Bulk close updates
 the ordered tab set once; if it removes the active tab, the same neighbor rule
@@ -118,15 +116,14 @@ explicit refresh controls. Selecting the already-open file activates its tab,
 and the active file is highlighted in the tree when its ancestors are open.
 
 A Git Project groups its existing worktree directories under one Project. When
-more than one directory exists, Issues and Files place the same compact
-directory selector beside search and share its last selection. The collapsed
-control leads with the directory name and shows the
+more than one directory exists, Files places a compact directory selector beside
+search. The collapsed control leads with the directory name and shows the
 branch as metadata; the menu adds the full path for disambiguation. Arrow keys,
 Home, End, Enter, and Escape work without introducing a separate management
-screen. Selecting a directory clears the current browser search and Files
-expansion state but does not navigate. Only opening a concrete resource updates
-the route. Existing File and Issue tabs remain bound to the Workspace in which
-they were opened, while activating one selects its Workspace in the sidebar.
+screen. Selecting a directory clears Files search and expansion state but does
+not navigate. Only opening a file updates the route. Existing File tabs remain
+bound to the Workspace in which they were opened, while activating one selects
+its Workspace in the sidebar.
 
 The File tab keeps identity and path in a compact header, then gives the rest of
 the workbench to a content-specific reader. Markdown provides Preview/Source,
@@ -137,7 +134,7 @@ explain why preview is unavailable instead of showing an empty surface.
 
 The active resource is represented by a deep-linkable URL. The ordered tab set
 is an interface preference stored in the browser and contains resource
-references only, not copied Session, Issue, File, or Skill content.
+references only, not copied Session, File, or Skill content.
 Canonical Project routes and restoration behavior are defined in
 [Project Registry and Routing](../architecture/project-registry-and-routing.md).
 
@@ -387,32 +384,12 @@ is not encoded into the route, so a full reload returns to Overview. Skills are
 read-only: installation, editing, enablement, and remote catalogs remain later
 product decisions.
 
-## Project Issues
+## External Task Tracking
 
-Issues appears when the project has configured the optional
-`herdr-roam-issues` convention. The Issue directory is project-selected and its
-location is stored in a minimal Git-tracked project configuration.
-
-```text
-┌──────────────────────────┬────────────────────────────────────────────────────────────┐
-│ Issues · main       ↻    │ 1f0d3edd · docs/issues/1f0d3edd-….md                 ↻    │
-│ Search issues...      1  │────────────────────────────────────────────────────────────│
-│ Open 1                   │ Prepare the first Herdr Roam release                       │
-│ ● Prepare first release  │ open · task · p0 · release                                 │
-│   1f0d3edd · task · p0   │                                                            │
-│                          │ Prepare a small, reproducible first release.                │
-│ Closed 0                 │                                                            │
-│                          │ ☑ Integrate the real Git-backed Issue view                 │
-│                          │ ☐ Add installation and startup documentation               │
-└──────────────────────────┴────────────────────────────────────────────────────────────┘
-```
-
-Each Issue is one Markdown file. YAML Front Matter holds its status and optional
-type, priority, and labels, while the Markdown body holds the description and
-task list. The dedicated interface is read-only; task checkboxes reflect source
-state and cannot be changed in the browser. An Agent writes through the
-`herdr-roam-issues` Skill, and explicit Sidebar or Detail Refresh reads the new
-file state. Invalid files remain visible as warnings without hiding valid Issues.
+Task tracking stays in systems such as GitHub Issues. Agents interact with the
+selected tracker through its native tools and associate work with the current
+repository there. Herdr Roam adds no Issue browser, local Issue file convention,
+or mirrored task state.
 
 ## Deferred Loops
 
@@ -442,7 +419,7 @@ not become a Web IDE.
 ```
 
 Opening a file creates or reuses its Workbench tab regardless of whether the
-entry point is Files, a Session artifact, an Issue, a Skill, or search. Markdown
+entry point is Files, a Session artifact, a Skill, or search. Markdown
 defaults to Preview and supports Source. Code uses syntax highlighting;
 unsupported or oversized files return an explicit state instead of blank output.
 

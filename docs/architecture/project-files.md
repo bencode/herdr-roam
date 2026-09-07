@@ -69,7 +69,7 @@ images use the bounded raw endpoint.
 
 The common Markdown renderer handles ordinary GFM synchronously. Formula,
 Mermaid, full file readers, and syntax-highlighting code are split into
-on-demand browser chunks, so common Session, Issue, and Skill prose does not
+on-demand browser chunks, so common Session and Skill prose does not
 load uncommon rendering engines.
 
 Editing, deleting, watching, arbitrary branch snapshots, Git checkout,

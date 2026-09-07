@@ -6,7 +6,6 @@ import {
 } from '../../../features/project/workspace-preference'
 import type { ProjectSection, ResourceRef } from '../../../workbench/resource'
 import { FileTree } from './file-tree'
-import { IssueBrowser } from './issue-browser'
 import { ResourceList } from './resource-list'
 import { ProjectViewTabs } from './resource-tabs'
 
@@ -16,7 +15,6 @@ type Props = {
   readonly routeKey: string
   readonly onOpen: (resource: ResourceRef) => void
   readonly activeFile: Extract<ResourceRef, { type: 'file' }> | null
-  readonly activeIssue: Extract<ResourceRef, { type: 'issue' }> | null
 }
 
 export const ProjectPanel = ({
@@ -25,7 +23,6 @@ export const ProjectPanel = ({
   routeKey,
   onOpen,
   activeFile,
-  activeIssue,
 }: Props) => {
   const [query, setQuery] = useState('')
   const [selectedSection, setSelectedSection] = useState(section)
@@ -46,11 +43,11 @@ export const ProjectPanel = ({
   useEffect(() => {
     if (workspaceRoute.current === routeKey || workspaces.items.length === 0) return
     workspaceRoute.current = routeKey
-    const routedWorkspaceId = activeFile?.workspaceId ?? activeIssue?.workspaceId
+    const routedWorkspaceId = activeFile?.workspaceId
     if (!routedWorkspaceId || !workspaces.items.some(item => item.id === routedWorkspaceId)) return
     setWorkspaceId(routedWorkspaceId)
     writeWorkspacePreference(activeProjectName, routedWorkspaceId)
-  }, [activeFile, activeIssue, activeProjectName, routeKey, workspaces.items])
+  }, [activeFile, activeProjectName, routeKey, workspaces.items])
 
   useEffect(() => {
     if (routedKey.current === routeKey) return
@@ -80,17 +77,6 @@ export const ProjectPanel = ({
           activeFile={activeFile}
           workspaceId={workspaceId}
           workspaces={workspaces}
-          query={query}
-          onQuery={setQuery}
-          onWorkspace={selectWorkspace}
-          onOpen={onOpen}
-        />
-      ) : selectedSection === 'issues' ? (
-        <IssueBrowser
-          projectName={activeProjectName}
-          workspaceId={workspaceId}
-          workspaces={workspaces}
-          activeIssue={activeIssue}
           query={query}
           onQuery={setQuery}
           onWorkspace={selectWorkspace}

@@ -18,15 +18,8 @@ describe('resource routes', () => {
       path: 'docs/产品 plan.md',
     } as const
     expect(parseResourcePath(resourcePath(file))).toEqual({ kind: 'resource', resource: file })
-    const issue = {
-      type: 'issue',
-      projectName: 'roam project',
-      workspaceId: 'workspace id',
-      issueId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-    } as const
-    expect(parseResourcePath(resourcePath(issue))).toEqual({ kind: 'resource', resource: issue })
     expect(projectPath('roam project')).toBe('/projects/roam%20project')
-    expect(projectSectionPath('roam project', 'issues')).toBe('/projects/roam%20project/issues')
+    expect(projectSectionPath('roam project', 'files')).toBe('/projects/roam%20project/files')
     expect(activityRootPath('agents', 'roam project')).toBe('/agents')
   })
 
@@ -45,23 +38,14 @@ describe('resource routes', () => {
         sessionId: 'product-scan',
       },
     })
-    expect(parseResourcePath('/projects/herdr-roam/issues')).toEqual({
-      kind: 'project-section',
-      projectName: 'herdr-roam',
-      section: 'issues',
-    })
     expect(parseResourcePath('/projects/herdr-roam/files')).toEqual({
       kind: 'project-section',
       projectName: 'herdr-roam',
       section: 'files',
     })
-    expect(
-      parseResourcePath('/projects/herdr-roam/issues/primary/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
-        .kind,
-    ).toBe('resource')
-    expect(parseResourcePath('/skills/agents%3Aherdr-roam-issues')).toEqual({
+    expect(parseResourcePath('/skills/agents%3Afrontend-api-docs')).toEqual({
       kind: 'resource',
-      resource: { type: 'skill', scope: 'user', skillId: 'agents:herdr-roam-issues' },
+      resource: { type: 'skill', scope: 'user', skillId: 'agents:frontend-api-docs' },
     })
     const projectSkill = {
       type: 'skill',
@@ -89,18 +73,21 @@ describe('resource routes', () => {
     expect(
       routeDimension(parseResourcePath('/projects/herdr-roam/skills/codex%3Afrontend-design')),
     ).toBe('skills')
-    const issue = parseResourcePath(
-      '/projects/herdr-roam/issues/primary/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-    )
-    expect(routeDimension(issue)).toBe('projects')
-    expect(routeProjectSection(issue)).toBe('issues')
     const target = parseResourcePath('/projects/herdr-roam/files/primary/docs/guide.md')
+    expect(routeDimension(target)).toBe('projects')
+    expect(routeProjectSection(target)).toBe('files')
     expect(canonicalPath(target)).toBe('/projects/herdr-roam/files/primary/docs/guide.md')
   })
 
   it('returns unknown for unsupported and legacy routes', () => {
     expect(parseResourcePath('/projects/herdr-roam/workbench')).toEqual({ kind: 'unknown' })
     expect(parseResourcePath('/projects/herdr-roam/loops')).toEqual({ kind: 'unknown' })
+    expect(parseResourcePath('/projects/herdr-roam/issues')).toEqual({ kind: 'unknown' })
+    expect(
+      parseResourcePath(
+        '/projects/herdr-roam/issues/primary/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      ),
+    ).toEqual({ kind: 'unknown' })
     expect(parseResourcePath('/projects/herdr-roam/issues/hr-018')).toEqual({ kind: 'unknown' })
     expect(parseResourcePath('/projects/herdr-roam/loops/not-supported')).toEqual({
       kind: 'unknown',

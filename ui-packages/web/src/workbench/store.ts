@@ -7,13 +7,13 @@ import {
   routeDimension,
 } from './resource-route'
 
-const STORAGE_KEY = 'herdr-roam.workbench.v6'
+const STORAGE_KEY = 'herdr-roam.workbench.v7'
 const DEFAULT_PROJECT = 'herdr-roam'
 
 export type ActivityPaths = Readonly<Record<GlobalDimension, string>>
 
 export type WorkbenchSnapshot = {
-  readonly version: 6
+  readonly version: 7
   readonly activeProjectName: string
   readonly tabs: readonly ResourceRef[]
   readonly lastActive: ResourceRef | null
@@ -37,7 +37,7 @@ const defaultActivityPaths = (projectName: string): ActivityPaths => ({
 })
 
 const defaultSnapshot = (projectName: string): WorkbenchSnapshot => ({
-  version: 6,
+  version: 7,
   activeProjectName: projectName,
   tabs: [],
   lastActive: null,
@@ -64,7 +64,7 @@ const validActivityPath = (value: unknown, dimension: GlobalDimension): string |
 
 const parseSnapshot = (value: unknown): WorkbenchSnapshot | null => {
   const record = snapshotRecord(value)
-  if (record?.version !== 6 || typeof record.activeProjectName !== 'string') return null
+  if (record?.version !== 7 || typeof record.activeProjectName !== 'string') return null
   if (!Array.isArray(record.tabs) || !record.tabs.every(isResourceRef)) return null
   if (record.lastActive !== null && !isResourceRef(record.lastActive)) return null
   const storedPaths = snapshotRecord(record.activityPaths)
@@ -75,7 +75,7 @@ const parseSnapshot = (value: unknown): WorkbenchSnapshot | null => {
     skills: validActivityPath(storedPaths?.skills, 'skills') ?? defaults.skills,
   }
   return {
-    version: 6,
+    version: 7,
     activeProjectName: record.activeProjectName,
     tabs: record.tabs,
     lastActive: record.lastActive,
@@ -127,7 +127,7 @@ const belongsToProject = (resource: ResourceRef, projectName: string): boolean =
   'projectName' in resource && resource.projectName === projectName
 
 const snapshotOf = (state: WorkbenchSnapshot): WorkbenchSnapshot => ({
-  version: 6,
+  version: 7,
   activeProjectName: state.activeProjectName,
   tabs: state.tabs,
   lastActive: state.lastActive,

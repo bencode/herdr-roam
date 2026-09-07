@@ -4,11 +4,11 @@ const session = {
   provider: 'codex',
   sessionId: 'scan',
 } as const
-const issue = {
-  type: 'issue',
+const otherProjectFile = {
+  type: 'file',
   projectName: 'other-project',
   workspaceId: 'primary',
-  issueId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  path: 'README.md',
 } as const
 const agent = { type: 'agent', agentId: 'terminal-codex' } as const
 const primaryFile = {
@@ -31,9 +31,9 @@ describe('workbench store', () => {
   it('deduplicates resources while preserving cross-project tabs', () => {
     const { useWorkbenchStore } = storeModule
     useWorkbenchStore.getState().open(session)
-    useWorkbenchStore.getState().open(issue)
+    useWorkbenchStore.getState().open(otherProjectFile)
     useWorkbenchStore.getState().open(session)
-    expect(useWorkbenchStore.getState().tabs).toEqual([session, issue])
+    expect(useWorkbenchStore.getState().tabs).toEqual([session, otherProjectFile])
     expect(useWorkbenchStore.getState().lastActive).toEqual(session)
   })
 
@@ -49,19 +49,19 @@ describe('workbench store', () => {
   it('selects the right neighbor when closing the active tab', () => {
     const { useWorkbenchStore } = storeModule
     useWorkbenchStore.getState().open(session)
-    useWorkbenchStore.getState().open(issue)
+    useWorkbenchStore.getState().open(primaryFile)
     useWorkbenchStore.getState().open(session)
-    expect(useWorkbenchStore.getState().closeMany([session])).toEqual(issue)
-    expect(useWorkbenchStore.getState().tabs).toEqual([issue])
+    expect(useWorkbenchStore.getState().closeMany([session])).toEqual(primaryFile)
+    expect(useWorkbenchStore.getState().tabs).toEqual([primaryFile])
   })
 
   it('closes multiple tabs atomically and falls back to the nearest left neighbor', () => {
     const { useWorkbenchStore } = storeModule
     useWorkbenchStore.getState().open(session)
-    useWorkbenchStore.getState().open(issue)
+    useWorkbenchStore.getState().open(primaryFile)
     useWorkbenchStore.getState().open(agent)
 
-    expect(useWorkbenchStore.getState().closeMany([issue, agent])).toEqual(session)
+    expect(useWorkbenchStore.getState().closeMany([primaryFile, agent])).toEqual(session)
     expect(useWorkbenchStore.getState().tabs).toEqual([session])
     expect(useWorkbenchStore.getState().lastActive).toEqual(session)
   })
@@ -69,8 +69,8 @@ describe('workbench store', () => {
   it('persists only the versioned workbench snapshot', () => {
     const { useWorkbenchStore } = storeModule
     useWorkbenchStore.getState().open(agent)
-    expect(JSON.parse(localStorage.getItem('herdr-roam.workbench.v6') ?? '')).toEqual({
-      version: 6,
+    expect(JSON.parse(localStorage.getItem('herdr-roam.workbench.v7') ?? '')).toEqual({
+      version: 7,
       activeProjectName: 'herdr-roam',
       tabs: [agent],
       lastActive: agent,
@@ -86,12 +86,12 @@ describe('workbench store', () => {
   it('forgets Project-owned tabs without closing global Agents', () => {
     const { useWorkbenchStore } = storeModule
     useWorkbenchStore.getState().open(session)
-    useWorkbenchStore.getState().open(issue)
+    useWorkbenchStore.getState().open(otherProjectFile)
     useWorkbenchStore.getState().open(agent)
 
     useWorkbenchStore.getState().forgetProject('herdr-roam')
 
-    expect(useWorkbenchStore.getState().tabs).toEqual([issue, agent])
+    expect(useWorkbenchStore.getState().tabs).toEqual([otherProjectFile, agent])
     expect(useWorkbenchStore.getState().lastActive).toEqual(agent)
   })
 
@@ -101,13 +101,13 @@ describe('workbench store', () => {
       .getState()
       .rememberActivity(
         'projects',
-        '/projects/herdr-roam/issues/primary/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        '/projects/herdr-roam/files/primary/docs/guide.md',
       )
     useWorkbenchStore.getState().rememberActivity('agents', '/agents/terminal-codex')
 
     expect(useWorkbenchStore.getState().lastActivity).toBe('agents')
     expect(useWorkbenchStore.getState().activityPaths).toEqual({
-      projects: '/projects/herdr-roam/issues/primary/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      projects: '/projects/herdr-roam/files/primary/docs/guide.md',
       agents: '/agents/terminal-codex',
       skills: '/skills',
     })
@@ -129,11 +129,11 @@ describe('workbench store', () => {
     })
   })
 
-  it('discards v5 workbench state after the Issue resource identity change', async () => {
+  it('discards v6 workbench state after removing local Issue resources', async () => {
     localStorage.setItem(
-      'herdr-roam.workbench.v5',
+      'herdr-roam.workbench.v6',
       JSON.stringify({
-        version: 5,
+        version: 6,
         activeProjectName: 'herdr-roam',
         tabs: [agent],
         lastActive: agent,
@@ -142,7 +142,7 @@ describe('workbench store', () => {
     vi.resetModules()
     const { useWorkbenchStore } = await import('./store')
 
-    expect(useWorkbenchStore.getState()).toMatchObject({ version: 6, tabs: [], lastActive: null })
-    expect(localStorage.getItem('herdr-roam.workbench.v6')).toBeNull()
+    expect(useWorkbenchStore.getState()).toMatchObject({ version: 7, tabs: [], lastActive: null })
+    expect(localStorage.getItem('herdr-roam.workbench.v7')).toBeNull()
   })
 })

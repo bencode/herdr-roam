@@ -9,7 +9,6 @@ type Props = {
   readonly activeProjectName: string
   readonly activeAgentId: string | null
   readonly activeFile: Extract<ResourceRef, { type: 'file' }> | null
-  readonly activeIssue: Extract<ResourceRef, { type: 'issue' }> | null
   readonly activeSkill: Extract<ResourceRef, { type: 'skill' }> | null
   readonly projectSection: ProjectSection
   readonly projectRouteKey: string
@@ -29,7 +28,6 @@ export const ContextSidebar = (props: Props) => {
               key={props.activeProjectName}
               activeProjectName={props.activeProjectName}
               activeFile={props.activeFile}
-              activeIssue={props.activeIssue}
               section={props.projectSection}
               routeKey={props.projectRouteKey}
               onOpen={props.onOpen}

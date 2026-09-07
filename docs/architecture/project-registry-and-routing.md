@@ -79,8 +79,6 @@ registration or routing.
 /projects/:projectName
 /projects/:projectName/sessions
 /projects/:projectName/sessions/:provider/:sessionId
-/projects/:projectName/issues
-/projects/:projectName/issues/:workspaceId/:issueId
 /projects/:projectName/files
 /projects/:projectName/files/:workspaceId/:path...
 /projects/:projectName/skills/:skillId
@@ -93,7 +91,7 @@ registration or routing.
 `/` restores the last global Activity and that Activity's last canonical path.
 `/projects` restores the Projects Activity's last path. The collection routes
 select the corresponding Activity or Project resource browser without inventing
-a persisted content tab. The Sessions, Issues, and Files controls inside
+a persisted content tab. The Sessions and Files controls inside
 the Project sidebar are local browser switches: they do not create history
 entries or replace the active resource route. Selecting a concrete resource is
 the boundary that opens a Workbench tab and updates the route. A project
@@ -108,15 +106,17 @@ Project group, and leaves any open Skill tab unchanged. The selected Project
 therefore does not overwrite the last Activity or force an old Project Skill
 tab to close.
 
-The Activity is normally derived from the resource type. Project Sessions,
-Issues and Files belong to Projects; Agents belong to Agents; and both
+The Activity is normally derived from the resource type. Project Sessions and
+Files belong to Projects; Agents belong to Agents; and both
 user and project Skills belong to Skills. Consequently,
 `/projects/:projectName/skills/:skillId` selects the Skills Activity despite its
 project-scoped canonical path.
 
 Each path segment is URI encoded independently. The old
 `/projects/:projectName/workbench` form is not a compatibility route because
-the application is still pre-release.
+the application is still pre-release. Removed `/projects/:projectName/issues`
+routes are likewise unsupported and follow the application's unknown-route
+fallback to the Project Workbench.
 
 A Skill ID is source-qualified as `<source>:<directory-name>`, for example
 `codex:frontend-design`. The whole ID is one encoded route segment. This keeps
@@ -128,6 +128,7 @@ fields to the persisted resource reference.
 Tabs persist ordered, structured resource references rather than URL strings.
 The route builder derives the canonical URL from each reference. On reload, the
 browser restores the ordered set and uses the current URL to select the active
+resource. A deep-linked resource that is not already present is added once.
 The Project Workbench is pinned and is not part of the resource array. The Theme
 selector is a non-route popover and is not represented in the resource array.
 Local view state such as a Session draft or Markdown mode is retained while the
@@ -136,11 +137,9 @@ The supporting file selected inside a Skill follows the same rule and resets to
 `SKILL.md` after a full page reload.
 
 A File reference contains Project Name, Workspace ID, and Project-relative
-path. An Issue reference contains Project Name, Workspace ID, and Issue UUID.
-The same path or UUID in two Workspaces therefore opens two distinct tabs. The
-Workspace ID remains bound to the tab even when the Project browser selects a
-different directory. Issues and Files share one last-selected Workspace per
-Project.
+path. The same path in two Workspaces therefore opens two distinct tabs. The
+Workspace ID remains bound to the tab even when the Files browser selects a
+different directory.
 
 The browser stores one last canonical path for each of Projects, Agents, and
 Skills, plus the last selected Activity. The current URL wins on reload and

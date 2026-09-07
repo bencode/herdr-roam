@@ -1,11 +1,10 @@
 import { cn } from '../../../../lib/cn'
 import type { ProjectSection } from '../../../../workbench/resource'
 
-export const projectSections: readonly ProjectSection[] = ['issues', 'sessions', 'files']
+export const projectSections: readonly ProjectSection[] = ['sessions', 'files']
 
 const labels: Readonly<Record<ProjectSection, string>> = {
   sessions: 'Sessions',
-  issues: 'Issues',
   files: 'Files',
 }
 
@@ -16,7 +15,7 @@ type Props = {
 
 export const ProjectViewTabs = ({ value, onValueChange }: Props) => (
   <nav
-    className="grid h-7.5 grid-cols-[repeat(3,minmax(0,5rem))] border-border border-b px-2"
+    className="grid h-7.5 grid-cols-[repeat(2,minmax(0,5rem))] border-border border-b px-2"
     aria-label="Project resources"
   >
     {projectSections.map(section => {

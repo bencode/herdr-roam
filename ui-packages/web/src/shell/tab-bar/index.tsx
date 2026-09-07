@@ -1,5 +1,5 @@
 import type { AgentStatus } from '@herdr-roam/shared'
-import { Bot, Box, CircleDot, FileText, Home, MessageSquare, X } from 'lucide-react'
+import { Bot, Box, FileText, Home, MessageSquare, X } from 'lucide-react'
 import { useLayoutEffect, useRef } from 'react'
 import { useAgentRuntime } from '../../features/agent/runtime-provider'
 import { useSessionData } from '../../features/session/use-session-data'
@@ -43,7 +43,6 @@ const closeClass =
 const ResourceIcon = ({ resource }: { readonly resource: ResourceRef }) => {
   if (resource.type === 'agent') return <Bot />
   if (resource.type === 'session') return <MessageSquare />
-  if (resource.type === 'issue') return <CircleDot />
   if (resource.type === 'file') return <FileText />
   return <Box />
 }

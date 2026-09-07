@@ -1,7 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { vi } from 'vitest'
 import { fetchProjectFiles } from '../../../features/file/client'
-import { fetchIssues } from '../../../features/issue/client'
 import type { ProjectSection, ResourceRef } from '../../../workbench/resource'
 import { ProjectPanel } from '.'
 
@@ -67,53 +66,6 @@ vi.mock('../../../features/project/workspace-client', () => ({
   WorkspaceClientError: class WorkspaceClientError extends Error {},
 }))
 
-const issueId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
-
-vi.mock('../../../features/issue/client', () => {
-  class IssueClientError extends Error {
-    code: string
-    constructor(code: string, message: string) {
-      super(message)
-      this.code = code
-    }
-  }
-  return {
-    fetchIssues: vi.fn((projectName: string, workspaceId: string) => {
-      if (projectName === 'cc-mission-control') {
-        return Promise.reject(new IssueClientError('issue_store_not_configured', 'Not configured.'))
-      }
-      if (projectName === 'warning-only') {
-        return Promise.resolve({
-          items: [],
-          warnings: [
-            {
-              path: 'docs/issues/invalid.md',
-              code: 'invalid_issue' as const,
-              message: 'Issue id must be a UUID.',
-            },
-          ],
-        })
-      }
-      return Promise.resolve({
-        items: [
-          {
-            id: issueId,
-            title: workspaceId === 'linked' ? 'Linked release' : 'Prepare release',
-            status: 'open' as const,
-            type: 'task' as const,
-            priority: 'p0' as const,
-            labels: ['release'],
-            path: `docs/issues/${issueId}.md`,
-          },
-        ],
-        warnings: [],
-      })
-    }),
-    fetchIssue: vi.fn(),
-    IssueClientError,
-  }
-})
-
 const sessionFixtures = Array.from({ length: 14 }, (_, index) => ({
   id: `session-${index + 1}`,
   provider: index % 2 === 0 ? ('codex' as const) : ('claude' as const),
@@ -150,7 +102,6 @@ type ProjectPanelHarnessProps = {
   readonly section?: ProjectSection
   readonly routeKey?: string
   readonly activeFile?: Extract<ResourceRef, { type: 'file' }> | null
-  readonly activeIssue?: Extract<ResourceRef, { type: 'issue' }> | null
   readonly onOpen?: (resource: ResourceRef) => void
 }
 
@@ -159,13 +110,11 @@ const ProjectPanelHarness = ({
   section = 'sessions',
   routeKey = `/projects/${projectName}`,
   activeFile = null,
-  activeIssue = null,
   onOpen = () => undefined,
 }: ProjectPanelHarnessProps) => (
   <ProjectPanel
     activeProjectName={projectName}
     activeFile={activeFile}
-    activeIssue={activeIssue}
     section={section}
     routeKey={routeKey}
     onOpen={onOpen}
@@ -180,7 +129,6 @@ describe('ProjectPanel', () => {
 
     const tabs = within(screen.getByRole('navigation', { name: 'Project resources' }))
     expect(tabs.getAllByRole('button').map(button => button.textContent)).toEqual([
-      'Issues',
       'Sessions',
       'Files',
     ])
@@ -203,10 +151,6 @@ describe('ProjectPanel', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Search sessions' }), {
       target: { value: 'parity' },
     })
-    selectResource('Issues')
-    expect(screen.getByRole('textbox', { name: 'Search issues' })).toHaveValue('')
-    expect(await screen.findByText('Prepare release')).toBeVisible()
-
     selectResource('Files')
     const filesBrowser = screen.getByRole('region', { name: 'Files browser' })
     const docs = await screen.findByRole('button', { name: 'docs' })
@@ -220,6 +164,9 @@ describe('ProjectPanel', () => {
       target: { value: 'vision' },
     })
     expect(await within(filesBrowser).findByText('1 result')).toBeVisible()
+
+    selectResource('Sessions')
+    expect(screen.getByRole('textbox', { name: 'Search sessions' })).toHaveValue('')
   })
 
   it('switches the Files directory without changing the resource route', async () => {
@@ -242,16 +189,6 @@ describe('ProjectPanel', () => {
       'linked',
       expect.objectContaining({ directory: '' }),
     )
-    selectResource('Issues')
-    expect(await screen.findByRole('button', { name: 'Issue directory' })).toHaveTextContent(
-      'feature/task',
-    )
-    expect(vi.mocked(fetchIssues)).toHaveBeenLastCalledWith(
-      'herdr-roam',
-      'linked',
-      expect.anything(),
-    )
-    selectResource('Files')
     fireEvent.click(await screen.findByRole('button', { name: 'docs' }))
     fireEvent.click(await screen.findByRole('button', { name: 'product' }))
     fireEvent.click(await screen.findByRole('button', { name: 'vision-and-scope.md' }))
@@ -282,21 +219,6 @@ describe('ProjectPanel', () => {
     )
   })
 
-  it('follows the Workspace encoded by an active Issue route', async () => {
-    render(
-      <ProjectPanelHarness
-        section="issues"
-        routeKey={`/projects/herdr-roam/issues/linked/${issueId}`}
-        activeIssue={{ type: 'issue', projectName: 'herdr-roam', workspaceId: 'linked', issueId }}
-      />,
-    )
-
-    expect(await screen.findByRole('button', { name: 'Issue directory' })).toHaveTextContent(
-      'feature/task',
-    )
-    expect(await screen.findByText('Linked release')).toBeVisible()
-  })
-
   it('syncs the browser when the canonical resource route changes', async () => {
     const { rerender } = render(
       <ProjectPanelHarness
@@ -306,8 +228,8 @@ describe('ProjectPanel', () => {
     )
 
     await screen.findByRole('button', { name: 'docs' })
-    selectResource('Issues')
-    expect(screen.getByRole('button', { name: 'Issues' })).toHaveAttribute('aria-pressed', 'true')
+    selectResource('Sessions')
+    expect(screen.getByRole('button', { name: 'Sessions' })).toHaveAttribute('aria-pressed', 'true')
 
     rerender(
       <ProjectPanelHarness
@@ -319,19 +241,5 @@ describe('ProjectPanel', () => {
     expect(screen.getByRole('button', { name: 'Files' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('region', { name: 'Files browser' })).toBeVisible()
     expect(await screen.findByRole('button', { name: 'docs' })).toBeVisible()
-  })
-
-  it('shows an explicit unconfigured Issue state', async () => {
-    render(<ProjectPanelHarness projectName="cc-mission-control" />)
-
-    selectResource('Issues')
-    expect(await screen.findByText('Issue store not configured')).toBeVisible()
-  })
-
-  it('keeps invalid Issue files observable when no valid Issues exist', async () => {
-    render(<ProjectPanelHarness projectName="warning-only" section="issues" />)
-
-    expect(await screen.findByText('1 Issue files could not be read')).toBeVisible()
-    expect(screen.getByText('No Issues yet')).toBeVisible()
   })
 })

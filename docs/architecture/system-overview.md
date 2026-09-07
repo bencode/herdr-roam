@@ -15,8 +15,7 @@ Herdr Roam Server
    ├── Herdr Unix socket
    ├── Codex and Claude session metadata
    ├── project files and Git metadata
-   ├── user-level and project-level skills
-   └── file-backed Issues and project configuration
+   └── user-level and project-level skills
 ```
 
 The browser cannot connect directly to a local Unix socket. The Herdr Roam
@@ -39,9 +38,8 @@ The server:
 - discovers and connects to the default local Herdr server;
 - connects to the default Herdr server and reports when it is absent;
 - translates Herdr runtime concepts into project, agent, and conversation views;
-- reads bounded project, session, Issue, and skill resources;
+- reads bounded project, session, and skill resources;
 - creates the Herdr runtime location required to start an agent from the Web;
-- reads configured Git-backed Issue stores without mutating them;
 - provides read APIs and a small set of explicit control operations;
 - streams state changes to the browser;
 - proxies Herdr terminal session control/observe while an Agent resource Tab is active;
@@ -49,7 +47,7 @@ The server:
 
 ### Browser application
 
-The browser presents Project, Agent, Session, Issue, File, and Skill views
+The browser presents Project, Agent, Session, File, and Skill views
 inside one tabbed work area. It does not access the filesystem or Herdr socket
 directly. Session pages render provider-owned conversation history, while Agent
 pages expose the native Terminal for output and input, without a separate composer.
@@ -169,12 +167,9 @@ trusted project root. Its ordered array is the source for the Project Selector;
 it is not a project or task database. The contract and URL behavior are defined
 in [Project Registry and Routing](project-registry-and-routing.md).
 
-Projects may opt into the `herdr-roam-issues` convention. A minimal Git-tracked
-project configuration points to the project-selected Issue directory. Each
-Issue is one Markdown file with structured YAML Front Matter and a human-readable
-Markdown body. Git, not an application database, supplies durable history for
-this project state. The `herdr-roam-issues` Skill performs explicit writes;
-Roam's server remains an independent reader.
+Task trackers are external to Herdr Roam. Agents may use GitHub Issues or another
+tracker through that system's native tools, but Roam does not mirror tracker
+records into project files, browser state, or a second API.
 
 Herdr Roam derives global and per-project views from those sources. It does not
 persist a duplicate task, agent, artifact, or conversation model in a database
@@ -222,10 +217,8 @@ is read. Symbolic links and parent-directory traversal must not escape that
 root. Unsupported, inaccessible, or oversized files return explicit errors
 rather than guessed or empty content.
 
-Project, artifact, Session, Issue, and Skill readers are read-only. Issue writes
-are performed directly against the selected Worktree by the separate
-`herdr-roam-issues` Skill; the server exposes no general or Issue-specific file
-mutation API.
+Project, artifact, Session, and Skill readers are read-only. The server exposes
+no general project-file mutation API.
 
 ## Local Security and Persistence
 
@@ -237,9 +230,9 @@ No application database is required. The Project Registry and global Runtime
 setting remain in local application configuration; small interface preferences
 may remain in browser storage. The
 browser may persist the ordered set of open resource references, but not copied
-resource content; the active resource remains a deep-linkable URL. Portable
-project coordination state remains in Git-backed files. Connection, read,
-runtime-start and Issue errors are observable in the interface and server
+resource content; the active resource remains a deep-linkable URL. Project
+files remain in their original repositories. Connection, read, and
+runtime-start errors are observable in the interface and server
 logs; unknown errors must not be replaced with empty fallback data.
 
 ## Herdr References
