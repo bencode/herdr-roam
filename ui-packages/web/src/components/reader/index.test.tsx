@@ -1,7 +1,13 @@
 import type { ProjectFileView } from '@herdr-roam/shared'
 import { fireEvent, render, screen } from '@testing-library/react'
+import type { ComponentProps } from 'react'
 import { describe, expect, it, vi } from 'vitest'
-import { FileReader } from '.'
+import { FileReader as ControlledFileReader } from '.'
+import { useMarkdownView } from './markdown-view'
+
+const FileReader = (props: Omit<ComponentProps<typeof ControlledFileReader>, 'markdownView'>) => (
+  <ControlledFileReader {...props} markdownView={useMarkdownView()} />
+)
 
 const markdown: ProjectFileView = {
   kind: 'markdown',

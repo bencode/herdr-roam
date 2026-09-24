@@ -1,6 +1,8 @@
 import { Box, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { FileReader } from '../../../components/reader'
+import { MarkdownControls } from '../../../components/reader/markdown-controls'
+import { isMarkdownLike, useMarkdownView } from '../../../components/reader/markdown-view'
 import type { ResourceRef } from '../../../workbench/resource'
 import { skillTitle } from '../../../workbench/resource'
 import { skillFileRawUrl, skillSourceLabel } from '../client'
@@ -36,6 +38,7 @@ export const SkillTab = ({ resource }: { readonly resource: SkillResource }) => 
   const file = selectedPath ? selected.value : detail.value?.document
   const error = selectedPath ? selected.error : detail.error
   const loading = selectedPath ? selected.loading : detail.loading
+  const markdownView = useMarkdownView()
   const reload = () => {
     detail.reload()
     if (selectedPath) selected.reload()
@@ -59,6 +62,11 @@ export const SkillTab = ({ resource }: { readonly resource: SkillResource }) => 
           </div>
           {detail.value && <span title={detail.value.location}>{detail.value.location}</span>}
         </div>
+        {file && isMarkdownLike(file) && (
+          <div className={styles.controls}>
+            <MarkdownControls view={markdownView} showOutlineToggle={false} />
+          </div>
+        )}
         <button
           type="button"
           className={styles.refresh}
@@ -86,6 +94,7 @@ export const SkillTab = ({ resource }: { readonly resource: SkillResource }) => 
               rawUrl={path => skillFileRawUrl(resource, path)}
               onOpenPath={openPath}
               showOutline={false}
+              markdownView={markdownView}
             />
           ) : null}
         </main>

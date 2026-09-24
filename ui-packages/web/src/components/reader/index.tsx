@@ -1,5 +1,6 @@
 import type { FileView } from '@herdr-roam/shared'
 import { lazy, Suspense } from 'react'
+import type { MarkdownView } from './markdown-view'
 import styles from './style.module.scss'
 
 const CodeReader = lazy(() =>
@@ -22,11 +23,13 @@ export const FileReader = ({
   rawUrl,
   onOpenPath,
   showOutline = true,
+  markdownView,
 }: {
   readonly file: FileView
   readonly rawUrl: (path: string) => string
   readonly onOpenPath: (path: string) => void
   readonly showOutline?: boolean
+  readonly markdownView: MarkdownView
 }) => {
   if (file.kind === 'binary') {
     return <div className={styles.centered}>This binary file cannot be previewed.</div>
@@ -48,6 +51,7 @@ export const FileReader = ({
           rawUrl={rawUrl}
           onOpenPath={onOpenPath}
           showOutline={showOutline}
+          view={markdownView}
         />
       ) : file.kind === 'html' ? (
         <HtmlReader file={file} rawUrl={rawUrl} />
@@ -59,6 +63,7 @@ export const FileReader = ({
           rawUrl={rawUrl}
           onOpenPath={onOpenPath}
           showOutline={showOutline}
+          view={markdownView}
         />
       ) : (
         <CodeReader content={file.content} language={file.language} />
