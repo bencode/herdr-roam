@@ -1,8 +1,11 @@
 import type { FileView } from '@herdr-roam/shared'
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Markdown } from '../markdown'
 import type { MarkdownHeading } from './markdown-outline'
 import { MarkdownOutline } from './markdown-outline'
+import type { MarkdownView } from './markdown-view'
+import { useReadingPreferences } from './reading-preferences'
 import styles from './style.module.scss'
 
 const CodeReader = lazy(() =>
@@ -10,7 +13,9 @@ const CodeReader = lazy(() =>
 )
 
 type MarkdownFile = Extract<FileView, { kind: 'markdown' }>
-type Mode = 'preview' | 'source'
+
+const COMPACT_WIDTH_REM = 60
+const ACTIVE_HEADING_OFFSET = 24
 
 const slug = (text: string): string =>
   text
@@ -26,7 +31,12 @@ const previewContent = (content: string): string => {
   const closingIndex = lines.findIndex(
     (line, index) => index > 0 && (line === '---' || line === '...'),
   )
-  return closingIndex < 0 ? content : lines.slice(closingIndex + 1).join('\n').replace(/^\n/, '')
+  return closingIndex < 0
+    ? content
+    : lines
+        .slice(closingIndex + 1)
+        .join('\n')
+        .replace(/^\n/, '')
 }
 
 const localPath = (currentPath: string, href: string): string | null => {
@@ -58,15 +68,39 @@ export const MarkdownReader = ({
   rawUrl,
   onOpenPath,
   showOutline,
+  view,
 }: {
   readonly file: MarkdownFile
   readonly rawUrl: (path: string) => string
   readonly onOpenPath: (path: string) => void
   readonly showOutline: boolean
+  readonly view: MarkdownView
 }) => {
-  const [mode, setMode] = useState<Mode>('preview')
+  const { mode, outlineOpen, setOutlineOpen } = view
+  const { fontSize, width, theme } = useReadingPreferences()
   const [headings, setHeadings] = useState<readonly MarkdownHeading[]>([])
-  const contentRef = useRef<HTMLDivElement>(null)
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [compact, setCompact] = useState<boolean | null>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLElement>(null)
+  const compactRef = useRef<boolean | null>(null)
+
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+    const remPx = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
+    const observer = new ResizeObserver(([entry]) => {
+      if (!entry) return
+      const next = entry.contentRect.width < COMPACT_WIDTH_REM * remPx
+      // Only a real width transition resets the outline; re-showing a hidden tab keeps the user's choice.
+      if (compactRef.current === next) return
+      compactRef.current = next
+      setCompact(next)
+      setOutlineOpen(!next)
+    })
+    observer.observe(root)
+    return () => observer.disconnect()
+  }, [setOutlineOpen])
 
   useEffect(() => {
     if (mode !== 'preview') return
@@ -88,8 +122,40 @@ export const MarkdownReader = ({
     setHeadings(values)
   }, [file.content, mode])
 
+  useEffect(() => {
+    const scroller = contentRef.current
+    if (mode !== 'preview' || !scroller || headings.length === 0) {
+      setActiveId(null)
+      return
+    }
+    let frame = 0
+    const updateActive = () => {
+      frame = 0
+      const top = scroller.getBoundingClientRect().top + ACTIVE_HEADING_OFFSET
+      const passed = headings.filter(heading => {
+        const element = scroller.querySelector(`#${CSS.escape(heading.id)}`)
+        return element ? element.getBoundingClientRect().top <= top : false
+      })
+      setActiveId((passed.at(-1) ?? headings[0])?.id ?? null)
+    }
+    const scheduleUpdate = () => {
+      if (frame === 0) frame = requestAnimationFrame(updateActive)
+    }
+    updateActive()
+    scroller.addEventListener('scroll', scheduleUpdate, { passive: true })
+    return () => {
+      scroller.removeEventListener('scroll', scheduleUpdate)
+      cancelAnimationFrame(frame)
+    }
+  }, [headings, mode])
+
   const selectHeading = (id: string) =>
-    contentRef.current?.querySelector(`#${CSS.escape(id)}`)?.scrollIntoView({ behavior: 'smooth' })
+    contentRef.current?.querySelector(`#${CSS.escape(id)}`)?.scrollIntoView({
+      behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+    })
+
+  const closeOutline = useCallback(() => setOutlineOpen(false), [setOutlineOpen])
+  const outlineVisible = showOutline && outlineOpen && compact !== null
 
   const handleLink = (href: string): boolean => {
     if (href.startsWith('#')) {
@@ -108,27 +174,22 @@ export const MarkdownReader = ({
   }
 
   return (
-    <div className={styles.markdownReader}>
-      <fieldset className={styles.modeBar}>
-        <legend className="sr-only">Markdown view</legend>
-        {(['preview', 'source'] as const).map(value => (
-          <button
-            type="button"
-            key={value}
-            data-active={mode === value || undefined}
-            aria-pressed={mode === value}
-            onClick={() => setMode(value)}
-          >
-            {value}
-          </button>
-        ))}
-      </fieldset>
+    <div
+      ref={rootRef}
+      className={styles.markdownReader}
+      data-reading-theme={theme}
+      data-width={width}
+      style={{ '--reading-font-size': `${fontSize}px` } as CSSProperties}
+    >
       {mode === 'source' ? (
         <Suspense fallback={<div className={styles.centered}>Loading source…</div>}>
           <CodeReader content={file.content} language="markdown" />
         </Suspense>
       ) : (
-        <div className={styles.markdownLayout} data-outline={showOutline || undefined}>
+        <div
+          className={styles.markdownLayout}
+          data-outline={(outlineVisible && !compact) || undefined}
+        >
           <article ref={contentRef} className={styles.markdownContent}>
             <Markdown
               text={previewContent(file.content)}
@@ -137,8 +198,25 @@ export const MarkdownReader = ({
               onLink={handleLink}
             />
           </article>
-          {showOutline && <MarkdownOutline headings={headings} onSelect={selectHeading} />}
+          {outlineVisible && !compact && (
+            <MarkdownOutline
+              headings={headings}
+              activeId={activeId}
+              variant="column"
+              onSelect={selectHeading}
+              onClose={closeOutline}
+            />
+          )}
         </div>
+      )}
+      {mode === 'preview' && outlineVisible && compact && (
+        <MarkdownOutline
+          headings={headings}
+          activeId={activeId}
+          variant="drawer"
+          onSelect={selectHeading}
+          onClose={closeOutline}
+        />
       )}
     </div>
   )

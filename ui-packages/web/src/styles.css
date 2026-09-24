@@ -17,6 +17,14 @@
   --success: light-dark(oklch(0.55 0.12 150), oklch(0.7 0.13 150));
   --warning: light-dark(oklch(0.67 0.13 75), oklch(0.77 0.13 75));
   --danger: light-dark(oklch(0.57 0.17 28), oklch(0.7 0.16 28));
+  --syntax-comment: light-dark(oklch(0.46 0.02 250), oklch(0.72 0.025 250));
+  --syntax-keyword: light-dark(oklch(0.43 0.15 325), oklch(0.76 0.13 325));
+  --syntax-string: light-dark(oklch(0.4 0.08 155), oklch(0.77 0.1 155));
+  --syntax-number: light-dark(oklch(0.43 0.11 65), oklch(0.79 0.11 75));
+  --syntax-title: light-dark(oklch(0.44 0.12 255), oklch(0.78 0.1 255));
+  --syntax-variable: light-dark(oklch(0.4 0.1 205), oklch(0.78 0.08 205));
+  --syntax-punct: light-dark(oklch(0.42 0.035 285), oklch(0.74 0.025 285));
+  --syntax-deletion: light-dark(oklch(0.48 0.16 25), oklch(0.72 0.14 25));
   --terminal-bg: oklch(0.145 0.012 250);
   --terminal-fg: oklch(0.91 0.006 250);
   --radius: 0.375rem;

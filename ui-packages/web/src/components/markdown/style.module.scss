@@ -100,19 +100,68 @@
     }
   }
 
+  :global(.hljs-comment),
+  :global(.hljs-quote) {
+    color: var(--syntax-comment);
+    font-style: italic;
+  }
+
   :global(.hljs-keyword),
   :global(.hljs-selector-tag),
-  :global(.hljs-title.function_) {
-    color: var(--primary);
+  :global(.hljs-literal),
+  :global(.hljs-doctag) {
+    color: var(--syntax-keyword);
   }
 
   :global(.hljs-string),
-  :global(.hljs-attr) {
-    color: var(--success);
+  :global(.hljs-regexp),
+  :global(.hljs-addition),
+  :global(.hljs-attribute),
+  :global(.hljs-template-tag) {
+    color: var(--syntax-string);
   }
 
-  :global(.hljs-comment) {
-    color: var(--faint);
+  :global(.hljs-number),
+  :global(.hljs-built_in),
+  :global(.hljs-type),
+  :global(.hljs-attr),
+  :global(.hljs-symbol),
+  :global(.hljs-bullet) {
+    color: var(--syntax-number);
+  }
+
+  :global(.hljs-title),
+  :global(.hljs-section),
+  :global(.hljs-name),
+  :global(.hljs-selector-id),
+  :global(.hljs-selector-class) {
+    color: var(--syntax-title);
+  }
+
+  :global(.hljs-variable),
+  :global(.hljs-params),
+  :global(.hljs-property),
+  :global(.hljs-template-variable) {
+    color: var(--syntax-variable);
+  }
+
+  :global(.hljs-meta),
+  :global(.hljs-operator),
+  :global(.hljs-punctuation) {
+    color: var(--syntax-punct);
+  }
+
+  :global(.hljs-deletion) {
+    color: var(--syntax-deletion);
+  }
+
+  :global(.hljs-section),
+  :global(.hljs-strong) {
+    font-weight: 600;
+  }
+
+  :global(.hljs-emphasis) {
+    font-style: italic;
   }
 }
 

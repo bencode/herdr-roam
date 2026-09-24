@@ -62,6 +62,14 @@
   font-weight: 500;
 }
 
+.controls {
+  margin-left: auto;
+
+  + .refresh {
+    margin-left: 0;
+  }
+}
+
 .refresh {
   display: grid;
   width: 1.75rem;

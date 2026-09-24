@@ -1,5 +1,7 @@
 import { FileCode2, RefreshCw } from 'lucide-react'
 import { FileReader } from '../../../components/reader'
+import { MarkdownControls } from '../../../components/reader/markdown-controls'
+import { isMarkdownLike, useMarkdownView } from '../../../components/reader/markdown-view'
 import type { ResourceRef } from '../../../workbench/resource'
 import { projectFileRawUrl } from '../client'
 import { useFileView } from '../use-file-view'
@@ -21,6 +23,7 @@ export const FileTab = ({
   readonly onOpen: (resource: ResourceRef) => void
 }) => {
   const state = useFileView(resource.projectName, resource.workspaceId, resource.path, active)
+  const markdownView = useMarkdownView()
   const rawUrl = (path: string) =>
     projectFileRawUrl(resource.projectName, resource.workspaceId, path)
 
@@ -36,6 +39,9 @@ export const FileTab = ({
           <span className={styles.metadata}>
             {fileSize(state.value.size)} · {state.value.mediaType}
           </span>
+        )}
+        {state.value && isMarkdownLike(state.value) && (
+          <MarkdownControls view={markdownView} showOutlineToggle />
         )}
         <button
           type="button"
@@ -63,6 +69,7 @@ export const FileTab = ({
           <FileReader
             file={state.value}
             rawUrl={rawUrl}
+            markdownView={markdownView}
             onOpenPath={path =>
               onOpen({
                 type: 'file',
