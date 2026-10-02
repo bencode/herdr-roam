@@ -42,7 +42,6 @@ export const activityRootPath = (dimension: GlobalDimension, projectName: string
 }
 
 export const resourcePath = (resource: ResourceRef): string => {
-  if (resource.type === 'agent') return `/agents/${encoded(resource.agentId)}`
   if (resource.type === 'session')
     return `${projectSectionPath(resource.projectName, 'sessions')}/${encoded(resource.provider)}/${encoded(resource.sessionId)}`
   if (resource.type === 'file')
@@ -100,10 +99,7 @@ const skillTarget = (parts: readonly string[]): RouteTarget | null => {
 
 const agentTarget = (parts: readonly string[]): RouteTarget | null => {
   if (parts[0] !== 'agents') return null
-  if (parts.length === 1) return { kind: 'agent-list' }
-  if (parts.length !== 2) return { kind: 'unknown' }
-  const agentId = decode(parts[1] ?? '')
-  return agentId ? { kind: 'resource', resource: { type: 'agent', agentId } } : { kind: 'unknown' }
+  return parts.length === 1 ? { kind: 'agent-list' } : { kind: 'unknown' }
 }
 
 export const parseResourcePath = (pathname: string): RouteTarget => {
@@ -117,7 +113,6 @@ export const routeDimension = (target: RouteTarget): GlobalDimension | null => {
   if (target.kind === 'skill-list') return 'skills'
   if (target.kind === 'workbench' || target.kind === 'project-section') return 'projects'
   if (target.kind !== 'resource') return null
-  if (target.resource.type === 'agent') return 'agents'
   if (target.resource.type === 'skill') return 'skills'
   return 'projects'
 }

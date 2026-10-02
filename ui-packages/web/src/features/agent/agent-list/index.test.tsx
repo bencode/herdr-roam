@@ -34,6 +34,7 @@ vi.mock('../runtime-provider', () => ({
   }),
 }))
 
+import { useAssistantStore } from '../../assistant/store'
 import { AgentList } from '.'
 import { agentDirectoryLabel } from '../presentation'
 
@@ -44,9 +45,9 @@ describe('Agent list', () => {
     expect(agentDirectoryLabel('/')).toBe('/')
   })
 
-  it('groups raw statuses in attention order and opens an Agent resource', () => {
-    const onOpen = vi.fn()
-    render(<AgentList activeAgentId="blocked-1" onOpen={onOpen} />)
+  it('groups raw statuses in attention order and opens Agents in the Assistant panel', () => {
+    useAssistantStore.getState().openAgent('blocked-1')
+    render(<AgentList />)
 
     const headings = screen.getAllByRole('heading').map(heading => heading.textContent)
     expect(headings).toEqual(['Blocked1', 'Idle1'])
@@ -60,12 +61,16 @@ describe('Agent list', () => {
       'Claude · review',
     )
     expect(activeAgent).toHaveAttribute('title', '/work/api')
-    fireEvent.click(activeAgent)
-    expect(onOpen).toHaveBeenCalledWith({ type: 'agent', agentId: 'blocked-1' })
+    fireEvent.click(screen.getByRole('button', { name: /claude-review/ }))
+    expect(useAssistantStore.getState()).toMatchObject({
+      open: true,
+      agentIds: ['blocked-1', 'idle-1'],
+      activeAgentId: 'idle-1',
+    })
   })
 
   it('searches name, provider, and cwd', () => {
-    render(<AgentList activeAgentId={null} onOpen={() => undefined} />)
+    render(<AgentList />)
     fireEvent.change(screen.getByRole('textbox', { name: 'Search agents' }), {
       target: { value: '/work/review/' },
     })

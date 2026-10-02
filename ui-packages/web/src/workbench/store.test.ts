@@ -10,7 +10,7 @@ const otherProjectFile = {
   workspaceId: 'primary',
   path: 'README.md',
 } as const
-const agent = { type: 'agent', agentId: 'terminal-codex' } as const
+const userSkill = { type: 'skill', scope: 'user', skillId: 'frontend-design' } as const
 const primaryFile = {
   type: 'file',
   projectName: 'herdr-roam',
@@ -59,21 +59,21 @@ describe('workbench store', () => {
     const { useWorkbenchStore } = storeModule
     useWorkbenchStore.getState().open(session)
     useWorkbenchStore.getState().open(primaryFile)
-    useWorkbenchStore.getState().open(agent)
+    useWorkbenchStore.getState().open(userSkill)
 
-    expect(useWorkbenchStore.getState().closeMany([primaryFile, agent])).toEqual(session)
+    expect(useWorkbenchStore.getState().closeMany([primaryFile, userSkill])).toEqual(session)
     expect(useWorkbenchStore.getState().tabs).toEqual([session])
     expect(useWorkbenchStore.getState().lastActive).toEqual(session)
   })
 
   it('persists only the versioned workbench snapshot', () => {
     const { useWorkbenchStore } = storeModule
-    useWorkbenchStore.getState().open(agent)
-    expect(JSON.parse(localStorage.getItem('herdr-roam.workbench.v7') ?? '')).toEqual({
-      version: 7,
+    useWorkbenchStore.getState().open(userSkill)
+    expect(JSON.parse(localStorage.getItem('herdr-roam.workbench.v8') ?? '')).toEqual({
+      version: 8,
       activeProjectName: 'herdr-roam',
-      tabs: [agent],
-      lastActive: agent,
+      tabs: [userSkill],
+      lastActive: userSkill,
       lastActivity: 'projects',
       activityPaths: {
         projects: '/projects/herdr-roam',
@@ -83,32 +83,29 @@ describe('workbench store', () => {
     })
   })
 
-  it('forgets Project-owned tabs without closing global Agents', () => {
+  it('forgets Project-owned tabs without closing user Skills', () => {
     const { useWorkbenchStore } = storeModule
     useWorkbenchStore.getState().open(session)
     useWorkbenchStore.getState().open(otherProjectFile)
-    useWorkbenchStore.getState().open(agent)
+    useWorkbenchStore.getState().open(userSkill)
 
     useWorkbenchStore.getState().forgetProject('herdr-roam')
 
-    expect(useWorkbenchStore.getState().tabs).toEqual([otherProjectFile, agent])
-    expect(useWorkbenchStore.getState().lastActive).toEqual(agent)
+    expect(useWorkbenchStore.getState().tabs).toEqual([otherProjectFile, userSkill])
+    expect(useWorkbenchStore.getState().lastActive).toEqual(userSkill)
   })
 
   it('remembers one canonical path per Activity', () => {
     const { useWorkbenchStore } = storeModule
     useWorkbenchStore
       .getState()
-      .rememberActivity(
-        'projects',
-        '/projects/herdr-roam/files/primary/docs/guide.md',
-      )
-    useWorkbenchStore.getState().rememberActivity('agents', '/agents/terminal-codex')
+      .rememberActivity('projects', '/projects/herdr-roam/files/primary/docs/guide.md')
+    useWorkbenchStore.getState().rememberActivity('agents', '/agents')
 
     expect(useWorkbenchStore.getState().lastActivity).toBe('agents')
     expect(useWorkbenchStore.getState().activityPaths).toEqual({
       projects: '/projects/herdr-roam/files/primary/docs/guide.md',
-      agents: '/agents/terminal-codex',
+      agents: '/agents',
       skills: '/skills',
     })
   })
@@ -129,11 +126,12 @@ describe('workbench store', () => {
     })
   })
 
-  it('discards v6 workbench state after removing local Issue resources', async () => {
+  it('discards v7 workbench state after moving Agents to the Assistant panel', async () => {
+    const agent = { type: 'agent', agentId: 'terminal-codex' }
     localStorage.setItem(
-      'herdr-roam.workbench.v6',
+      'herdr-roam.workbench.v7',
       JSON.stringify({
-        version: 6,
+        version: 7,
         activeProjectName: 'herdr-roam',
         tabs: [agent],
         lastActive: agent,
@@ -142,7 +140,7 @@ describe('workbench store', () => {
     vi.resetModules()
     const { useWorkbenchStore } = await import('./store')
 
-    expect(useWorkbenchStore.getState()).toMatchObject({ version: 7, tabs: [], lastActive: null })
-    expect(localStorage.getItem('herdr-roam.workbench.v7')).toBeNull()
+    expect(useWorkbenchStore.getState()).toMatchObject({ version: 8, tabs: [], lastActive: null })
+    expect(localStorage.getItem('herdr-roam.workbench.v8')).toBeNull()
   })
 })

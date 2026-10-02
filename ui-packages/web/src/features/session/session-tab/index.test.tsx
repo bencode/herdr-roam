@@ -1,12 +1,12 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, vi } from 'vitest'
-import type { ResourceRef } from '../../../workbench/resource'
 import { SessionClientError } from '../client'
 import { SessionTab } from '.'
 
 const mocks = vi.hoisted(() => ({
   resume: vi.fn(),
   reload: vi.fn(),
+  openAgent: vi.fn(),
   agents: [] as Array<{
     id: string
     name: string
@@ -56,6 +56,10 @@ vi.mock('../use-session-data', () => ({
     reload: mocks.reload,
   }),
 }))
+vi.mock('../../assistant/store', () => ({
+  useAssistantStore: (select: (state: { openAgent: typeof mocks.openAgent }) => unknown) =>
+    select({ openAgent: mocks.openAgent }),
+}))
 vi.mock('../../agent/runtime-provider', () => ({
   useAgentRuntime: () => ({
     snapshot: {
@@ -73,14 +77,14 @@ const resource = {
   sessionId: 'session-1',
 } as const
 
-const renderSession = (onOpen: (resource: ResourceRef) => void = () => undefined) =>
-  render(<SessionTab resource={resource} onOpen={onOpen} />)
+const renderSession = () => render(<SessionTab resource={resource} />)
 
 describe('Session tab', () => {
   beforeEach(() => {
     mocks.agents = []
     mocks.reload.mockReset()
     mocks.resume.mockReset()
+    mocks.openAgent.mockReset()
   })
 
   afterEach(() => vi.restoreAllMocks())
@@ -98,8 +102,7 @@ describe('Session tab', () => {
         session: { source: 'process', agent: 'codex', kind: 'id', value: 'session-1' },
       },
     })
-    const onOpen = vi.fn()
-    renderSession(onOpen)
+    renderSession()
 
     expect(screen.getByText('Historical answer')).toBeVisible()
     expect(screen.getByRole('heading', { name: 'Historical answer', level: 2 })).toBeVisible()
@@ -109,7 +112,7 @@ describe('Session tab', () => {
       expect(mocks.resume).toHaveBeenCalledWith('herdr-roam', 'codex', 'session-1'),
     )
     expect(mocks.reload).toHaveBeenCalled()
-    expect(onOpen).toHaveBeenCalledWith({ type: 'agent', agentId: 'terminal-1' })
+    expect(mocks.openAgent).toHaveBeenCalledWith('terminal-1')
     expect(screen.getByText('Historical answer')).toBeVisible()
     expect(screen.getByTitle('/work/herdr-roam/.worktrees/release')).toBeVisible()
   })
@@ -131,14 +134,13 @@ describe('Session tab', () => {
         attachCommand: 'herdr terminal attach terminal-2',
       }),
     )
-    const onOpen = vi.fn<(resource: ResourceRef) => void>()
-    renderSession(onOpen)
+    renderSession()
 
     fireEvent.click(screen.getByRole('button', { name: 'Resume Session' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Agent startup timed out.')
     fireEvent.click(screen.getByRole('button', { name: 'Open Agent' }))
-    expect(onOpen).toHaveBeenCalledWith({ type: 'agent', agentId: 'terminal-2' })
+    expect(mocks.openAgent).toHaveBeenCalledWith('terminal-2')
     fireEvent.click(screen.getByRole('button', { name: 'Copy attach' }))
     await waitFor(() => expect(writeText).toHaveBeenCalledWith('herdr terminal attach terminal-2'))
 
@@ -159,13 +161,12 @@ describe('Session tab', () => {
         session: { source: 'process', agent: 'codex', kind: 'id', value: 'session-1' },
       },
     ]
-    const onOpen = vi.fn<(resource: ResourceRef) => void>()
-    renderSession(onOpen)
+    renderSession()
 
     expect(screen.getByText('Historical answer')).toBeVisible()
     expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Open Agent' }))
-    expect(onOpen).toHaveBeenCalledWith({ type: 'agent', agentId: 'terminal-1' })
+    expect(mocks.openAgent).toHaveBeenCalledWith('terminal-1')
   })
 
   it('does not navigate when Resume finishes after leaving the Session', async () => {
@@ -176,12 +177,11 @@ describe('Session tab', () => {
           complete = resolve
         }),
     )
-    const onOpen = vi.fn()
-    const { rerender } = renderSession(onOpen)
+    const { rerender } = renderSession()
     fireEvent.click(screen.getByRole('button', { name: 'Resume Session' }))
-    rerender(<SessionTab resource={resource} active={false} onOpen={onOpen} />)
+    rerender(<SessionTab resource={resource} active={false} />)
     await act(async () => complete?.({ agent: { id: 'terminal-1', status: 'idle' } }))
-    expect(onOpen).not.toHaveBeenCalled()
+    expect(mocks.openAgent).not.toHaveBeenCalled()
   })
 
   it('refreshes the latest transcript when a working Agent disappears', () => {
@@ -198,7 +198,7 @@ describe('Session tab', () => {
     ]
     const { rerender } = renderSession()
     mocks.agents = []
-    rerender(<SessionTab resource={resource} onOpen={() => undefined} />)
+    rerender(<SessionTab resource={resource} />)
     expect(mocks.reload).toHaveBeenCalledOnce()
     expect(screen.getByRole('button', { name: 'Resume Session' })).toBeVisible()
     expect(screen.getByText('Historical answer')).toBeVisible()

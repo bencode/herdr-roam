@@ -185,7 +185,7 @@ those integrations is an advanced runtime concern and does not block basic
 startup.
 
 Runtime availability remains contextual: the sidebar summary reports aggregate
-availability, while the Agent list and Terminal page explain connection failures or
+availability, while the Agent list and Assistant panel explain connection failures or
 stale data where those conditions block an action. A dedicated Runtime page,
 diagnostics workflow, and server-ownership preference are deferred until the
 next product-design phase defines the problem they solve.
@@ -224,7 +224,7 @@ Open Agent and Copy attach provide recovery; Start another Agent explicitly
 enables a separate new launch. If the user leaves during startup, the result is
 retained for its originating Project without taking over the current page.
 
-Once Herdr exposes a native Session ID, the Agent page resolves its cwd
+Once Herdr exposes a native Session ID, the Agent view resolves its cwd
 against registered Project workspaces, including external worktrees, and offers
 Open Session. It never automatically navigates when the ID arrives. Provider
 history remains the source for the Sessions list; empty native histories may
@@ -294,12 +294,22 @@ keyboard bridge or automatic approval is used.
 ## Agents
 
 Agents is the cross-project live-runtime view. The left pane answers how many
-agents are working and which ones need attention. The main pane inspects one
-selected agent.
+agents are working and which ones need attention. Selecting an agent opens it in
+the Assistant panel.
 
-Agent Tabs use `/agents/:agentId` and remain independent of the active Project.
-The main pane directly shows the native Terminal. There is no Preview switch,
-separate Prompt composer, or Focus in Herdr action. The header retains Open
+The Assistant panel on the right of the workbench is the only place Agent
+Terminals open; the workbench Tabs hold Sessions, Files, and Skills. The panel
+lists every running Agent, independent of the active Project, as its own tabs,
+each with a work-status dot. Only the selected tab mounts its Terminal; the
+others show status from the runtime snapshot. Closing a panel tab keeps the
+Agent running. The + menu attaches another running Agent or starts a new Claude
+or Codex Agent in the active Project. Maximize collapses the workbench so the
+panel fills the space beside the sidebar. Background tabs of Agents that leave
+the runtime are removed; the selected tab stays to show the stopped Agent until
+it is closed. Agents have no route; `/agents` remains the Agents list.
+
+The selected tab shows the native Terminal. There is no Preview switch,
+separate Prompt composer, or Focus in Herdr action. Its header retains Open
 Session when resolvable, Stop Agent… with confirmation, and Copy attach. A separated
 Details icon toggles the metadata panel on demand. Terminal connection status
 shares this header and is labeled separately from Agent work status. Connected
@@ -315,8 +325,8 @@ runtime first becomes available. Ordinary rerenders and status refreshes do not
 reconnect. Terminal handles native keyboard input, IME and text paste; Escape
 is native input, not a view-exit shortcut.
 
-Switching away from or closing the Agent resource Tab unmounts Terminal and
-releases its connection and control, not the Agent. Returning mounts Terminal
+Switching to another Agent tab, closing the tab, or closing the Assistant panel
+unmounts Terminal and releases its connection and control, not the Agent. Returning mounts Terminal
 again and attempts a fresh connection. Within one visit, connection failure,
 takeover, or runtime loss after connection requires explicit Reconnect.
 Disconnection preserves the last visible screen and disables input;

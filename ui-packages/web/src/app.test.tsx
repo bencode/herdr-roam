@@ -515,9 +515,7 @@ describe('workbench application', () => {
   it('restores the exact Project route after visiting another Activity', async () => {
     render(
       <MemoryRouter
-        initialEntries={[
-          '/projects/herdr-roam/files/primary/docs/product/vision-and-scope.md',
-        ]}
+        initialEntries={['/projects/herdr-roam/files/primary/docs/product/vision-and-scope.md']}
       >
         <App />
         <CurrentPath />
@@ -668,7 +666,7 @@ describe('workbench application', () => {
     expect(screen.queryByRole('tab', { name: 'Runtime' })).not.toBeInTheDocument()
   })
 
-  it('opens a real Agent as an independent route-backed tab', async () => {
+  it('opens a real Agent in the Assistant panel instead of a workbench tab', async () => {
     render(
       <MemoryRouter initialEntries={['/projects/herdr-roam']}>
         <App />
@@ -679,13 +677,15 @@ describe('workbench application', () => {
     fireEvent.click(screen.getByRole('link', { name: 'Agents' }))
     fireEvent.click(await screen.findByRole('button', { name: /codex-product/ }))
 
-    expect(screen.getByTestId('current-path')).toHaveTextContent('/agents/terminal-codex')
+    expect(screen.getByTestId('current-path')).toHaveTextContent('/agents')
     expect(screen.getByRole('button', { name: /codex-product/, current: 'page' })).toBeVisible()
-    expect(screen.getByRole('tab', { name: /codex-product/ })).toBeVisible()
-    expect(screen.getByRole('button', { name: 'Copy attach command' })).toBeVisible()
-    expect(await screen.findByRole('region', { name: 'Agent terminal' })).toBeVisible()
-    expect(useWorkbenchStore.getState().tabs).toEqual([
-      { type: 'agent', agentId: 'terminal-codex' },
-    ])
+    const assistant = screen.getByRole('region', { name: 'Assistant' })
+    expect(within(assistant).getByRole('tab', { name: /codex-product/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    expect(within(assistant).getByRole('button', { name: 'Copy attach command' })).toBeVisible()
+    expect(await within(assistant).findByRole('region', { name: 'Agent terminal' })).toBeVisible()
+    expect(useWorkbenchStore.getState().tabs).toEqual([])
   })
 })

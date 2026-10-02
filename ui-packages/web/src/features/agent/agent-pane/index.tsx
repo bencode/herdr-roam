@@ -35,19 +35,17 @@ const unavailableMessage = (
   return stale ? 'Agent runtime state is stale.' : ''
 }
 
-export const AgentTab = ({
-  resource,
+export const AgentPane = ({
+  agentId,
   projects = EMPTY_PROJECTS,
   onOpen = () => undefined,
-  active = true,
 }: {
-  readonly resource: Extract<ResourceRef, { type: 'agent' }>
+  readonly agentId: string
   readonly projects?: readonly Project[]
   readonly onOpen?: (resource: ResourceRef) => void
-  readonly active?: boolean
 }) => {
   const { snapshot, agentById } = useAgentRuntime()
-  const current = agentById(resource.agentId)
+  const current = agentById(agentId)
   const [lastAgent, setLastAgent] = useState<AgentSummary | null>(current ?? null)
   const [copied, setCopied] = useState<'attach' | 'working-directory' | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -78,7 +76,7 @@ export const AgentTab = ({
         <div>
           <TerminalSquare className="mx-auto mb-4 size-6 text-faint" aria-hidden="true" />
           <h1 className="m-0 text-lg">Agent unavailable</h1>
-          <p className="mt-2 text-sm text-muted">{resource.agentId} is not present in Herdr.</p>
+          <p className="mt-2 text-sm text-muted">{agentId} is not present in Herdr.</p>
         </div>
       </div>
     )
@@ -127,17 +125,17 @@ export const AgentTab = ({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex min-h-14 flex-none items-center gap-3 border-border border-b px-5">
-        <i
-          className={cn(
-            'size-2 flex-none rounded-full',
-            current ? statusClasses[agent.status] : 'bg-faint',
-          )}
-          role="img"
-          aria-label={displayedStatus}
-        />
-        <div className="mr-auto min-w-0">
+      <header className="flex flex-none flex-wrap items-center gap-x-2 gap-y-1 border-border border-b px-3 py-2">
+        <div className="min-w-0 basis-full">
           <div className="flex items-center gap-2">
+            <i
+              className={cn(
+                'size-2 flex-none rounded-full',
+                current ? statusClasses[agent.status] : 'bg-faint',
+              )}
+              role="img"
+              aria-label={displayedStatus}
+            />
             <h1 className="m-0 truncate text-sm font-semibold">{agent.name}</h1>
             <span className="text-xs capitalize text-muted">{displayedStatus}</span>
             {providerLabel && (
@@ -158,14 +156,19 @@ export const AgentTab = ({
             {actionError}
           </span>
         )}
-        <div ref={setTerminalControls} className="flex flex-none items-center gap-2 text-xs" />
+        <div
+          ref={setTerminalControls}
+          className="mr-auto flex flex-none items-center gap-2 text-xs"
+        />
         {sessionResource && (
           <Button
-            className={cn('flex-none', !actionError && 'ml-auto')}
+            size="defaultIcon"
+            aria-label="Open Session"
+            title="Open Session"
+            className="flex-none"
             onClick={() => onOpen(sessionResource)}
           >
             <MessageSquare aria-hidden="true" />
-            Open Session
           </Button>
         )}
         {current && (
@@ -178,14 +181,15 @@ export const AgentTab = ({
           />
         )}
         <Button
+          size="defaultIcon"
           aria-label="Copy attach command"
+          title={copied === 'attach' ? 'Copied' : 'Copy attach command'}
           className="flex-none"
           onClick={() =>
             void copyText(attachCommand, 'attach', 'The attach command could not be copied.')
           }
         >
           {copied === 'attach' ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
-          {copied === 'attach' ? 'Copied' : 'Copy attach'}
         </Button>
         <Button
           size="defaultIcon"
@@ -202,7 +206,7 @@ export const AgentTab = ({
       </header>
       {sessionLink.error && (
         <div
-          className="flex items-center gap-2 border-border border-b px-5 py-2 text-xs text-danger"
+          className="flex items-center gap-2 border-border border-b px-3 py-2 text-xs text-danger"
           role="status"
         >
           <span>{sessionLink.error}</span>
@@ -212,28 +216,26 @@ export const AgentTab = ({
         </div>
       )}
       {!runtimeAvailable && (
-        <div className="border-warning/30 border-b bg-warning/8 px-5 py-2 text-xs text-muted">
+        <div className="border-warning/30 border-b bg-warning/8 px-3 py-2 text-xs text-muted">
           {runtimeMessage}
         </div>
       )}
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">
-          {active && (
-            <Suspense
-              fallback={
-                <p className="p-4 text-sm text-muted" role="status">
-                  Loading terminal…
-                </p>
-              }
-            >
-              <BrowserTerminal
-                key={agent.id}
-                agentId={agent.id}
-                available={runtimeAvailable}
-                controlsContainer={terminalControls}
-              />
-            </Suspense>
-          )}
+          <Suspense
+            fallback={
+              <p className="p-4 text-sm text-muted" role="status">
+                Loading terminal…
+              </p>
+            }
+          >
+            <BrowserTerminal
+              key={agent.id}
+              agentId={agent.id}
+              available={runtimeAvailable}
+              controlsContainer={terminalControls}
+            />
+          </Suspense>
         </div>
         {detailsOpen && (
           <AgentDetails

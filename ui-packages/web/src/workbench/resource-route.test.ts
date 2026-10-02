@@ -59,16 +59,10 @@ describe('resource routes', () => {
     })
   })
 
-  it('round-trips an independent Agent route', () => {
-    const agent = { type: 'agent', agentId: 'terminal:id/with spaces' } as const
-    expect(resourcePath(agent)).toBe('/agents/terminal%3Aid%2Fwith%20spaces')
-    expect(parseResourcePath(resourcePath(agent))).toEqual({ kind: 'resource', resource: agent })
-  })
-
   it('maps collection and resource routes to their owning Activity', () => {
     expect(parseResourcePath('/agents')).toEqual({ kind: 'agent-list' })
     expect(parseResourcePath('/skills')).toEqual({ kind: 'skill-list' })
-    expect(routeDimension(parseResourcePath('/agents/codex'))).toBe('agents')
+    expect(parseResourcePath('/agents/codex')).toEqual({ kind: 'unknown' })
     expect(routeDimension(parseResourcePath('/skills/agents%3Afrontend-design'))).toBe('skills')
     expect(
       routeDimension(parseResourcePath('/projects/herdr-roam/skills/codex%3Afrontend-design')),
@@ -84,9 +78,7 @@ describe('resource routes', () => {
     expect(parseResourcePath('/projects/herdr-roam/loops')).toEqual({ kind: 'unknown' })
     expect(parseResourcePath('/projects/herdr-roam/issues')).toEqual({ kind: 'unknown' })
     expect(
-      parseResourcePath(
-        '/projects/herdr-roam/issues/primary/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-      ),
+      parseResourcePath('/projects/herdr-roam/issues/primary/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
     ).toEqual({ kind: 'unknown' })
     expect(parseResourcePath('/projects/herdr-roam/issues/hr-018')).toEqual({ kind: 'unknown' })
     expect(parseResourcePath('/projects/herdr-roam/loops/not-supported')).toEqual({

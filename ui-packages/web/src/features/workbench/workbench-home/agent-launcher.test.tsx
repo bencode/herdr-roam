@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   launch: vi.fn(),
   register: vi.fn(),
   directories: vi.fn(),
+  openAgent: vi.fn(),
   runtimeConnected: true,
 }))
 vi.mock('../../agent/client', async importOriginal => {
@@ -16,6 +17,10 @@ vi.mock('../../agent/client', async importOriginal => {
 vi.mock('../../project/workspace-client', async importOriginal => ({
   ...(await importOriginal<typeof import('../../project/workspace-client')>()),
   fetchProjectWorkspaces: mocks.directories,
+}))
+vi.mock('../../assistant/store', () => ({
+  useAssistantStore: (select: (state: { openAgent: typeof mocks.openAgent }) => unknown) =>
+    select({ openAgent: mocks.openAgent }),
 }))
 vi.mock('../../agent/runtime-provider', () => ({
   useAgentRuntime: () => ({
@@ -82,8 +87,7 @@ describe('New Session launcher', () => {
   afterEach(() => vi.restoreAllMocks())
 
   it('opens the selected provider in the selected worktree without a Prompt', async () => {
-    const onOpen = vi.fn()
-    render(<AgentLauncher project={project} onOpen={onOpen} />)
+    render(<AgentLauncher project={project} />)
     await ready()
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
     expect(mocks.launch).not.toHaveBeenCalled()
@@ -93,9 +97,7 @@ describe('New Session launcher', () => {
       target: { value: 'claude' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Open Claude' }))
-    await waitFor(() =>
-      expect(onOpen).toHaveBeenCalledWith({ type: 'agent', agentId: receipt.agent.id }),
-    )
+    await waitFor(() => expect(mocks.openAgent).toHaveBeenCalledWith(receipt.agent.id))
     expect(mocks.launch).toHaveBeenCalledWith({
       projectName: project.name,
       provider: 'claude',
@@ -103,7 +105,7 @@ describe('New Session launcher', () => {
     })
     expect(mocks.register).toHaveBeenCalledWith(receipt.agent)
     expect(mocks.register.mock.invocationCallOrder[0]).toBeLessThan(
-      onOpen.mock.invocationCallOrder[0] ?? 0,
+      mocks.openAgent.mock.invocationCallOrder[0] ?? 0,
     )
   })
 
@@ -116,8 +118,7 @@ describe('New Session launcher', () => {
           complete = resolve
         }),
       )
-      const onOpen = vi.fn()
-      const view = render(<AgentLauncher project={project} onOpen={onOpen} />)
+      const view = render(<AgentLauncher project={project} />)
       await ready()
       fireEvent.submit(screen.getByRole('form', { name: 'New Session' }))
       fireEvent.submit(screen.getByRole('form', { name: 'New Session' }))
@@ -127,17 +128,16 @@ describe('New Session launcher', () => {
         <AgentLauncher
           project={destination === 'another project' ? { name: 'other', path: '/other' } : project}
           visible={destination !== 'another tab'}
-          onOpen={onOpen}
         />,
       )
       await act(async () => {
         complete?.(receipt)
       })
       expect(mocks.register).toHaveBeenCalledWith(receipt.agent)
-      expect(onOpen).not.toHaveBeenCalled()
-      view.rerender(<AgentLauncher project={project} onOpen={onOpen} />)
+      expect(mocks.openAgent).not.toHaveBeenCalled()
+      view.rerender(<AgentLauncher project={project} />)
       fireEvent.click(await screen.findByRole('button', { name: 'Open Agent' }))
-      expect(onOpen).toHaveBeenCalledWith({ type: 'agent', agentId: receipt.agent.id })
+      expect(mocks.openAgent).toHaveBeenCalledWith(receipt.agent.id)
     },
   )
 
@@ -152,8 +152,7 @@ describe('New Session launcher', () => {
         attachCommand: 'herdr terminal attach terminal-1',
       }),
     )
-    const onOpen = vi.fn()
-    render(<AgentLauncher project={project} onOpen={onOpen} />)
+    render(<AgentLauncher project={project} />)
     await ready()
     fireEvent.click(screen.getByRole('button', { name: 'Open Codex' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('kept for recovery')
@@ -165,14 +164,14 @@ describe('New Session launcher', () => {
       ),
     )
     fireEvent.click(screen.getByRole('button', { name: 'Open Agent' }))
-    expect(onOpen).toHaveBeenCalledWith({ type: 'agent', agentId: 'terminal-1' })
+    expect(mocks.openAgent).toHaveBeenCalledWith('terminal-1')
     fireEvent.click(screen.getByRole('button', { name: 'Start another Agent' }))
     await ready()
     expect(mocks.launch).toHaveBeenCalledTimes(1)
   })
 
   it('keeps the provider but resets the directory when the project changes', async () => {
-    const view = render(<AgentLauncher project={project} onOpen={vi.fn()} />)
+    const view = render(<AgentLauncher project={project} />)
     await ready()
     fireEvent.click(screen.getByRole('button', { name: 'Working directory' }))
     fireEvent.click(screen.getByRole('option', { name: /linked-task/ }))
@@ -180,7 +179,7 @@ describe('New Session launcher', () => {
       target: { value: 'claude' },
     })
     mocks.directories.mockResolvedValue({ items: [{ ...primary, path: '/other' }] })
-    view.rerender(<AgentLauncher project={{ name: 'other', path: '/other' }} onOpen={vi.fn()} />)
+    view.rerender(<AgentLauncher project={{ name: 'other', path: '/other' }} />)
     await waitFor(() => expect(screen.getByRole('button', { name: 'Open Claude' })).toBeEnabled())
     fireEvent.click(screen.getByRole('button', { name: 'Open Claude' }))
     await waitFor(() =>
@@ -198,10 +197,9 @@ describe('New Session launcher', () => {
       .mockRejectedValueOnce(new Error('temporary failure'))
       .mockReturnValueOnce(retry.promise)
       .mockResolvedValueOnce({ items: [{ ...primary, name: 'other', path: '/other' }] })
-    const onOpen = vi.fn()
-    const view = render(<AgentLauncher project={project} onOpen={onOpen} />)
+    const view = render(<AgentLauncher project={project} />)
     fireEvent.click(await screen.findByRole('button', { name: 'Retry directories' }))
-    view.rerender(<AgentLauncher project={{ name: 'other', path: '/other' }} onOpen={onOpen} />)
+    view.rerender(<AgentLauncher project={{ name: 'other', path: '/other' }} />)
     await ready()
     await act(async () => retry.resolve({ items: [primary, task] }))
     expect(screen.getByText('/other')).toBeVisible()
@@ -214,14 +212,13 @@ describe('New Session launcher', () => {
         workspaceId: 'primary',
       }),
     )
-    await waitFor(() => expect(onOpen).toHaveBeenCalled())
+    await waitFor(() => expect(mocks.openAgent).toHaveBeenCalled())
   })
 
   it('requires an explicit directory choice when the selected worktree disappears', async () => {
-    const onOpen = vi.fn()
     const launcher = (visible: boolean) => (
       <Activity mode={visible ? 'visible' : 'hidden'}>
-        <AgentLauncher project={project} onOpen={onOpen} visible={visible} />
+        <AgentLauncher project={project} visible={visible} />
       </Activity>
     )
     const view = render(launcher(true))
@@ -251,12 +248,12 @@ describe('New Session launcher', () => {
         workspaceId: 'primary',
       }),
     )
-    await waitFor(() => expect(onOpen).toHaveBeenCalled())
+    await waitFor(() => expect(mocks.openAgent).toHaveBeenCalled())
   })
 
   it('requires a reliable directory catalog and runtime before opening', async () => {
     mocks.directories.mockRejectedValueOnce(new Error('directory read failed'))
-    render(<AgentLauncher project={project} onOpen={vi.fn()} />)
+    render(<AgentLauncher project={project} />)
     await screen.findByRole('alert')
     expect(screen.getByRole('button', { name: 'Open Codex' })).toBeDisabled()
     fireEvent.click(screen.getByRole('button', { name: 'Retry directories' }))

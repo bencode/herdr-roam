@@ -1,9 +1,10 @@
 import type { Project } from '@herdr-roam/shared'
 import { PanelLeft, PanelRight } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Group, Panel, Separator, useDefaultLayout, usePanelRef } from 'react-resizable-panels'
 import { useAgentRuntime } from '../../features/agent/runtime-provider'
 import { AssistantPanel } from '../../features/assistant'
+import { useAssistantStore } from '../../features/assistant/store'
 import { cn } from '../../lib/cn'
 import type { GlobalDimension, ProjectSection, ResourceRef } from '../../workbench/resource'
 import { ActivityBar } from '../activity-bar'
@@ -82,8 +83,12 @@ export const AppShell = ({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const sidebarRef = usePanelRef()
   const expandedWidth = useRef(readWidth(SIDEBAR_WIDTH_KEY, 280, DEFAULT_SIDEBAR_WIDTH))
-  const [assistantCollapsed, setAssistantCollapsed] = useState(true)
+  const assistantOpen = useAssistantStore(state => state.open)
+  const maximized = useAssistantStore(state => state.maximized)
+  const setAssistantOpen = useAssistantStore(state => state.setOpen)
+  const setMaximized = useAssistantStore(state => state.setMaximized)
   const assistantRef = usePanelRef()
+  const workbenchRef = usePanelRef()
   const assistantWidth = useRef(
     readWidth(ASSISTANT_WIDTH_KEY, MIN_ASSISTANT_WIDTH, DEFAULT_ASSISTANT_WIDTH),
   )
@@ -107,15 +112,24 @@ export const AppShell = ({
     writeWidth(SIDEBAR_WIDTH_KEY, width)
   }
 
-  const toggleAssistant = () => {
-    if (assistantCollapsed) assistantRef.current?.resize(assistantWidth.current)
-    else assistantRef.current?.collapse()
-  }
+  useEffect(() => {
+    const panel = assistantRef.current
+    if (!panel) return
+    if (assistantOpen && panel.isCollapsed()) panel.resize(assistantWidth.current)
+    if (!assistantOpen && !panel.isCollapsed()) panel.collapse()
+  }, [assistantOpen, assistantRef])
+
+  useEffect(() => {
+    const panel = workbenchRef.current
+    if (!panel) return
+    if (maximized && !panel.isCollapsed()) panel.collapse()
+    if (!maximized && panel.isCollapsed()) panel.expand()
+  }, [maximized, workbenchRef])
 
   const resizeAssistant = (width: number) => {
     const collapsed = width < MIN_ASSISTANT_WIDTH
-    setAssistantCollapsed(collapsed)
-    if (collapsed) return
+    setAssistantOpen(!collapsed)
+    if (collapsed || maximized) return
     assistantWidth.current = width
     writeWidth(ASSISTANT_WIDTH_KEY, width)
   }
@@ -216,7 +230,6 @@ export const AppShell = ({
               <ContextSidebar
                 dimension={activeDimension}
                 activeProjectName={activeProjectName}
-                activeAgentId={active?.type === 'agent' ? active.agentId : null}
                 activeFile={active?.type === 'file' ? active : null}
                 activeSkill={active?.type === 'skill' ? active : null}
                 projectSection={projectSection}
@@ -233,7 +246,15 @@ export const AppShell = ({
           </div>
         </Panel>
         <Separator className="w-px bg-border transition-colors duration-150 hover:bg-primary data-[resize-handle-active]:bg-primary" />
-        <Panel id="workbench" minSize={560} className="flex min-h-0 min-w-0 flex-col bg-surface">
+        <Panel
+          id="workbench"
+          minSize={560}
+          collapsible
+          collapsedSize={0}
+          panelRef={workbenchRef}
+          onResize={size => setMaximized(size.inPixels === 0)}
+          className="flex min-h-0 min-w-0 flex-col bg-surface"
+        >
           <TabBar
             tabs={tabs}
             active={active}
@@ -246,12 +267,12 @@ export const AppShell = ({
                 type="button"
                 className={cn(
                   'grid w-10 flex-none place-items-center border-0 border-border border-l bg-transparent text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3.5',
-                  !assistantCollapsed && 'text-foreground',
+                  assistantOpen && 'text-foreground',
                 )}
-                onClick={toggleAssistant}
-                aria-pressed={!assistantCollapsed}
-                aria-label={assistantCollapsed ? 'Open Assistant' : 'Close Assistant'}
-                title={assistantCollapsed ? 'Open Assistant' : 'Close Assistant'}
+                onClick={() => setAssistantOpen(!assistantOpen)}
+                aria-pressed={assistantOpen}
+                aria-label={assistantOpen ? 'Close Assistant' : 'Open Assistant'}
+                title={assistantOpen ? 'Close Assistant' : 'Open Assistant'}
               >
                 <PanelRight aria-hidden="true" />
               </button>
@@ -259,7 +280,6 @@ export const AppShell = ({
           />
           <ResourceHost
             project={projects.find(project => project.name === activeProjectName) ?? null}
-            projects={projects}
             tabs={tabs}
             active={active}
             onOpen={onOpen}
@@ -270,7 +290,6 @@ export const AppShell = ({
           id="assistant"
           defaultSize={0}
           minSize={MIN_ASSISTANT_WIDTH}
-          maxSize="45%"
           groupResizeBehavior="preserve-pixel-size"
           collapsible
           collapsedSize={0}
@@ -278,7 +297,9 @@ export const AppShell = ({
           onResize={size => resizeAssistant(size.inPixels)}
           className="flex min-h-0 min-w-0 flex-col"
         >
-          {!assistantCollapsed && <AssistantPanel projectName={activeProjectName} />}
+          {assistantOpen && (
+            <AssistantPanel projectName={activeProjectName} projects={projects} onOpen={onOpen} />
+          )}
         </Panel>
       </Group>
     </div>

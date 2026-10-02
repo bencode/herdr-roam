@@ -2,7 +2,7 @@ import type { AgentStatus, AgentSummary } from '@herdr-roam/shared'
 import { Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { cn } from '../../../lib/cn'
-import type { ResourceRef } from '../../../workbench/resource'
+import { useAssistantStore } from '../../assistant/store'
 import { agentDirectoryLabel, agentProviderLabel } from '../presentation'
 import { useAgentRuntime } from '../runtime-provider'
 
@@ -30,14 +30,10 @@ const matches = (agent: AgentSummary, query: string): boolean => {
   )
 }
 
-export const AgentList = ({
-  activeAgentId,
-  onOpen,
-}: {
-  readonly activeAgentId: string | null
-  readonly onOpen: (resource: ResourceRef) => void
-}) => {
+export const AgentList = () => {
   const { snapshot, transportError } = useAgentRuntime()
+  const activeAgentId = useAssistantStore(state => state.activeAgentId)
+  const openAgent = useAssistantStore(state => state.openAgent)
   const [query, setQuery] = useState('')
   const filtered = useMemo(
     () => snapshot.items.filter(agent => matches(agent, query)),
@@ -95,7 +91,7 @@ export const AgentList = ({
                       'flex w-full items-start gap-2.5 rounded-sm border-0 px-2 py-2 text-left [&>i]:mt-[0.32rem]',
                       active ? 'bg-primary-soft text-foreground' : 'bg-transparent hover:bg-hover',
                     )}
-                    onClick={() => onOpen({ type: 'agent', agentId: agent.id })}
+                    onClick={() => openAgent(agent.id)}
                     title={agent.cwd ?? undefined}
                   >
                     <i

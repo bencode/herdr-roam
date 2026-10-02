@@ -1,5 +1,5 @@
 import type { AgentStatus } from '@herdr-roam/shared'
-import { Bot, Box, FileText, Home, MessageSquare, X } from 'lucide-react'
+import { Box, FileText, Home, MessageSquare, X } from 'lucide-react'
 import { type ReactNode, useLayoutEffect, useRef } from 'react'
 import { useAgentRuntime } from '../../features/agent/runtime-provider'
 import { useSessionData } from '../../features/session/use-session-data'
@@ -41,7 +41,6 @@ const closeClass =
   'grid size-6 flex-none place-items-center self-center rounded-sm border-0 bg-transparent text-muted opacity-0 hover:bg-hover hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 group-[.bg-surface]:opacity-100 [&>svg]:w-3'
 
 const ResourceIcon = ({ resource }: { readonly resource: ResourceRef }) => {
-  if (resource.type === 'agent') return <Bot />
   if (resource.type === 'session') return <MessageSquare />
   if (resource.type === 'file') return <FileText />
   return <Box />
@@ -66,7 +65,7 @@ export const TabBar = ({
   onCloseMany,
   trailing,
 }: Props) => {
-  const { agentById, snapshot } = useAgentRuntime()
+  const { snapshot } = useAgentRuntime()
   const refs = useRef(new Map<string, HTMLButtonElement>())
   const visibleRefs = useRef(new Map<string, HTMLElement>())
   const keys = [WORKBENCH_KEY, ...tabs.map(resourceKey)]
@@ -140,14 +139,11 @@ export const TabBar = ({
           const key = resourceKey(resource)
           const selected = active ? sameResource(active, resource) : false
           const owner =
-            resource.type === 'agent'
-              ? 'Herdr'
-              : resource.type === 'skill'
-                ? resource.scope === 'project'
-                  ? resource.projectName
-                  : 'user'
-                : resource.projectName
-          const agent = resource.type === 'agent' ? agentById(resource.agentId) : undefined
+            resource.type === 'skill'
+              ? resource.scope === 'project'
+                ? resource.projectName
+                : 'user'
+              : resource.projectName
           const sessionAgent =
             resource.type === 'session'
               ? snapshot.items.find(
@@ -157,8 +153,8 @@ export const TabBar = ({
                     candidate.session.value === resource.sessionId,
                 )
               : undefined
-          const title = agent?.name ?? resourceTitle(resource)
-          const status = agent?.status ?? sessionAgent?.status
+          const title = resourceTitle(resource)
+          const status = sessionAgent?.status
           return (
             <TabContextMenu key={key} resource={resource} tabs={tabs} onCloseMany={onCloseMany}>
               <div

@@ -2,7 +2,6 @@ export type GlobalDimension = 'projects' | 'agents' | 'skills'
 export type ProjectSection = 'sessions' | 'files'
 
 export type ResourceRef =
-  | { readonly type: 'agent'; readonly agentId: string }
   | {
       readonly type: 'session'
       readonly projectName: string
@@ -33,7 +32,6 @@ export const isResourceRef = (value: unknown): value is ResourceRef => {
   const record = recordOf(value)
   if (!record) return false
   const type = stringField(record, 'type')
-  if (type === 'agent') return Boolean(stringField(record, 'agentId'))
   if (type === 'session')
     return Boolean(
       stringField(record, 'projectName') &&
@@ -55,7 +53,6 @@ export const isResourceRef = (value: unknown): value is ResourceRef => {
 }
 
 export const resourceKey = (resource: ResourceRef): string => {
-  if (resource.type === 'agent') return `agent:${resource.agentId}`
   if (resource.type === 'session')
     return `session:${resource.projectName}:${resource.provider}:${resource.sessionId}`
   if (resource.type === 'file')
@@ -73,7 +70,6 @@ export const skillTitle = (skillId: string): string => {
 }
 
 export const resourceTitle = (resource: ResourceRef): string => {
-  if (resource.type === 'agent') return resource.agentId
   if (resource.type === 'session') return resource.sessionId
   if (resource.type === 'file') return resource.path.split('/').at(-1) ?? resource.path
   return skillTitle(resource.skillId)

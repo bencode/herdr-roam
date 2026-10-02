@@ -1,14 +1,12 @@
-import type { AgentStatus, AgentSummary } from '@herdr-roam/shared'
-import { Bot } from 'lucide-react'
-import { lazy, type ReactNode, Suspense, useState } from 'react'
+import type { AgentStatus, Project } from '@herdr-roam/shared'
+import { Maximize2, Minimize2, PanelRightClose, X } from 'lucide-react'
+import { useEffect, useRef } from 'react'
 import { cn } from '../../lib/cn'
-import { Button } from '../../ui/button'
+import type { ResourceRef } from '../../workbench/resource'
+import { AgentPane } from '../agent/agent-pane'
 import { useAgentRuntime } from '../agent/runtime-provider'
-import { useAssistantAgent } from './use-assistant-agent'
-
-const BrowserTerminal = lazy(() =>
-  import('../agent/browser-terminal').then(module => ({ default: module.BrowserTerminal })),
-)
+import { AgentMenu } from './agent-menu'
+import { useAssistantStore } from './store'
 
 const statusClasses: Readonly<Record<AgentStatus, string>> = {
   blocked: 'bg-warning',
@@ -18,83 +16,116 @@ const statusClasses: Readonly<Record<AgentStatus, string>> = {
   unknown: 'bg-faint',
 }
 
-const agentLabel = (agent: AgentSummary): string =>
-  agent.provider ? `${agent.name} · ${agent.provider}` : agent.name
+const iconButtonClass =
+  'grid size-7 flex-none place-items-center rounded-sm border-0 bg-transparent text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3.5'
 
-const Empty = ({ children }: { readonly children: ReactNode }) => (
-  <div className="grid min-h-0 flex-1 place-items-center p-6 text-center text-sm text-muted">
-    <div>{children}</div>
-  </div>
-)
+export const AssistantPanel = ({
+  projectName,
+  projects,
+  onOpen,
+}: {
+  readonly projectName: string
+  readonly projects: readonly Project[]
+  readonly onOpen: (resource: ResourceRef) => void
+}) => {
+  const { snapshot, agentById } = useAgentRuntime()
+  const knownNames = useRef(new Map<string, string>())
+  const { agentIds, activeAgentId, maximized, activate, closeAgent, setOpen, setMaximized, prune } =
+    useAssistantStore()
+  const runtimeCurrent = snapshot.source.state === 'connected' && !snapshot.stale
 
-export const AssistantPanel = ({ projectName }: { readonly projectName: string }) => {
-  const { snapshot } = useAgentRuntime()
-  const assistant = useAssistantAgent(projectName)
-  const [terminalControls, setTerminalControls] = useState<HTMLDivElement | null>(null)
-  const runtimeAvailable = snapshot.source.state === 'connected' && !snapshot.stale
-  const { agent, agents } = assistant
-
-  const body = !projectName ? (
-    <Empty>Select a Project to use its Agents.</Empty>
-  ) : assistant.error ? (
-    <Empty>
-      <p className="m-0">{assistant.error.message}</p>
-      <Button className="mt-3" size="compact" onClick={assistant.retry}>
-        Retry
-      </Button>
-    </Empty>
-  ) : assistant.loading && agents.length === 0 ? (
-    <Empty>Loading Agents…</Empty>
-  ) : agents.length === 0 ? (
-    <Empty>No Agent is running in {projectName}. Start one to use it here.</Empty>
-  ) : !agent ? (
-    <Empty>Choose an Agent above.</Empty>
-  ) : (
-    <Suspense fallback={<Empty>Loading Terminal…</Empty>}>
-      <BrowserTerminal
-        key={agent.id}
-        agentId={agent.id}
-        available={runtimeAvailable}
-        controlsContainer={terminalControls}
-      />
-    </Suspense>
-  )
+  useEffect(() => {
+    if (runtimeCurrent) prune(new Set(snapshot.items.map(agent => agent.id)))
+  }, [prune, runtimeCurrent, snapshot.items])
 
   return (
     <section className="flex h-full min-h-0 flex-col bg-surface" aria-label="Assistant">
-      <header className="flex h-10 flex-none items-center gap-2 border-border border-b px-3">
-        <Bot className="size-3.5 flex-none text-faint" aria-hidden="true" />
-        {agent && (
-          <i
-            className={cn('size-1.5 flex-none rounded-full', statusClasses[agent.status])}
-            role="img"
-            aria-label={agent.status}
-          />
-        )}
-        {agents.length > 0 ? (
-          <select
-            className="min-w-0 flex-1 truncate rounded-sm border-0 bg-transparent py-1 text-xs text-foreground outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label="Assistant Agent"
-            value={agent?.id ?? ''}
-            onChange={event => assistant.select(event.target.value)}
+      <header className="flex h-10 flex-none items-stretch border-border border-b bg-sidebar">
+        <div
+          className="flex min-w-0 flex-1 items-stretch overflow-x-auto"
+          role="tablist"
+          aria-label="Assistant Agents"
+        >
+          {agentIds.map(agentId => {
+            const agent = agentById(agentId)
+            const selected = agentId === activeAgentId
+            if (agent) knownNames.current.set(agentId, agent.name)
+            const name = knownNames.current.get(agentId) ?? agentId
+            return (
+              <div
+                key={agentId}
+                className={cn(
+                  'group flex min-w-24 max-w-48 flex-none items-stretch border-border border-r text-muted',
+                  selected && 'bg-surface text-foreground shadow-[inset_0_2px_var(--foreground)]',
+                )}
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  className="flex min-w-0 flex-1 items-center gap-1.75 border-0 bg-transparent pr-1 pl-2.5 text-left text-xs text-inherit hover:text-foreground"
+                  onClick={() => activate(agentId)}
+                  title={agent?.cwd ? `${name} · ${agent.cwd}` : name}
+                >
+                  <i
+                    className={cn(
+                      'size-1.5 flex-none rounded-full',
+                      agent ? statusClasses[agent.status] : 'bg-faint',
+                    )}
+                    role="img"
+                    aria-label={agent?.status ?? 'unavailable'}
+                  />
+                  <span className="truncate">{name}</span>
+                </button>
+                <button
+                  type="button"
+                  className="grid size-6 flex-none place-items-center self-center rounded-sm border-0 bg-transparent text-muted opacity-0 hover:bg-hover hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 [&>svg]:w-3"
+                  aria-label={`Close ${name}`}
+                  title={`Close ${name} (keeps the Agent running)`}
+                  onClick={() => closeAgent(agentId)}
+                >
+                  <X aria-hidden="true" />
+                </button>
+              </div>
+            )
+          })}
+        </div>
+        <div className="flex flex-none items-center gap-0.5 px-1">
+          <AgentMenu projectName={projectName} />
+          <button
+            type="button"
+            className={iconButtonClass}
+            aria-label={maximized ? 'Restore Assistant' : 'Maximize Assistant'}
+            title={maximized ? 'Restore Assistant' : 'Maximize Assistant'}
+            onClick={() => setMaximized(!maximized)}
           >
-            {!agent && (
-              <option value="" disabled>
-                Choose an Agent…
-              </option>
-            )}
-            {agents.map(item => (
-              <option key={item.id} value={item.id}>
-                {agentLabel(item)} ({item.status})
-              </option>
-            ))}
-          </select>
-        ) : (
-          <span className="flex-1 text-xs text-muted">Assistant</span>
-        )}
-        <div ref={setTerminalControls} className="flex flex-none items-center gap-2 text-xs" />
+            {maximized ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}
+          </button>
+          <button
+            type="button"
+            className={iconButtonClass}
+            aria-label="Close Assistant"
+            title="Close Assistant"
+            onClick={() => setOpen(false)}
+          >
+            <PanelRightClose aria-hidden="true" />
+          </button>
+        </div>
       </header>
-      {body}
+      {activeAgentId ? (
+        <div className="min-h-0 flex-1">
+          <AgentPane
+            key={activeAgentId}
+            agentId={activeAgentId}
+            projects={projects}
+            onOpen={onOpen}
+          />
+        </div>
+      ) : (
+        <div className="grid min-h-0 flex-1 place-items-center p-6 text-center text-sm text-muted">
+          Open an Agent from the Agents list or with +.
+        </div>
+      )}
     </section>
   )
 }

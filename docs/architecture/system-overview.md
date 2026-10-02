@@ -42,7 +42,7 @@ The server:
 - creates the Herdr runtime location required to start an agent from the Web;
 - provides read APIs and a small set of explicit control operations;
 - streams state changes to the browser;
-- proxies Herdr terminal session control/observe while an Agent resource Tab is active;
+- proxies Herdr terminal session control/observe while an Agent is selected in the Assistant panel;
 - serves only local clients by default.
 
 ### Browser application
@@ -82,10 +82,11 @@ startup flow.
 Browser reads and ordinary control actions use HTTP. Live agent status and
 activity use Server-Sent Events; terminal screen updates use WebSocket.
 
-SSE carries runtime snapshots independently of Terminal connections. Opening an
-Agent Tab automatically attempts one bidirectional connection for terminal
-bytes, resize events, and input. Leaving or closing that resource Tab tears down
-the stream without stopping the Herdr Agent. Returning opens a new connection;
+SSE carries runtime snapshots independently of Terminal connections. Selecting an
+Agent in the Assistant panel automatically attempts one bidirectional connection
+for terminal bytes, resize events, and input. Switching to another panel tab,
+closing the tab, or closing the panel tears down the stream without stopping the
+Herdr Agent. Returning opens a new connection;
 unexpected disconnection and connection failures require Reconnect during the current
 visit. Each connection starts with a full screen before incremental updates resume.
 

@@ -70,7 +70,7 @@ text through `pane.send_input`; Roam does not interpret the native TUI state.
 Outside `blocked`, only one `Shift+Tab` chord is accepted so the Prompt composer
 can toggle a provider-owned mode without Roam tracking Plan/Default state.
 Initial Prompts, follow-up Prompt text, and HTTP direct input are limited to
-64 KiB of UTF-8 at the HTTP boundary. The Agent page no longer uses the HTTP
+64 KiB of UTF-8 at the HTTP boundary. The Agent view no longer uses the HTTP
 output, Prompt, or input APIs; its native input travels over WebSocket.
 
 `terminal_id` is the public Agent ID. `pane_id` remains the runtime target used
@@ -91,7 +91,7 @@ page, unless it is already present in a newer snapshot. Connection state
 is unchanged; subsequent SSE snapshots still replace the full list. This avoids
 an unavailable page while the next periodic runtime snapshot is pending.
 
-The Agent page resolves a native Session reference against registered
+The Agent view resolves a native Session reference against registered
 Projects' workspace catalogs, using the most specific matching directory and
 preferring a primary directory on ties. Directory lookup is triggered by changes
 to Project inputs, cwd, or the Session reference, not every runtime status update.
@@ -99,11 +99,12 @@ Lookup failures are visible and retryable without disabling Agent input. A
 resolved reference adds Open Session without changing the active resource.
 
 The Agents activity groups the raw Herdr statuses `blocked`, `working`, `idle`,
-`done`, and `unknown`. An Agent opens at `/agents/:agentId` in the shared Tab
-workbench. Session pages read durable native history and offer Resume or Open
-Agent; they do not embed runtime input or Terminal.
+`done`, and `unknown`. Selecting an Agent opens it as a tab in the Assistant
+panel beside the workbench; Agents have no workbench Tab or route. Session pages
+read durable native history and offer Resume or Open Agent, which open the Agent
+in the Assistant panel; they do not embed runtime input or Terminal.
 
-An active Agent Tab mounts a lazy-loaded BrowserTerminal directly. There is no
+The selected Assistant panel tab mounts a lazy-loaded BrowserTerminal directly. There is no
 Preview mode, recent-output polling, custom ANSI preview parser, or independent
 Prompt composer. Details open on demand. Open Session, Copy attach, and Stop
 Agent… remain in the Agent header. BrowserTerminal portals its connection status
@@ -156,7 +157,7 @@ clipboard writes are explicitly ignored. Terminal data is not logged.
 
 Busy ownership offers Observe or explicit Take over. Closing the WebSocket,
 leaving the view or server shutdown releases the CLI helper, never the Agent.
-Returning to the Agent Tab attempts a new connection without takeover. Within
+Returning to the Agent's panel tab attempts a new connection without takeover. Within
 the same visit, disconnect or failure requires explicit Reconnect; no input is
 replayed. Herdr CLI failures remain visible, and Session history remains available
 independently of Terminal.

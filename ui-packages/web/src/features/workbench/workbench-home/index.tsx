@@ -1,14 +1,11 @@
 import type { Project } from '@herdr-roam/shared'
-import type { ResourceRef } from '../../../workbench/resource'
 import { AgentLauncher } from './agent-launcher'
 
 export const WorkbenchHome = ({
   project,
-  onOpen,
   visible = true,
 }: {
   readonly project: Project
-  readonly onOpen: (resource: ResourceRef) => void
   readonly visible?: boolean
 }) => {
   return (
@@ -19,7 +16,7 @@ export const WorkbenchHome = ({
         <p className="mt-2 max-w-2xl text-sm text-muted leading-6">
           Open a native coding agent in {project.name}, then start the conversation.
         </p>
-        <AgentLauncher project={project} onOpen={onOpen} visible={visible} />
+        <AgentLauncher project={project} visible={visible} />
       </div>
     </div>
   )

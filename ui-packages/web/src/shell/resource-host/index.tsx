@@ -1,6 +1,5 @@
 import type { Project } from '@herdr-roam/shared'
 import { Activity } from 'react'
-import { AgentTab } from '../../features/agent/agent-tab'
 import { FileTab } from '../../features/file/file-tab'
 import { SessionTab } from '../../features/session/session-tab'
 import { SkillTab } from '../../features/skill/skill-tab'
@@ -9,19 +8,14 @@ import { type ResourceRef, resourceKey, sameResource } from '../../workbench/res
 
 const ResourceContent = ({
   resource,
-  projects,
   onOpen,
   active,
 }: {
   readonly resource: ResourceRef
-  readonly projects: readonly Project[]
   readonly onOpen: (resource: ResourceRef) => void
   readonly active: boolean
 }) => {
-  if (resource.type === 'agent')
-    return <AgentTab resource={resource} projects={projects} onOpen={onOpen} active={active} />
-  if (resource.type === 'session')
-    return <SessionTab resource={resource} active={active} onOpen={onOpen} />
+  if (resource.type === 'session') return <SessionTab resource={resource} active={active} />
   if (resource.type === 'file')
     return <FileTab resource={resource} active={active} onOpen={onOpen} />
   return <SkillTab resource={resource} />
@@ -29,13 +23,11 @@ const ResourceContent = ({
 
 export const ResourceHost = ({
   project,
-  projects,
   tabs,
   active,
   onOpen,
 }: {
   readonly project: Project | null
-  readonly projects: readonly Project[]
   readonly tabs: readonly ResourceRef[]
   readonly active: ResourceRef | null
   readonly onOpen: (resource: ResourceRef) => void
@@ -44,7 +36,7 @@ export const ResourceHost = ({
     <Activity mode={active === null ? 'visible' : 'hidden'} name="workbench">
       <div className="absolute inset-0 overflow-hidden">
         {project ? (
-          <WorkbenchHome project={project} onOpen={onOpen} visible={active === null} />
+          <WorkbenchHome project={project} visible={active === null} />
         ) : (
           <div className="grid h-full place-items-center p-8 text-center">
             <div>
@@ -66,7 +58,6 @@ export const ResourceHost = ({
         <div className="absolute inset-0 overflow-hidden">
           <ResourceContent
             resource={resource}
-            projects={projects}
             onOpen={onOpen}
             active={Boolean(active && sameResource(active, resource))}
           />

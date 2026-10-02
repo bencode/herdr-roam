@@ -83,7 +83,6 @@ registration or routing.
 /projects/:projectName/files/:workspaceId/:path...
 /projects/:projectName/skills/:skillId
 /agents
-/agents/:agentId
 /skills
 /skills/:skillId
 ```
@@ -107,7 +106,7 @@ therefore does not overwrite the last Activity or force an old Project Skill
 tab to close.
 
 The Activity is normally derived from the resource type. Project Sessions and
-Files belong to Projects; Agents belong to Agents; and both
+Files belong to Projects; the Agents list belongs to Agents; and both
 user and project Skills belong to Skills. Consequently,
 `/projects/:projectName/skills/:skillId` selects the Skills Activity despite its
 project-scoped canonical path.

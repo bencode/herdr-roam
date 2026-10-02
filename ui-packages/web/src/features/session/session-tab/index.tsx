@@ -15,6 +15,7 @@ import { cn } from '../../../lib/cn'
 import { Button } from '../../../ui/button'
 import type { ResourceRef } from '../../../workbench/resource'
 import { useAgentRuntime } from '../../agent/runtime-provider'
+import { useAssistantStore } from '../../assistant/store'
 import { resumeSession, SessionClientError } from '../client'
 import { type SessionDataState, useSessionData } from '../use-session-data'
 import styles from './style.module.scss'
@@ -120,13 +121,12 @@ const HistoryPanel = ({
 export const SessionTab = ({
   resource,
   active = true,
-  onOpen,
 }: {
   readonly resource: SessionResource
   readonly active?: boolean
-  readonly onOpen: (resource: ResourceRef) => void
 }) => {
   const { snapshot } = useAgentRuntime()
+  const openAgent = useAssistantStore(state => state.openAgent)
   const linkedAgent = snapshot.items.find(agent => matchesSession(agent, resource))
   const [resumedAgent, setResumedAgent] = useState<AgentSummary | null>(null)
   const resumedRuntimeAgent = resumedAgent
@@ -184,7 +184,7 @@ export const SessionTab = ({
         resource.sessionId,
       )
       setResumedAgent(receipt.agent)
-      if (resumeNavigation.current) onOpen({ type: 'agent', agentId: receipt.agent.id })
+      if (resumeNavigation.current) openAgent(receipt.agent.id)
       data.reload()
     } catch (error) {
       console.error('Session resume failed', error)
@@ -252,7 +252,7 @@ export const SessionTab = ({
             </Button>
           )}
           {agent && (
-            <Button onClick={() => onOpen({ type: 'agent', agentId: agent.id })}>
+            <Button onClick={() => openAgent(agent.id)}>
               <TerminalSquare aria-hidden="true" />
               Open Agent
             </Button>
@@ -271,10 +271,7 @@ export const SessionTab = ({
             {resumeFailure.recovery && ' The Herdr Workspace was kept for recovery.'}
           </span>
           {recoveryAgentId && (
-            <Button
-              size="compact"
-              onClick={() => onOpen({ type: 'agent', agentId: recoveryAgentId })}
-            >
+            <Button size="compact" onClick={() => openAgent(recoveryAgentId)}>
               <ExternalLink aria-hidden="true" />
               Open Agent
             </Button>

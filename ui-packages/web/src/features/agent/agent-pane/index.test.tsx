@@ -50,9 +50,9 @@ vi.mock('../browser-terminal', () => ({
   ),
 }))
 
-import { AgentTab } from '.'
+import { AgentPane } from '.'
 
-describe('Agent terminal page', () => {
+describe('Agent pane', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.agent.status = 'idle'
@@ -97,8 +97,8 @@ describe('Agent terminal page', () => {
     })
     const onOpen = vi.fn()
     render(
-      <AgentTab
-        resource={{ type: 'agent', agentId: 'terminal-1' }}
+      <AgentPane
+        agentId="terminal-1"
         projects={[{ name: 'herdr-roam', path: '/work/herdr-roam' }]}
         onOpen={onOpen}
       />,
@@ -127,13 +127,7 @@ describe('Agent terminal page', () => {
       return validCatalog
     })
     const onOpen = vi.fn()
-    render(
-      <AgentTab
-        resource={{ type: 'agent', agentId: 'terminal-1' }}
-        projects={projects}
-        onOpen={onOpen}
-      />,
-    )
+    render(<AgentPane agentId="terminal-1" projects={projects} onOpen={onOpen} />)
     const open = await screen.findByRole('button', { name: 'Open Session' })
     expect(screen.getByText('Some project directories could not be loaded.')).toBeVisible()
     expect(await screen.findByRole('region', { name: 'Agent terminal' })).toBeVisible()
@@ -160,8 +154,8 @@ describe('Agent terminal page', () => {
     mocks.agent.session = { source: 'process', agent: 'codex', kind: 'id', value: 'session-1' }
     mocks.directories.mockRejectedValueOnce(new Error('directory listing failed'))
     render(
-      <AgentTab
-        resource={{ type: 'agent', agentId: 'terminal-1' }}
+      <AgentPane
+        agentId="terminal-1"
         projects={[{ name: 'herdr-roam', path: '/work/herdr-roam' }]}
       />,
     )
@@ -171,20 +165,8 @@ describe('Agent terminal page', () => {
     expect(await screen.findByRole('button', { name: 'Open Session' })).toBeVisible()
   })
 
-  it('only mounts the terminal for the active Agent resource', async () => {
-    const props = { resource: { type: 'agent' as const, agentId: 'terminal-1' } }
-    const { rerender } = render(<AgentTab {...props} active={false} />)
-    expect(screen.queryByRole('region', { name: 'Agent terminal' })).not.toBeInTheDocument()
-    rerender(<AgentTab {...props} active />)
-    expect(await screen.findByRole('region', { name: 'Agent terminal' })).toBeVisible()
-    rerender(<AgentTab {...props} active={false} />)
-    expect(screen.queryByRole('region', { name: 'Agent terminal' })).not.toBeInTheDocument()
-    rerender(<AgentTab {...props} active />)
-    expect(await screen.findByRole('region', { name: 'Agent terminal' })).toBeVisible()
-  })
-
   it('shows the native terminal and copies the attach command', async () => {
-    render(<AgentTab resource={{ type: 'agent', agentId: 'terminal-1' }} />)
+    render(<AgentPane agentId="terminal-1" />)
     expect(await screen.findByRole('region', { name: 'Agent terminal' })).toBeVisible()
     expect(screen.getByText('/work/herdr-roam')).toBeVisible()
     expect(screen.getByRole('region', { name: 'Agent terminal' })).toBeVisible()
@@ -196,7 +178,7 @@ describe('Agent terminal page', () => {
   })
 
   it('reveals Agent details only when requested', async () => {
-    render(<AgentTab resource={{ type: 'agent', agentId: 'terminal-1' }} />)
+    render(<AgentPane agentId="terminal-1" />)
     expect(await screen.findByRole('region', { name: 'Agent terminal' })).toBeVisible()
     expect(screen.queryByRole('heading', { name: 'Agent details' })).not.toBeInTheDocument()
 
@@ -217,7 +199,7 @@ describe('Agent terminal page', () => {
 
   it('handles a missing working directory', async () => {
     mocks.agent.cwd = null
-    render(<AgentTab resource={{ type: 'agent', agentId: 'terminal-1' }} />)
+    render(<AgentPane agentId="terminal-1" />)
     expect(await screen.findByRole('region', { name: 'Agent terminal' })).toBeVisible()
     expect(screen.getByText('Working directory unavailable')).toBeVisible()
 
@@ -228,7 +210,7 @@ describe('Agent terminal page', () => {
 
   it('uses Terminal for blocked Agents without another mode or composer', async () => {
     mocks.agent.status = 'blocked'
-    render(<AgentTab resource={{ type: 'agent', agentId: 'terminal-1' }} />)
+    render(<AgentPane agentId="terminal-1" />)
     expect(await screen.findByRole('region', { name: 'Agent terminal' })).toBeVisible()
     expect(screen.queryByRole('textbox', { name: 'Send a Prompt' })).not.toBeInTheDocument()
     expect(
@@ -245,11 +227,11 @@ describe('Agent terminal page', () => {
     }
     const onOpen = vi.fn()
     const props = {
-      resource: { type: 'agent' as const, agentId: 'terminal-1' },
+      agentId: 'terminal-1',
       projects: [{ name: 'herdr-roam', path: '/work/herdr-roam' }],
       onOpen,
     }
-    const { rerender } = render(<AgentTab {...props} />)
+    const { rerender } = render(<AgentPane {...props} />)
     expect(await screen.findByRole('region', { name: 'Agent terminal' })).toBeVisible()
 
     fireEvent.click(screen.getByRole('button', { name: 'Stop Agent…' }))
@@ -258,7 +240,7 @@ describe('Agent terminal page', () => {
     expect(onOpen).not.toHaveBeenCalled()
 
     mocks.present = false
-    rerender(<AgentTab {...props} />)
+    rerender(<AgentPane {...props} />)
     await waitFor(() =>
       expect(onOpen).toHaveBeenCalledWith({
         type: 'session',
@@ -272,10 +254,10 @@ describe('Agent terminal page', () => {
   it('stops an unlinked Agent and keeps its last output visible', async () => {
     const onOpen = vi.fn()
     const props = {
-      resource: { type: 'agent' as const, agentId: 'terminal-1' },
+      agentId: 'terminal-1',
       onOpen,
     }
-    const { rerender } = render(<AgentTab {...props} />)
+    const { rerender } = render(<AgentPane {...props} />)
     expect(await screen.findByRole('region', { name: 'Agent terminal' })).toBeVisible()
 
     fireEvent.click(screen.getByRole('button', { name: 'Stop Agent…' }))
@@ -284,7 +266,7 @@ describe('Agent terminal page', () => {
     await waitFor(() => expect(mocks.stop).toHaveBeenCalledWith('terminal-1'))
 
     mocks.present = false
-    rerender(<AgentTab {...props} />)
+    rerender(<AgentPane {...props} />)
 
     expect(await screen.findByText('stopped')).toBeVisible()
     expect(screen.getByRole('region', { name: 'Agent terminal' })).toHaveAttribute(
@@ -308,8 +290,8 @@ describe('Agent terminal page', () => {
     mocks.stop.mockRejectedValue(new Error('The pane could not be closed.'))
     const onOpen = vi.fn()
     render(
-      <AgentTab
-        resource={{ type: 'agent', agentId: 'terminal-1' }}
+      <AgentPane
+        agentId="terminal-1"
         projects={[{ name: 'herdr-roam', path: '/work/herdr-roam' }]}
         onOpen={onOpen}
       />,

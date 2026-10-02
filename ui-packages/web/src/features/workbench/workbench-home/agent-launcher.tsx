@@ -3,9 +3,9 @@ import { Check, Copy, ExternalLink, TerminalSquare } from 'lucide-react'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { WorkspaceSelect } from '../../../shell/context-sidebar/project-panel/workspace-select'
 import { Button } from '../../../ui/button'
-import type { ResourceRef } from '../../../workbench/resource'
 import { AgentClientError, launchProjectAgent } from '../../agent/client'
 import { useAgentRuntime } from '../../agent/runtime-provider'
+import { useAssistantStore } from '../../assistant/store'
 import { useProjectWorkspaces } from '../../project/use-project-workspaces'
 
 type LaunchOutcome = {
@@ -16,14 +16,13 @@ type LaunchOutcome = {
 
 export const AgentLauncher = ({
   project,
-  onOpen,
   visible = true,
 }: {
   readonly project: Project
-  readonly onOpen: (resource: ResourceRef) => void
   readonly visible?: boolean
 }) => {
   const { snapshot, registerStartedAgent } = useAgentRuntime()
+  const openAgent = useAssistantStore(state => state.openAgent)
   const workspaces = useProjectWorkspaces(project.name)
   const [provider, setProvider] = useState<AgentProvider>('codex')
   const [directory, setDirectory] = useState({ projectName: project.name, id: 'primary' })
@@ -73,7 +72,7 @@ export const AgentLauncher = ({
       registerStartedAgent(receipt.agent)
       setOutcome({ projectName: project.name, agentId: receipt.agent.id })
       if (context.current === origin && origin.visible) {
-        onOpen({ type: 'agent', agentId: receipt.agent.id })
+        openAgent(receipt.agent.id)
       }
     } catch (error) {
       console.error('Agent launch failed', error)
@@ -182,10 +181,7 @@ export const AgentLauncher = ({
       {result?.agentId && (
         <div className="mt-3 flex items-center gap-2 text-xs text-muted" role="status">
           <Check aria-hidden="true" className="size-3.5" /> Agent opened.
-          <Button
-            size="compact"
-            onClick={() => onOpen({ type: 'agent', agentId: result.agentId ?? '' })}
-          >
+          <Button size="compact" onClick={() => openAgent(result.agentId ?? '')}>
             <ExternalLink aria-hidden="true" /> Open Agent
           </Button>
         </div>
@@ -199,10 +195,7 @@ export const AgentLauncher = ({
           {recovery && (
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {recovery.agentId && (
-                <Button
-                  size="compact"
-                  onClick={() => onOpen({ type: 'agent', agentId: recovery.agentId ?? '' })}
-                >
+                <Button size="compact" onClick={() => openAgent(recovery.agentId ?? '')}>
                   <ExternalLink aria-hidden="true" /> Open Agent
                 </Button>
               )}

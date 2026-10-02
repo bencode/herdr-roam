@@ -15,8 +15,9 @@ keep software work moving through reusable Skills and native project tools.
 
 Herdr Roam does not replace Herdr or terminal-oriented clients such as
 herdr-gui. Herdr owns processes, PTYs, and runtime state. Herdr Roam owns the
-coordination and human-readable layer above them. Agent pages provide native
-Terminal interaction; Session and artifact pages provide durable reading.
+coordination and human-readable layer above them. The Assistant panel provides
+native Terminal interaction beside the workbench; Session and artifact pages
+provide durable reading.
 
 ## The Problem
 
@@ -66,7 +67,7 @@ Roam does not rebuild their execution loop with an SDK.
 ### Keep terminal interaction explicit
 
 Overview, Session, and artifact pages do not acquire terminal control. Opening
-an Agent page connects its native Terminal automatically without taking over
+an Agent in the Assistant panel connects its native Terminal automatically without taking over
 another controller. A copied Herdr attach command remains available for an
 external terminal.
 
@@ -132,15 +133,15 @@ Agent detail directly shows a lazy-loaded native Terminal, without a Preview
 mode or separate Prompt composer. Roam also copies the standard attach command
 for use in an existing terminal, but it does not launch external terminal processes.
 
-Session pages always read durable native history; Resume and Open Agent lead
-to the runtime page. All Prompt input, terminal interaction and Stop actions
-belong to Agent pages.
+Session pages always read durable native history; Resume and Open Agent open
+the Agent in the Assistant panel. All Prompt input, terminal interaction and
+Stop actions belong to the Assistant panel.
 
 Terminal uses xterm.js through Herdr's existing control/observe interface,
 including native approval interaction for blocked Agents. Each entry attempts
-one control connection when the runtime is available, without takeover. Leaving
-the resource Tab releases control without stopping the Agent; returning starts
-a new connection. Disconnection, failure, or takeover does not trigger automatic
+one control connection when the runtime is available, without takeover.
+Switching panel tabs or closing the panel releases control without stopping the
+Agent; returning starts a new connection. Disconnection, failure, or takeover does not trigger automatic
 retries within the current visit. Connection status shares the Agent header,
 with Reconnect for recovery and no manual Disconnect action. Busy ownership
 offers Observe and explicit Take over. Stop Agent… ends the native process only
@@ -201,7 +202,7 @@ Herdr and at least one authenticated agent CLI are prerequisites. Roam detects
 missing prerequisites and provides a concise installation or startup command,
 but the user runs that command in a terminal. Roam connects automatically when
 the default Herdr server becomes available; it does not own the server process.
-Runtime availability is reported in the Agent list, Agent page, and
+Runtime availability is reported in the Agent list, Assistant panel, and
 sidebar summary where it affects the current task. A dedicated Runtime surface
 and configurable server ownership remain deferred until their product purpose
 and required operations are defined.
