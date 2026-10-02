@@ -61,8 +61,7 @@ const gitProject = async (root: string): Promise<boolean> => {
   }
 }
 
-const gitFiles = async (root: string, directory = ''): Promise<readonly string[]> => {
-  const pathspec = directory ? [directory] : []
+const gitFiles = async (root: string): Promise<readonly string[]> => {
   try {
     const { stdout } = await execFilePromise(
       'git',
@@ -74,8 +73,6 @@ const gitFiles = async (root: string, directory = ''): Promise<readonly string[]
         '--cached',
         '--others',
         '--exclude-standard',
-        '--',
-        ...pathspec,
       ],
       { encoding: 'utf8', timeout: 10_000, maxBuffer: GIT_OUTPUT_LIMIT },
     )
@@ -145,25 +142,6 @@ const page = (
         ? cursorText({ version: 1, scope, anchor: entryKey(last) })
         : null,
   }
-}
-
-const gitDirectoryEntries = (
-  files: readonly string[],
-  directory: string,
-): readonly ProjectFileEntry[] => {
-  const prefix = directory ? `${directory}/` : ''
-  const entries = new Map<string, ProjectFileEntry>()
-  files.forEach(path => {
-    if (!path.startsWith(prefix)) return
-    const rest = path.slice(prefix.length)
-    const [name, ...descendants] = rest.split('/')
-    if (!name) return
-    const itemPath = prefix ? `${directory}/${name}` : name
-    const kind = descendants.length > 0 ? 'directory' : 'file'
-    const existing = entries.get(itemPath)
-    if (!existing || existing.kind === 'file') entries.set(itemPath, { kind, name, path: itemPath })
-  })
-  return [...entries.values()]
 }
 
 const filesystemDirectoryEntries = async (
@@ -249,9 +227,7 @@ export const listProjectDirectory = async (
 ): Promise<ProjectFilePage> => {
   const root = await canonicalProjectRoot(projectPath)
   const directory = normalizeProjectPath(request.directory ?? '', true)
-  const entries = (await gitProject(root))
-    ? gitDirectoryEntries(await gitFiles(root, directory), directory)
-    : await filesystemDirectoryEntries(root, directory)
+  const entries = await filesystemDirectoryEntries(root, directory)
   return page(entries, `directory:${directory}`, request.cursor, request.limit)
 }
 

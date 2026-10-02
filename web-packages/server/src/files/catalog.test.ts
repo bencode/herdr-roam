@@ -31,17 +31,18 @@ afterEach(async () => {
 })
 
 describe('Project file catalog', () => {
-  it('uses Git tracked and unignored files with opaque pagination', async () => {
+  it('lists Git-ignored files with opaque pagination', async () => {
     const root = await fixture(true)
     const first = await listProjectDirectory(root, { limit: 2 })
     const second = await listProjectDirectory(root, {
-      limit: 2,
+      limit: 3,
       cursor: first.nextCursor ?? undefined,
     })
 
     expect([...first.items, ...second.items].map(item => item.path)).toEqual([
       'docs',
       '.gitignore',
+      'ignored.txt',
       'README.md',
       'untracked.ts',
     ])
