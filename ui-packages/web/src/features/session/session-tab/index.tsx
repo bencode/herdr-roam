@@ -16,8 +16,7 @@ import { Button } from '../../../ui/button'
 import type { ResourceRef } from '../../../workbench/resource'
 import { useAgentRuntime } from '../../agent/runtime-provider'
 import { resumeSession, SessionClientError } from '../client'
-import { useLiveSession } from '../use-live-session'
-import type { SessionDataState } from '../use-session-data'
+import { type SessionDataState, useSessionData } from '../use-session-data'
 import styles from './style.module.scss'
 import { SessionTranscript } from './transcript'
 
@@ -134,11 +133,17 @@ export const SessionTab = ({
     ? snapshot.items.find(agent => agent.id === resumedAgent.id)
     : undefined
   const agent = linkedAgent ?? resumedRuntimeAgent ?? resumedAgent ?? undefined
-  const data = useLiveSession(resource, agent?.status ?? null, active)
+  const data = useSessionData(
+    resource.projectName,
+    resource.provider,
+    resource.sessionId,
+    active && agent?.status === 'working',
+  )
   const [resuming, setResuming] = useState(false)
   const [resumeFailure, setResumeFailure] = useState<ResumeFailure | null>(null)
   const [copiedAttach, setCopiedAttach] = useState(false)
   const transcript = useRef<HTMLDivElement>(null)
+  const previousStatus = useRef(agent?.status)
   const resumeNavigation = useRef(false)
 
   useEffect(() => {
@@ -153,6 +158,13 @@ export const SessionTab = ({
   useEffect(() => {
     if (linkedAgent && resumedAgent?.id === linkedAgent.id) setResumedAgent(null)
   }, [linkedAgent, resumedAgent?.id])
+
+  useEffect(() => {
+    if (previousStatus.current === 'working' && agent?.status !== 'working' && !data.hasNewer) {
+      data.reload()
+    }
+    previousStatus.current = agent?.status
+  }, [agent?.status, data.hasNewer, data.reload])
 
   useEffect(() => {
     if (data.loading || !sessionLoaded || !transcript.current) return

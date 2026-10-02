@@ -1,12 +1,14 @@
-import type { AgentStatus, AgentSummary, Project } from '@herdr-roam/shared'
+import type { AgentStatus, AgentSummary } from '@herdr-roam/shared'
 import { Bot } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { lazy, type ReactNode, Suspense, useState } from 'react'
 import { cn } from '../../lib/cn'
 import { Button } from '../../ui/button'
 import { useAgentRuntime } from '../agent/runtime-provider'
-import { AssistantComposer } from './composer'
-import { AssistantSessionView } from './session-view'
 import { useAssistantAgent } from './use-assistant-agent'
+
+const BrowserTerminal = lazy(() =>
+  import('../agent/browser-terminal').then(module => ({ default: module.BrowserTerminal })),
+)
 
 const statusClasses: Readonly<Record<AgentStatus, string>> = {
   blocked: 'bg-warning',
@@ -25,20 +27,15 @@ const Empty = ({ children }: { readonly children: ReactNode }) => (
   </div>
 )
 
-export const AssistantPanel = ({
-  projectName,
-  projects,
-}: {
-  readonly projectName: string
-  readonly projects: readonly Project[]
-}) => {
+export const AssistantPanel = ({ projectName }: { readonly projectName: string }) => {
   const { snapshot } = useAgentRuntime()
   const assistant = useAssistantAgent(projectName)
+  const [terminalControls, setTerminalControls] = useState<HTMLDivElement | null>(null)
   const runtimeAvailable = snapshot.source.state === 'connected' && !snapshot.stale
   const { agent, agents } = assistant
 
   const body = !projectName ? (
-    <Empty>Select a Project to ask its Agents.</Empty>
+    <Empty>Select a Project to use its Agents.</Empty>
   ) : assistant.error ? (
     <Empty>
       <p className="m-0">{assistant.error.message}</p>
@@ -49,19 +46,18 @@ export const AssistantPanel = ({
   ) : assistant.loading && agents.length === 0 ? (
     <Empty>Loading Agents…</Empty>
   ) : agents.length === 0 ? (
-    <Empty>No Agent is running in {projectName}. Start one to ask about documents here.</Empty>
+    <Empty>No Agent is running in {projectName}. Start one to use it here.</Empty>
   ) : !agent ? (
-    <Empty>Choose an Agent above to start asking.</Empty>
+    <Empty>Choose an Agent above.</Empty>
   ) : (
-    <>
-      <AssistantSessionView agent={agent} projects={projects} />
-      <AssistantComposer
+    <Suspense fallback={<Empty>Loading Terminal…</Empty>}>
+      <BrowserTerminal
         key={agent.id}
         agentId={agent.id}
-        status={agent.status}
-        runtimeAvailable={runtimeAvailable}
+        available={runtimeAvailable}
+        controlsContainer={terminalControls}
       />
-    </>
+    </Suspense>
   )
 
   return (
@@ -94,8 +90,9 @@ export const AssistantPanel = ({
             ))}
           </select>
         ) : (
-          <span className="text-xs text-muted">Assistant</span>
+          <span className="flex-1 text-xs text-muted">Assistant</span>
         )}
+        <div ref={setTerminalControls} className="flex flex-none items-center gap-2 text-xs" />
       </header>
       {body}
     </section>

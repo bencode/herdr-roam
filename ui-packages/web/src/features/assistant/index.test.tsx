@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { afterEach, vi } from 'vitest'
 import { AssistantPanel } from '.'
 
@@ -9,13 +9,10 @@ type Agent = {
   status: 'idle' | 'blocked' | 'working'
   cwd: string | null
   attachTarget: string
-  session: { source: string; agent: string; kind: 'id'; value: string } | null
+  session: null
 }
 
-const mocks = vi.hoisted(() => ({
-  agents: [] as Agent[],
-  submit: vi.fn(),
-}))
+const mocks = vi.hoisted(() => ({ agents: [] as Agent[] }))
 
 vi.mock('../agent/runtime-provider', () => ({
   useAgentRuntime: () => ({
@@ -26,46 +23,16 @@ vi.mock('../agent/runtime-provider', () => ({
     },
   }),
 }))
-vi.mock('../agent/client', () => ({ submitAgentPrompt: mocks.submit }))
+vi.mock('../agent/browser-terminal', () => ({
+  BrowserTerminal: ({ agentId }: { readonly agentId: string }) => (
+    <section aria-label="Agent terminal">{agentId}</section>
+  ),
+}))
 vi.mock('../project/workspace-client', () => ({
   fetchProjectWorkspaces: vi.fn(async () => ({
     items: [{ id: 'primary', name: 'app', path: '/work/app', kind: 'primary', primary: true }],
   })),
   WorkspaceClientError: class WorkspaceClientError extends Error {},
-}))
-vi.mock('../session/use-session-data', () => ({
-  useSessionData: () => ({
-    value: {
-      id: 'session-1',
-      provider: 'claude',
-      title: 'Review',
-      cwd: '/work/app',
-      createdAt: null,
-      updatedAt: '2026-10-01T09:00:00.000Z',
-      mode: 'page',
-      entries: [
-        {
-          kind: 'message',
-          id: 'message-1',
-          role: 'assistant',
-          text: 'The state machine is missing cancel.',
-          createdAt: null,
-          attachments: [],
-        },
-      ],
-      olderCursor: null,
-      tailCursor: 'tail-1',
-      atLatest: true,
-    },
-    loading: false,
-    error: null,
-    navigation: 'initial',
-    hasNewer: false,
-    loadOlder: vi.fn(),
-    loadNewer: vi.fn(),
-    loadLatest: vi.fn(),
-    reload: vi.fn(),
-  }),
 }))
 
 const agent = (overrides: Partial<Agent>): Agent => ({
@@ -75,27 +42,23 @@ const agent = (overrides: Partial<Agent>): Agent => ({
   status: 'idle',
   cwd: '/work/app',
   attachTarget: 'pane-1',
-  session: { source: 'herdr', agent: 'claude', kind: 'id', value: 'session-1' },
+  session: null,
   ...overrides,
 })
 
-const projects = [{ name: 'app', path: '/work/app' }]
-
 afterEach(() => {
   mocks.agents = []
-  mocks.submit.mockReset()
   globalThis.localStorage.clear()
 })
 
 describe('Assistant panel', () => {
-  it('asks the only Agent running in the Project and shows its Session', async () => {
+  it('opens the Terminal of the only Agent running in the Project', async () => {
     mocks.agents = [
       agent({}),
       agent({ id: 'agent-2', name: 'sibling', cwd: '/work/application' }),
       agent({ id: 'agent-3', name: 'detached', cwd: null }),
     ]
-    mocks.submit.mockResolvedValue({ agentId: 'agent-1' })
-    render(<AssistantPanel projectName="app" projects={projects} />)
+    render(<AssistantPanel projectName="app" />)
 
     const picker = await screen.findByRole('combobox', { name: 'Assistant Agent' })
     expect(
@@ -103,22 +66,8 @@ describe('Assistant panel', () => {
         .getAllByRole('option')
         .map(option => option.textContent),
     ).toEqual(['reviewer · claude (idle)'])
-    expect(await screen.findByText('The state machine is missing cancel.')).toBeVisible()
-
-    const field = screen.getByRole('textbox', { name: 'Ask the Agent' })
-    fireEvent.change(field, { target: { value: 'Is cancel handled?' } })
-    fireEvent.keyDown(field, { key: 'Enter' })
-
-    await waitFor(() => expect(mocks.submit).toHaveBeenCalledWith('agent-1', 'Is cancel handled?'))
-    await waitFor(() => expect(field).toHaveValue(''))
-  })
-
-  it('does not send to a blocked Agent', async () => {
-    mocks.agents = [agent({ status: 'blocked' })]
-    render(<AssistantPanel projectName="app" projects={projects} />)
-
-    const field = await screen.findByRole('textbox', { name: 'Ask the Agent' })
-    expect(field).toBeDisabled()
-    expect(screen.getByText('Agent is blocked. Respond in its Terminal.')).toBeVisible()
+    expect(await screen.findByRole('region', { name: 'Agent terminal' })).toHaveTextContent(
+      'agent-1',
+    )
   })
 })

@@ -17,7 +17,8 @@ import { TabBar } from '../tab-bar'
 const DEFAULT_SIDEBAR_WIDTH = 320
 const SIDEBAR_WIDTH_KEY = 'herdr-roam.sidebar-width.v1'
 
-const DEFAULT_ASSISTANT_WIDTH = 360
+const DEFAULT_ASSISTANT_WIDTH = 520
+const MIN_ASSISTANT_WIDTH = 380
 const ASSISTANT_WIDTH_KEY = 'herdr-roam.assistant-width.v1'
 
 const readWidth = (key: string, minimum: number, fallback: number): number => {
@@ -83,7 +84,9 @@ export const AppShell = ({
   const expandedWidth = useRef(readWidth(SIDEBAR_WIDTH_KEY, 280, DEFAULT_SIDEBAR_WIDTH))
   const [assistantCollapsed, setAssistantCollapsed] = useState(true)
   const assistantRef = usePanelRef()
-  const assistantWidth = useRef(readWidth(ASSISTANT_WIDTH_KEY, 300, DEFAULT_ASSISTANT_WIDTH))
+  const assistantWidth = useRef(
+    readWidth(ASSISTANT_WIDTH_KEY, MIN_ASSISTANT_WIDTH, DEFAULT_ASSISTANT_WIDTH),
+  )
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({
     id: 'herdr-roam.app-shell.v2',
     panelIds: ['context-sidebar', 'workbench', 'assistant'],
@@ -110,7 +113,7 @@ export const AppShell = ({
   }
 
   const resizeAssistant = (width: number) => {
-    const collapsed = width < 300
+    const collapsed = width < MIN_ASSISTANT_WIDTH
     setAssistantCollapsed(collapsed)
     if (collapsed) return
     assistantWidth.current = width
@@ -266,7 +269,7 @@ export const AppShell = ({
         <Panel
           id="assistant"
           defaultSize={0}
-          minSize={300}
+          minSize={MIN_ASSISTANT_WIDTH}
           maxSize="45%"
           groupResizeBehavior="preserve-pixel-size"
           collapsible
@@ -275,9 +278,7 @@ export const AppShell = ({
           onResize={size => resizeAssistant(size.inPixels)}
           className="flex min-h-0 min-w-0 flex-col"
         >
-          {!assistantCollapsed && (
-            <AssistantPanel projectName={activeProjectName} projects={projects} />
-          )}
+          {!assistantCollapsed && <AssistantPanel projectName={activeProjectName} />}
         </Panel>
       </Group>
     </div>

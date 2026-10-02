@@ -26,7 +26,7 @@ Restrained, precise, and technical. The interface should feel trustworthy and fo
 ## Design Principles
 
 - Keep the work artifact primary; chrome and metadata remain secondary.
-- Keep runtime control deliberate: opening an Agent connects its native Terminal, and taking over another controller or answering a blocked Agent stays explicit there. The Assistant panel is the one exception to separate reading and control: while reading, the user may send a Prompt to the Agent they chose and read its Session beside the artifact.
+- Keep Session and artifact reading separate from runtime control: opening an Agent connects its native Terminal; taking over another controller remains explicit.
 - Represent runtime truth honestly instead of inferring unsupported turns, ownership, or completion.
 - Preserve context across resources so users can compare and coordinate without restarting their mental model.
 - Prefer familiar IDE interactions and compact, consistent component behavior over novelty.
