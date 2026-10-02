@@ -105,15 +105,19 @@ export const AssistantSessionView = ({
     <Notice>
       <p className="m-0">Herdr has not reported a Session for this Agent.</p>
       <p className="mt-2 mb-0 text-xs">
-        Messages can still be sent; replies appear in the Agent Terminal. Herdr reports Sessions
-        when its integration is installed
+        Messages can still be sent; replies appear in the Agent Terminal.
+      </p>
+      <p className="mt-2 mb-0 text-xs">
+        Herdr reports Sessions through its integration
         {agent.provider ? (
           <>
             {' '}
             (<code>herdr integration install {agent.provider}</code>)
           </>
         ) : null}
-        .
+        . If it was installed after this Agent started, restart the Agent.
+        {agent.provider === 'codex' &&
+          ' Codex also runs the hook only after you trust it in its hook review.'}
       </p>
     </Notice>
   )
