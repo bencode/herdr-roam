@@ -195,6 +195,11 @@ export type ManagedAgentStart = {
   }
 }
 
+// Codex's shared app-server daemon runs hooks outside the Herdr pane, where Herdr's Session
+// hook cannot see the pane environment.
+const providerArgs = (provider: AgentProvider): readonly string[] =>
+  provider === 'codex' ? ['--no-daemon'] : []
+
 export const startManagedAgent = async (
   client: HerdrClient,
   cwd: string,
@@ -215,7 +220,10 @@ export const startManagedAgent = async (
   }
   let started: RawAgent
   try {
-    started = await startWhenAvailable(client, name, provider, workspace.paneId, args)
+    started = await startWhenAvailable(client, name, provider, workspace.paneId, [
+      ...providerArgs(provider),
+      ...args,
+    ])
   } catch (error) {
     throw launchFailure(error, 'agent_start', workspace)
   }

@@ -136,7 +136,7 @@ describe('Agent launch', () => {
       'codex-herdr-roam',
       'codex',
       'w1:p1',
-      [],
+      ['--no-daemon'],
       30_000,
     )
     expect(runtime.startAgent).toHaveBeenCalledTimes(2)

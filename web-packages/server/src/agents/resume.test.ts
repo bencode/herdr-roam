@@ -118,7 +118,7 @@ describe('Session resume', () => {
       'codex-herdr-roam',
       'codex',
       'w1:p1',
-      ['resume', '-c', 'tui.resume_cwd="current"', 'session-1'],
+      ['--no-daemon', 'resume', '-c', 'tui.resume_cwd="current"', 'session-1'],
       30_000,
     )
   })
