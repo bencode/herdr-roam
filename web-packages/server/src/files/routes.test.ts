@@ -43,6 +43,21 @@ describe('Project file routes', () => {
     })
   })
 
+  it('streams search matches as newline-delimited events', async () => {
+    const app = await routes()
+    const response = await app.request('/fixture/workspaces/primary/files/search?query=readme')
+
+    expect(response.headers.get('content-type')).toContain('application/x-ndjson')
+    const events = (await response.text())
+      .trim()
+      .split('\n')
+      .map(line => JSON.parse(line))
+    expect(events).toEqual([
+      { type: 'match', entry: { kind: 'file', name: 'README.md', path: 'README.md' } },
+      { type: 'done', truncated: false },
+    ])
+  })
+
   it('streams supported assets with restrictive response headers', async () => {
     const app = await routes()
     const root = directories.at(-1) ?? ''

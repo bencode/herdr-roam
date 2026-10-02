@@ -1,7 +1,8 @@
 import { createReadStream } from 'node:fs'
 import { Readable } from 'node:stream'
-import type { ProjectFileApiError } from '@herdr-roam/shared'
+import type { ProjectFileApiError, ProjectFileSearchEvent } from '@herdr-roam/shared'
 import { Hono } from 'hono'
+import { stream } from 'hono/streaming'
 import { z } from 'zod'
 import type { ProjectRegistryApi } from '../projects/registry.js'
 import { ProjectRegistryError } from '../projects/registry.js'
@@ -15,11 +16,8 @@ const pageQuerySchema = z.object({
   cursor: z.string().min(1).max(8_192).optional(),
   limit: z.coerce.number().int().min(1).max(200).default(100),
 })
-const searchQuerySchema = z.object({
-  query: z.string().trim().min(1).max(500),
-  cursor: z.string().min(1).max(8_192).optional(),
-  limit: z.coerce.number().int().min(1).max(200).default(100),
-})
+const searchQuerySchema = z.object({ query: z.string().trim().min(1).max(500) })
+const SEARCH_RESULT_LIMIT = 1_000
 const viewQuerySchema = z.object({ path: z.string().min(1).max(8_192) })
 
 type ErrorCode = ProjectFileApiError['error']['code']
@@ -76,6 +74,8 @@ const failure = (
   }
 }
 
+const searchLine = (event: ProjectFileSearchEvent): string => `${JSON.stringify(event)}\n`
+
 const workspacePath = async (
   registry: ProjectRegistryApi,
   name: string,
@@ -118,7 +118,26 @@ export const createFileRoutes = (registry: ProjectRegistryApi): Hono => {
         context.req.param('projectName'),
         context.req.param('workspaceId'),
       )
-      return context.json(await searchProjectFiles(path, query.data))
+      const walk = new AbortController()
+      const matches = await searchProjectFiles(path, query.data.query, walk.signal)
+      context.header('Content-Type', 'application/x-ndjson; charset=utf-8')
+      context.header('Cache-Control', 'no-store')
+      return stream(context, async output => {
+        output.onAbort(() => walk.abort())
+        let count = 0
+        try {
+          for await (const entry of matches) {
+            await output.write(searchLine({ type: 'match', entry }))
+            count += 1
+            if (count === SEARCH_RESULT_LIMIT) break
+          }
+          if (walk.signal.aborted) return
+          await output.write(searchLine({ type: 'done', truncated: count === SEARCH_RESULT_LIMIT }))
+        } catch (error) {
+          if (walk.signal.aborted) return
+          await output.write(searchLine({ type: 'error', error: failure(error).body.error }))
+        }
+      })
     } catch (error) {
       const result = failure(error)
       return context.json(result.body, result.status)

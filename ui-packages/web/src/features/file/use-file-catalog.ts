@@ -1,6 +1,6 @@
 import type { ProjectFileEntry } from '@herdr-roam/shared'
 import { useCallback, useEffect, useState } from 'react'
-import { FileClientError, fetchProjectFiles, searchProjectFiles } from './client'
+import { FileClientError, fetchProjectFiles } from './client'
 
 type CatalogState = {
   readonly items: readonly ProjectFileEntry[]
@@ -27,23 +27,22 @@ export const useFileCatalog = ({
   projectName,
   workspaceId,
   directory = '',
-  query = '',
 }: {
   readonly projectName: string
   readonly workspaceId: string
   readonly directory?: string
-  readonly query?: string
 }) => {
   const [state, setState] = useState<CatalogState>(emptyState)
-  const normalizedQuery = query.trim()
 
   const load = useCallback(
     async (cursor: string | undefined, signal?: AbortSignal) => {
       setState(current => ({ ...current, loading: true, error: null }))
       try {
-        const page = normalizedQuery
-          ? await searchProjectFiles(projectName, workspaceId, normalizedQuery, { cursor, signal })
-          : await fetchProjectFiles(projectName, workspaceId, { directory, cursor, signal })
+        const page = await fetchProjectFiles(projectName, workspaceId, {
+          directory,
+          cursor,
+          signal,
+        })
         if (signal?.aborted) return
         setState(current => ({
           items: cursor ? [...current.items, ...page.items] : page.items,
@@ -58,7 +57,7 @@ export const useFileCatalog = ({
         setState(current => ({ ...current, loading: false, error: asClientError(error) }))
       }
     },
-    [directory, normalizedQuery, projectName, workspaceId],
+    [directory, projectName, workspaceId],
   )
 
   useEffect(() => {

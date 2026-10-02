@@ -58,3 +58,10 @@ export type ProjectFileApiError = {
     readonly message: string
   }
 }
+
+export type FileSearchEvent =
+  | { readonly type: 'match'; readonly entry: FileEntry }
+  | { readonly type: 'done'; readonly truncated: boolean }
+  | { readonly type: 'error'; readonly error: ProjectFileApiError['error'] }
+
+export type ProjectFileSearchEvent = FileSearchEvent

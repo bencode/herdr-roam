@@ -4,6 +4,7 @@ import {
   fetchProjectFile,
   fetchProjectFiles,
   projectFileRawUrl,
+  searchProjectFiles,
 } from './client'
 
 afterEach(() => vi.unstubAllGlobals())
@@ -49,5 +50,29 @@ describe('Project file client', () => {
       code: 'file_not_found',
       message: 'File not found.',
     } satisfies Partial<FileClientError>)
+  })
+
+  it('reads streamed search events split across chunks', async () => {
+    const encoder = new TextEncoder()
+    const body = new ReadableStream<Uint8Array>({
+      start: controller => {
+        controller.enqueue(
+          encoder.encode('{"type":"match","entry":{"kind":"file","name":"a.md","pa'),
+        )
+        controller.enqueue(encoder.encode('th":"docs/a.md"}}\n{"type":"done","truncated":false}\n'))
+        controller.close()
+      },
+    })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(body, { status: 200 })))
+    const onMatch = vi.fn()
+
+    await expect(searchProjectFiles('fixture', 'primary', 'a', { onMatch })).resolves.toEqual({
+      truncated: false,
+    })
+    expect(onMatch).toHaveBeenCalledExactlyOnceWith({
+      kind: 'file',
+      name: 'a.md',
+      path: 'docs/a.md',
+    })
   })
 })

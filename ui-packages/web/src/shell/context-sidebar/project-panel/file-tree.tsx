@@ -1,6 +1,7 @@
 import { RefreshCw } from 'lucide-react'
 import { useDeferredValue, useEffect, useState } from 'react'
 import { useFileCatalog } from '../../../features/file/use-file-catalog'
+import { useFileSearch } from '../../../features/file/use-file-search'
 import type { ProjectWorkspaceState } from '../../../features/project/use-project-workspaces'
 import type { ResourceRef } from '../../../workbench/resource'
 import type { TreeProps } from './file-tree-items'
@@ -40,7 +41,14 @@ export const FileTree = ({
   const [revision, setRevision] = useState(0)
   const deferredQuery = useDeferredValue(query.trim())
   const activePath = activeFile?.workspaceId === workspaceId ? activeFile.path : null
-  const root = useFileCatalog({ projectName, workspaceId, query: deferredQuery })
+  const root = useFileCatalog({ projectName, workspaceId })
+  const search = useFileSearch({ projectName, workspaceId, query: deferredQuery })
+  const searching = deferredQuery !== ''
+  const items = searching ? search.items : root.items
+  const loading = searching ? search.searching : root.loading
+  const error = searching ? search.error : root.error
+  const retry = searching ? search.retry : root.retry
+  const resultCount = `${search.items.length}${search.truncated ? '+' : ''}`
 
   useEffect(() => {
     if (!activePath) return
@@ -76,7 +84,7 @@ export const FileTree = ({
       <ProjectBrowserFrame
         title="Files"
         total={root.total}
-        filtered={root.total}
+        filtered={search.items.length}
         query={query}
         onQuery={onQuery}
         leading={
@@ -89,7 +97,9 @@ export const FileTree = ({
           ) : null
         }
         countLabel={
-          deferredQuery === '' ? null : `${root.total} ${root.total === 1 ? 'result' : 'results'}`
+          searching
+            ? `${resultCount} ${search.items.length === 1 ? 'result' : 'results'}${search.searching ? '…' : search.error ? ' · interrupted' : ''}`
+            : null
         }
         actions={
           <button
@@ -97,10 +107,10 @@ export const FileTree = ({
             className={styles.refresh}
             onClick={() => {
               workspaces.retry()
-              root.retry()
+              retry()
               setRevision(value => value + 1)
             }}
-            disabled={root.loading}
+            disabled={loading}
             aria-label="Refresh files"
             title="Refresh files"
           >
@@ -116,10 +126,10 @@ export const FileTree = ({
               Try again
             </button>
           </div>
-        ) : root.items.length > 0 ? (
-          <div className={styles.tree} aria-busy={root.loading}>
-            {root.items.map(entry =>
-              entry.kind === 'directory' && deferredQuery === '' ? (
+        ) : items.length > 0 ? (
+          <div className={styles.tree} aria-busy={loading}>
+            {items.map(entry =>
+              entry.kind === 'directory' && !searching ? (
                 <DirectoryRow key={entry.path} entry={entry} level={0} {...treeProps} />
               ) : (
                 <FileRow
@@ -133,19 +143,19 @@ export const FileTree = ({
                 />
               ),
             )}
-            {root.nextCursor && (
+            {!searching && root.nextCursor && (
               <button type="button" className={styles.more} onClick={root.loadMore}>
                 Load more
               </button>
             )}
           </div>
-        ) : root.loading || workspaces.loading ? (
-          <div className={styles.empty}>Loading Files…</div>
-        ) : root.error ? (
+        ) : loading || workspaces.loading ? (
+          <div className={styles.empty}>{searching ? 'Searching Files…' : 'Loading Files…'}</div>
+        ) : error ? (
           <div className={styles.empty} role="status">
             <strong>Files unavailable</strong>
-            <span>{root.error.message}</span>
-            <button type="button" onClick={root.retry}>
+            <span>{error.message}</span>
+            <button type="button" onClick={retry}>
               Try again
             </button>
           </div>

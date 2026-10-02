@@ -9,7 +9,7 @@ import { listProjectDirectory, searchProjectFiles } from './catalog.js'
 const directories: string[] = []
 const exec = promisify(execFile)
 
-const fixture = async (git: boolean): Promise<string> => {
+const fixture = async (): Promise<string> => {
   const root = await mkdtemp(join(tmpdir(), 'herdr-roam-files-'))
   directories.push(root)
   await mkdir(join(root, 'docs'), { recursive: true })
@@ -18,7 +18,6 @@ const fixture = async (git: boolean): Promise<string> => {
   await writeFile(join(root, 'docs', 'guide.md'), '# Guide\n')
   await writeFile(join(root, 'untracked.ts'), 'export {}\n')
   await writeFile(join(root, 'node_modules', 'hidden', 'index.js'), 'hidden\n')
-  if (!git) return root
   await exec('git', ['-C', root, 'init', '--quiet'])
   await writeFile(join(root, '.gitignore'), 'node_modules/\nignored.txt\n')
   await writeFile(join(root, 'ignored.txt'), 'ignored\n')
@@ -31,16 +30,18 @@ afterEach(async () => {
 })
 
 describe('Project file catalog', () => {
-  it('lists Git-ignored files with opaque pagination', async () => {
-    const root = await fixture(true)
+  it('lists every directory entry, including Git internals and ignored files, with opaque pagination', async () => {
+    const root = await fixture()
     const first = await listProjectDirectory(root, { limit: 2 })
     const second = await listProjectDirectory(root, {
-      limit: 3,
+      limit: 5,
       cursor: first.nextCursor ?? undefined,
     })
 
     expect([...first.items, ...second.items].map(item => item.path)).toEqual([
+      '.git',
       'docs',
+      'node_modules',
       '.gitignore',
       'ignored.txt',
       'README.md',
@@ -49,17 +50,11 @@ describe('Project file catalog', () => {
     expect(first.nextCursor).not.toBeNull()
   })
 
-  it('searches matching Git paths without returning ignored files', async () => {
-    const root = await fixture(true)
-    const result = await searchProjectFiles(root, { query: 'guide', limit: 100 })
+  it('searches every file, including ignored and dependency files', async () => {
+    const root = await fixture()
+    const matches = await searchProjectFiles(root, 'i', new AbortController().signal)
+    const paths = (await Array.fromAsync(matches)).map(item => item.path)
 
-    expect(result.items).toEqual([{ kind: 'file', name: 'guide.md', path: 'docs/guide.md' }])
-  })
-
-  it('falls back to the filesystem while excluding dependency output', async () => {
-    const root = await fixture(false)
-    const result = await searchProjectFiles(root, { query: 'index', limit: 100 })
-
-    expect(result.items).toEqual([])
+    expect(paths).toEqual(expect.arrayContaining(['ignored.txt', 'node_modules/hidden/index.js']))
   })
 })

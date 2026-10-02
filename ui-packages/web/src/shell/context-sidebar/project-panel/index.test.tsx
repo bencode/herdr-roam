@@ -1,3 +1,4 @@
+import type { ProjectFileEntry } from '@herdr-roam/shared'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { vi } from 'vitest'
 import { fetchProjectFiles } from '../../../features/file/client'
@@ -30,12 +31,16 @@ vi.mock('../../../features/file/client', () => ({
       return Promise.resolve({ items, total: items.length, nextCursor: null })
     },
   ),
-  searchProjectFiles: vi.fn(() =>
-    Promise.resolve({
-      items: fileEntries['docs/product'],
-      total: 1,
-      nextCursor: null,
-    }),
+  searchProjectFiles: vi.fn(
+    (
+      _projectName: string,
+      _workspaceId: string,
+      _query: string,
+      options: { readonly onMatch: (entry: ProjectFileEntry) => void },
+    ) => {
+      fileEntries['docs/product']?.forEach(options.onMatch)
+      return Promise.resolve({ truncated: false })
+    },
   ),
   FileClientError: class FileClientError extends Error {},
 }))

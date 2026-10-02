@@ -27,11 +27,13 @@ export type {
   FileEntry,
   FileMetadata,
   FilePage,
+  FileSearchEvent,
   FileView,
   ProjectFileApiError,
   ProjectFileEntry,
   ProjectFileMetadata,
   ProjectFilePage,
+  ProjectFileSearchEvent,
   ProjectFileView,
 } from './api/file.js'
 export type {

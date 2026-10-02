@@ -12,6 +12,15 @@ export const filePageSchema = z.object({
   nextCursor: z.string().min(1).nullable(),
 })
 
+export const fileSearchEventSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('match'), entry: entrySchema }),
+  z.object({ type: z.literal('done'), truncated: z.boolean() }),
+  z.object({
+    type: z.literal('error'),
+    error: z.object({ code: z.string().min(1), message: z.string().min(1) }),
+  }),
+])
+
 const metadata = {
   path: z.string().min(1),
   name: z.string().min(1),

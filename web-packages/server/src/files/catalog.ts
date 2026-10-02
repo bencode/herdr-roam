@@ -1,8 +1,6 @@
-import { execFile } from 'node:child_process'
 import type { Dirent } from 'node:fs'
 import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import { promisify } from 'node:util'
 import type { ProjectFileEntry, ProjectFilePage } from '@herdr-roam/shared'
 import {
   canonicalProjectRoot,
@@ -11,85 +9,7 @@ import {
   resolveProjectEntry,
 } from './path.js'
 
-const execFileAsync = promisify(execFile)
-const GIT_OUTPUT_LIMIT = 32 * 1024 * 1024
-const FILESYSTEM_SCAN_LIMIT = 100_000
-const excludedDirectories = new Set([
-  '.git',
-  '.cache',
-  '.next',
-  '.nuxt',
-  '.turbo',
-  'build',
-  'coverage',
-  'dist',
-  'node_modules',
-])
-
 type Cursor = { readonly version: 1; readonly scope: string; readonly anchor: string }
-const execFilePromise = execFileAsync as (
-  file: string,
-  args: readonly string[],
-  options: { readonly encoding: 'utf8'; readonly timeout: number; readonly maxBuffer: number },
-) => Promise<{ readonly stdout: string; readonly stderr: string }>
-
-const systemCode = (error: unknown): unknown =>
-  typeof error === 'object' && error !== null && 'code' in error ? error.code : null
-
-const systemStderr = (error: unknown): string =>
-  typeof error === 'object' && error !== null && 'stderr' in error && typeof error.stderr === 'string'
-    ? error.stderr
-    : ''
-
-const gitProject = async (root: string): Promise<boolean> => {
-  try {
-    const { stdout } = await execFilePromise(
-      'git',
-      ['-C', root, 'rev-parse', '--is-inside-work-tree'],
-      { encoding: 'utf8', timeout: 5_000, maxBuffer: 1024 },
-    )
-    return stdout.trim() === 'true'
-  } catch (error) {
-    if (systemCode(error) === 'ENOENT') {
-      console.error(`Git availability check failed for ${root}`, error)
-      return false
-    }
-    if (systemStderr(error).includes('not a git repository')) return false
-    throw new ProjectFileError('file_unavailable', 'The Project Git state could not be read.', {
-      cause: error,
-    })
-  }
-}
-
-const gitFiles = async (root: string): Promise<readonly string[]> => {
-  try {
-    const { stdout } = await execFilePromise(
-      'git',
-      [
-        '-C',
-        root,
-        'ls-files',
-        '-z',
-        '--cached',
-        '--others',
-        '--exclude-standard',
-      ],
-      { encoding: 'utf8', timeout: 10_000, maxBuffer: GIT_OUTPUT_LIMIT },
-    )
-    return stdout.split('\0').filter(Boolean)
-  } catch (error) {
-    if (systemCode(error) === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER') {
-      throw new ProjectFileError(
-        'catalog_too_large',
-        'The Project file catalog is too large to browse safely.',
-        { cause: error },
-      )
-    }
-    throw new ProjectFileError('file_unavailable', 'Git files could not be listed.', {
-      cause: error,
-    })
-  }
-}
 
 const entryKey = (entry: ProjectFileEntry): string =>
   `${entry.kind === 'directory' ? '0' : '1'}:${entry.path}`
@@ -156,16 +76,11 @@ const filesystemDirectoryEntries = async (
   }
   try {
     const values = await readdir(target.path, { withFileTypes: true })
-    return values.flatMap(entry => {
-      if (
-        entry.name === '.DS_Store' ||
-        (entry.isDirectory() && excludedDirectories.has(entry.name))
-      ) {
-        return []
-      }
-      const path = directory ? `${directory}/${entry.name}` : entry.name
-      return [{ kind: entry.isDirectory() ? 'directory' : 'file', name: entry.name, path } as const]
-    })
+    return values.map(entry => ({
+      kind: entry.isDirectory() ? 'directory' : 'file',
+      name: entry.name,
+      path: directory ? `${directory}/${entry.name}` : entry.name,
+    }))
   } catch (error) {
     throw new ProjectFileError(
       'file_unavailable',
@@ -176,46 +91,6 @@ const filesystemDirectoryEntries = async (
     )
   }
 }
-
-const filesystemFiles = async (root: string): Promise<readonly string[]> => {
-  const paths: string[] = []
-  const pending = ['']
-  let scanned = 0
-  while (pending.length > 0) {
-    const directory = pending.pop() ?? ''
-    let entries: Dirent<string>[]
-    try {
-      entries = await readdir(join(root, ...directory.split('/').filter(Boolean)), {
-        withFileTypes: true,
-      })
-    } catch (error) {
-      console.error(`Directory ${directory || '.'} could not be searched`, error)
-      continue
-    }
-    scanned += entries.length
-    if (scanned > FILESYSTEM_SCAN_LIMIT) {
-      throw new ProjectFileError(
-        'catalog_too_large',
-        'The Project contains too many files for fallback search.',
-      )
-    }
-    entries.forEach(entry => {
-      if (
-        entry.name === '.DS_Store' ||
-        (entry.isDirectory() && excludedDirectories.has(entry.name))
-      ) {
-        return
-      }
-      const path = directory ? `${directory}/${entry.name}` : entry.name
-      if (entry.isDirectory()) pending.push(path)
-      else paths.push(path)
-    })
-  }
-  return paths
-}
-
-const fileEntries = (paths: readonly string[]): readonly ProjectFileEntry[] =>
-  paths.map(path => ({ kind: 'file', name: path.split('/').at(-1) ?? path, path }))
 
 export const listProjectDirectory = async (
   projectPath: string,
@@ -231,14 +106,37 @@ export const listProjectDirectory = async (
   return page(entries, `directory:${directory}`, request.cursor, request.limit)
 }
 
+async function* walkMatches(
+  root: string,
+  query: string,
+  signal: AbortSignal,
+): AsyncGenerator<ProjectFileEntry> {
+  const pending = ['']
+  for (let index = 0; index < pending.length && !signal.aborted; index += 1) {
+    const directory = pending[index] ?? ''
+    let entries: Dirent<string>[]
+    try {
+      entries = await readdir(join(root, ...directory.split('/').filter(Boolean)), {
+        withFileTypes: true,
+      })
+    } catch (error) {
+      console.error(`Directory ${directory || '.'} could not be searched`, error)
+      continue
+    }
+    for (const entry of entries) {
+      const path = directory ? `${directory}/${entry.name}` : entry.name
+      if (entry.isDirectory()) pending.push(path)
+      else if (path.toLowerCase().includes(query)) yield { kind: 'file', name: entry.name, path }
+    }
+  }
+}
+
 export const searchProjectFiles = async (
   projectPath: string,
-  request: { readonly query: string; readonly cursor?: string; readonly limit: number },
-): Promise<ProjectFilePage> => {
-  const query = request.query.trim().toLowerCase()
-  if (!query) throw new ProjectFileError('invalid_path', 'A file search query is required.')
-  const root = await canonicalProjectRoot(projectPath)
-  const paths = (await gitProject(root)) ? await gitFiles(root) : await filesystemFiles(root)
-  const matches = fileEntries(paths.filter(path => path.toLowerCase().includes(query)))
-  return page(matches, `search:${query}`, request.cursor, request.limit)
+  query: string,
+  signal: AbortSignal,
+): Promise<AsyncGenerator<ProjectFileEntry>> => {
+  const normalized = query.trim().toLowerCase()
+  if (!normalized) throw new ProjectFileError('invalid_path', 'A file search query is required.')
+  return walkMatches(await canonicalProjectRoot(projectPath), normalized, signal)
 }

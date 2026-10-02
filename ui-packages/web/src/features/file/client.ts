@@ -1,6 +1,11 @@
-import type { ProjectFileApiError, ProjectFilePage, ProjectFileView } from '@herdr-roam/shared'
+import type {
+  ProjectFileApiError,
+  ProjectFileEntry,
+  ProjectFilePage,
+  ProjectFileView,
+} from '@herdr-roam/shared'
 import { z } from 'zod'
-import { filePageSchema, fileViewSchema } from './schema'
+import { filePageSchema, fileSearchEventSchema, fileViewSchema } from './schema'
 const errorSchema = z.object({
   error: z.object({
     code: z.enum([
@@ -48,6 +53,13 @@ const queryPath = (
   return suffix ? `${path}?${suffix}` : path
 }
 
+const serverError = (body: unknown, status: number): FileClientError => {
+  const parsed = errorSchema.safeParse(body)
+  return parsed.success
+    ? new FileClientError(parsed.data.error.code, parsed.data.error.message)
+    : new FileClientError('invalid_response', `The server returned HTTP ${status}.`)
+}
+
 const request = async <Value>(
   path: string,
   parse: (body: unknown) => Value,
@@ -63,12 +75,7 @@ const request = async <Value>(
         cause: error,
       })
     }
-    if (!response.ok) {
-      const parsed = errorSchema.safeParse(body)
-      if (parsed.success)
-        throw new FileClientError(parsed.data.error.code, parsed.data.error.message)
-      throw new FileClientError('invalid_response', `The server returned HTTP ${response.status}.`)
-    }
+    if (!response.ok) throw serverError(body, response.status)
     try {
       return parse(body)
     } catch (error) {
@@ -103,25 +110,75 @@ export const fetchProjectFiles = (
     options.signal,
   )
 
-export const searchProjectFiles = (
+const searchEvent = (line: string) => {
+  try {
+    return fileSearchEventSchema.parse(JSON.parse(line))
+  } catch (error) {
+    throw new FileClientError('invalid_response', 'The server returned an invalid search event.', {
+      cause: error,
+    })
+  }
+}
+
+async function* responseLines(body: ReadableStream<Uint8Array>): AsyncGenerator<string> {
+  const decoder = new TextDecoder()
+  const reader = body.getReader()
+  let buffer = ''
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      buffer += decoder.decode(value, { stream: !done })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+      yield* lines.filter(Boolean)
+      if (done) break
+    }
+    if (buffer) yield buffer
+  } finally {
+    await reader.cancel()
+  }
+}
+
+export const searchProjectFiles = async (
   projectName: string,
   workspaceId: string,
   query: string,
   options: {
-    readonly cursor?: string
-    readonly limit?: number
+    readonly onMatch: (entry: ProjectFileEntry) => void
     readonly signal?: AbortSignal
-  } = {},
-): Promise<ProjectFilePage> =>
-  request(
-    queryPath(`${fileRoot(projectName, workspaceId)}/search`, {
-      query,
-      cursor: options.cursor,
-      limit: options.limit,
-    }),
-    filePageSchema.parse,
-    options.signal,
-  )
+  },
+): Promise<{ readonly truncated: boolean }> => {
+  try {
+    const response = await fetch(
+      queryPath(`${fileRoot(projectName, workspaceId)}/search`, { query }),
+      { signal: options.signal },
+    )
+    if (!response.ok) {
+      let body: unknown
+      try {
+        body = await response.json()
+      } catch (error) {
+        throw new FileClientError('invalid_response', 'The server returned invalid JSON.', {
+          cause: error,
+        })
+      }
+      throw serverError(body, response.status)
+    }
+    if (!response.body)
+      throw new FileClientError('invalid_response', 'The search returned no body.')
+    for await (const line of responseLines(response.body)) {
+      const event = searchEvent(line)
+      if (event.type === 'match') options.onMatch(event.entry)
+      else if (event.type === 'done') return { truncated: event.truncated }
+      else throw serverError({ error: event.error }, response.status)
+    }
+    throw new FileClientError('invalid_response', 'The search ended unexpectedly.')
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') throw error
+    if (error instanceof FileClientError) throw error
+    throw new FileClientError('network_error', 'Herdr Roam could not be reached.', { cause: error })
+  }
+}
 
 export const fetchProjectFile = (
   projectName: string,
