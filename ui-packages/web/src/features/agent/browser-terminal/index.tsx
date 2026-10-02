@@ -2,7 +2,6 @@ import type { TerminalMode } from '@herdr-roam/shared'
 import { FitAddon } from '@xterm/addon-fit'
 import { Terminal } from '@xterm/xterm'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { Button } from '../../../ui/button'
 import { type BrowserTerminalSession, connectBrowserTerminal, type TerminalState } from './session'
 import '@xterm/xterm/css/xterm.css'
@@ -10,11 +9,9 @@ import '@xterm/xterm/css/xterm.css'
 export const BrowserTerminal = ({
   agentId,
   available,
-  controlsContainer,
 }: {
   readonly agentId: string
   readonly available: boolean
-  readonly controlsContainer: HTMLElement | null
 }) => {
   const container = useRef<HTMLDivElement>(null)
   const terminalRef = useRef<Terminal | null>(null)
@@ -148,54 +145,52 @@ export const BrowserTerminal = ({
     return () => window.clearTimeout(timer)
   }, [available, connect, disconnect])
 
-  const connectionLabel = !available
-    ? 'Unavailable'
-    : state.phase === 'connected' && mode.current === 'observe'
-      ? 'Read-only'
-      : {
-          connected: 'Connected',
-          connecting: 'Connecting…',
-          disconnected: 'Disconnected',
-          busy: 'In use',
-          error: 'Connection failed',
-        }[state.phase]
+  const observing = state.phase === 'connected' && mode.current === 'observe'
   const needsRecovery = ['disconnected', 'error'].includes(state.phase)
+  const notice =
+    !available || state.phase === 'connected'
+      ? observing
+        ? 'Read-only · another client controls this Terminal.'
+        : null
+      : state.phase === 'connecting'
+        ? null
+        : state.message
 
   return (
     <section aria-label="Agent terminal" className="flex min-h-0 flex-1 flex-col bg-terminal-bg">
-      {controlsContainer &&
-        createPortal(
-          <>
-            <span className="whitespace-nowrap text-muted" role="status" title={state.message}>
-              Terminal: {connectionLabel}
-            </span>
-            {available && needsRecovery && (
-              <Button size="compact" onClick={() => connect('control')}>
-                Reconnect
-              </Button>
-            )}
-            {available && state.phase === 'busy' && (
-              <>
-                <Button size="compact" onClick={() => connect('observe')}>
-                  Observe
-                </Button>
-                <Button size="compact" onClick={() => connect('control', true)}>
-                  Take over
-                </Button>
-              </>
-            )}
-          </>,
-          controlsContainer,
-        )}
-      {available && (needsRecovery || state.phase === 'busy') && (
-        <p
-          className="m-0 border-border border-b bg-surface px-4 py-2 text-xs text-muted"
+      {notice && (
+        <div
+          className="flex min-h-7 flex-none items-center gap-2 border-border border-b bg-surface px-3 py-1 text-xs text-muted"
           role="status"
         >
-          {state.message}
-        </p>
+          <span className="min-w-0 flex-1 truncate" title={notice}>
+            {notice}
+          </span>
+          {available && needsRecovery && (
+            <Button size="compact" onClick={() => connect('control')}>
+              Reconnect
+            </Button>
+          )}
+          {available && state.phase === 'busy' && (
+            <>
+              <Button size="compact" onClick={() => connect('observe')}>
+                Observe
+              </Button>
+              <Button size="compact" onClick={() => connect('control', true)}>
+                Take over
+              </Button>
+            </>
+          )}
+          {observing && (
+            <Button size="compact" onClick={() => connect('control', true)}>
+              Take over
+            </Button>
+          )}
+        </div>
       )}
-      <div ref={container} className="min-h-0 min-w-0 flex-1 overflow-auto p-2" />
+      <div className="min-h-0 min-w-0 flex-1 p-2">
+        <div ref={container} className="h-full w-full overflow-hidden" />
+      </div>
     </section>
   )
 }

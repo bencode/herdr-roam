@@ -1,6 +1,6 @@
 import type { AgentStatus, Project } from '@herdr-roam/shared'
 import { Maximize2, Minimize2, PanelRightClose, X } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import { type KeyboardEvent, useEffect, useRef } from 'react'
 import { cn } from '../../lib/cn'
 import type { ResourceRef } from '../../workbench/resource'
 import { AgentPane } from '../agent/agent-pane'
@@ -38,6 +38,25 @@ export const AssistantPanel = ({
     if (runtimeCurrent) prune(new Set(snapshot.items.map(agent => agent.id)))
   }, [prune, runtimeCurrent, snapshot.items])
 
+  const moveFocus = (event: KeyboardEvent<HTMLButtonElement>, agentId: string) => {
+    const index = agentIds.indexOf(agentId)
+    const targets: Readonly<Record<string, number>> = {
+      ArrowLeft: index - 1,
+      ArrowRight: index + 1,
+      Home: 0,
+      End: agentIds.length - 1,
+    }
+    const target = targets[event.key]
+    if (target === undefined) return
+    event.preventDefault()
+    const next = agentIds[(target + agentIds.length) % agentIds.length]
+    if (!next) return
+    activate(next)
+    event.currentTarget.parentElement?.parentElement
+      ?.querySelector<HTMLButtonElement>(`[data-agent-id="${CSS.escape(next)}"]`)
+      ?.focus()
+  }
+
   return (
     <section className="flex h-full min-h-0 flex-col bg-surface" aria-label="Assistant">
       <header className="flex h-10 flex-none items-stretch border-border border-b bg-sidebar">
@@ -58,11 +77,15 @@ export const AssistantPanel = ({
                   'group flex min-w-24 max-w-48 flex-none items-stretch border-border border-r text-muted',
                   selected && 'bg-surface text-foreground shadow-[inset_0_2px_var(--foreground)]',
                 )}
+                onAuxClick={event => event.button === 1 && closeAgent(agentId)}
               >
                 <button
                   type="button"
                   role="tab"
                   aria-selected={selected}
+                  tabIndex={selected ? 0 : -1}
+                  data-agent-id={agentId}
+                  onKeyDown={event => moveFocus(event, agentId)}
                   className="flex min-w-0 flex-1 items-center gap-1.75 border-0 bg-transparent pr-1 pl-2.5 text-left text-xs text-inherit hover:text-foreground"
                   onClick={() => activate(agentId)}
                   title={agent?.cwd ? `${name} · ${agent.cwd}` : name}
@@ -79,7 +102,10 @@ export const AssistantPanel = ({
                 </button>
                 <button
                   type="button"
-                  className="grid size-6 flex-none place-items-center self-center rounded-sm border-0 bg-transparent text-muted opacity-0 hover:bg-hover hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 [&>svg]:w-3"
+                  className={cn(
+                    'grid size-6 flex-none place-items-center self-center rounded-sm border-0 bg-transparent text-muted opacity-0 hover:bg-hover hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 [&>svg]:w-3',
+                    selected && 'opacity-100',
+                  )}
                   aria-label={`Close ${name}`}
                   title={`Close ${name} (keeps the Agent running)`}
                   onClick={() => closeAgent(agentId)}
@@ -92,6 +118,7 @@ export const AssistantPanel = ({
         </div>
         <div className="flex flex-none items-center gap-0.5 px-1">
           <AgentMenu projectName={projectName} />
+          <span className="mx-0.5 h-4 w-px bg-border" aria-hidden="true" />
           <button
             type="button"
             className={iconButtonClass}

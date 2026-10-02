@@ -1,6 +1,6 @@
 import type { AgentStatus, AgentSummary, Project } from '@herdr-roam/shared'
-import { Check, Copy, MessageSquare, PanelRight, TerminalSquare } from 'lucide-react'
-import { lazy, Suspense, useEffect, useId, useState } from 'react'
+import { Check, Copy, MessageSquare, TerminalSquare, TriangleAlert } from 'lucide-react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { cn } from '../../../lib/cn'
 import { Button } from '../../../ui/button'
 import type { ResourceRef } from '../../../workbench/resource'
@@ -24,6 +24,9 @@ const statusClasses: Readonly<Record<AgentStatus, string>> = {
 }
 
 const EMPTY_PROJECTS: readonly Project[] = []
+
+const compactPath = (cwd: string | null): string | null =>
+  cwd?.replace(/^\/(?:Users|home)\/[^/]+(?=\/|$)/, '~') ?? null
 
 const unavailableMessage = (
   current: AgentSummary | undefined,
@@ -49,11 +52,8 @@ export const AgentPane = ({
   const [lastAgent, setLastAgent] = useState<AgentSummary | null>(current ?? null)
   const [copied, setCopied] = useState<'attach' | 'working-directory' | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
-  const [detailsOpen, setDetailsOpen] = useState(false)
-  const [terminalControls, setTerminalControls] = useState<HTMLDivElement | null>(null)
   const [stopping, setStopping] = useState(false)
   const [stopAccepted, setStopAccepted] = useState(false)
-  const detailsId = useId()
 
   useEffect(() => {
     if (current) setLastAgent(current)
@@ -122,47 +122,46 @@ export const AgentPane = ({
   }
 
   const displayedStatus = current ? agent.status : 'stopped'
+  const summary = [displayedStatus, providerLabel, compactPath(agent.cwd)]
+    .filter(value => value !== null)
+    .join(' · ')
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex flex-none flex-wrap items-center gap-x-2 gap-y-1 border-border border-b px-3 py-2">
-        <div className="min-w-0 basis-full">
-          <div className="flex items-center gap-2">
-            <i
-              className={cn(
-                'size-2 flex-none rounded-full',
-                current ? statusClasses[agent.status] : 'bg-faint',
-              )}
-              role="img"
-              aria-label={displayedStatus}
-            />
-            <h1 className="m-0 truncate text-sm font-semibold">{agent.name}</h1>
-            <span className="text-xs capitalize text-muted">{displayedStatus}</span>
-            {providerLabel && (
-              <span className="rounded-full bg-raised px-2 py-0.5 text-[0.625rem] text-muted">
-                {providerLabel}
-              </span>
-            )}
-          </div>
-          <p
-            className="mt-1 mb-0 truncate font-mono text-[0.6875rem] text-faint"
-            title={agent.cwd ?? undefined}
-          >
-            {agent.cwd ?? 'Working directory unavailable'}
-          </p>
-        </div>
+      <header className="flex h-8 flex-none items-center gap-1 border-border border-b pr-1.5 pl-3">
+        <i
+          className={cn(
+            'size-1.5 flex-none rounded-full',
+            current ? statusClasses[agent.status] : 'bg-faint',
+          )}
+          role="img"
+          aria-label={displayedStatus}
+        />
+        <p
+          className="m-0 ml-1 min-w-0 flex-1 truncate text-xs text-muted first-letter:uppercase"
+          title={agent.cwd ?? 'Working directory unavailable'}
+        >
+          {summary}
+        </p>
         {actionError && (
-          <span className="ml-auto text-xs text-danger" role="status">
+          <span className="max-w-48 truncate text-xs text-danger" role="status" title={actionError}>
             {actionError}
           </span>
         )}
-        <div
-          ref={setTerminalControls}
-          className="mr-auto flex flex-none items-center gap-2 text-xs"
-        />
+        {sessionLink.error && (
+          <Button
+            size="compactIcon"
+            className="flex-none text-warning"
+            aria-label="Retry Session link"
+            title={`${sessionLink.error} Retry Session link.`}
+            onClick={sessionLink.retry}
+          >
+            <TriangleAlert aria-hidden="true" />
+          </Button>
+        )}
         {sessionResource && (
           <Button
-            size="defaultIcon"
+            size="compactIcon"
             aria-label="Open Session"
             title="Open Session"
             className="flex-none"
@@ -171,17 +170,8 @@ export const AgentPane = ({
             <MessageSquare aria-hidden="true" />
           </Button>
         )}
-        {current && (
-          <AgentStopControl
-            status={agent.status}
-            stopping={stopping}
-            disabled={!runtimeAvailable}
-            historyAvailable={Boolean(sessionResource)}
-            onStop={() => void stop()}
-          />
-        )}
         <Button
-          size="defaultIcon"
+          size="compactIcon"
           aria-label="Copy attach command"
           title={copied === 'attach' ? 'Copied' : 'Copy attach command'}
           className="flex-none"
@@ -191,68 +181,43 @@ export const AgentPane = ({
         >
           {copied === 'attach' ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
         </Button>
-        <Button
-          size="defaultIcon"
-          aria-label={detailsOpen ? 'Hide Agent details' : 'Show Agent details'}
-          title={detailsOpen ? 'Hide Agent details' : 'Show Agent details'}
-          aria-controls={detailsId}
-          aria-expanded={detailsOpen}
-          className="ml-2 flex-none border-border border-l rounded-none pl-2"
-          data-state={detailsOpen ? 'open' : 'closed'}
-          onClick={() => setDetailsOpen(open => !open)}
-        >
-          <PanelRight aria-hidden="true" />
-        </Button>
+        {current && (
+          <AgentStopControl
+            status={agent.status}
+            stopping={stopping}
+            disabled={!runtimeAvailable}
+            historyAvailable={Boolean(sessionResource)}
+            onStop={() => void stop()}
+          />
+        )}
+        <AgentDetails
+          agent={agent}
+          copiedDirectory={copied === 'working-directory'}
+          onCopyDirectory={() => {
+            if (!agent.cwd) return
+            void copyText(
+              agent.cwd,
+              'working-directory',
+              'The working directory could not be copied.',
+            )
+          }}
+        />
       </header>
-      {sessionLink.error && (
-        <div
-          className="flex items-center gap-2 border-border border-b px-3 py-2 text-xs text-danger"
-          role="status"
-        >
-          <span>{sessionLink.error}</span>
-          <Button size="compact" onClick={sessionLink.retry}>
-            Retry Session link
-          </Button>
-        </div>
-      )}
       {!runtimeAvailable && (
-        <div className="border-warning/30 border-b bg-warning/8 px-3 py-2 text-xs text-muted">
+        <div className="border-warning/30 border-b bg-warning/8 px-3 py-1.5 text-xs text-muted">
           {runtimeMessage}
         </div>
       )}
-      <div className="flex min-h-0 flex-1">
-        <div className="flex min-w-0 flex-1 flex-col">
-          <Suspense
-            fallback={
-              <p className="p-4 text-sm text-muted" role="status">
-                Loading terminal…
-              </p>
-            }
-          >
-            <BrowserTerminal
-              key={agent.id}
-              agentId={agent.id}
-              available={runtimeAvailable}
-              controlsContainer={terminalControls}
-            />
-          </Suspense>
-        </div>
-        {detailsOpen && (
-          <AgentDetails
-            agent={agent}
-            id={detailsId}
-            copiedDirectory={copied === 'working-directory'}
-            onCopyDirectory={() => {
-              if (!agent.cwd) return
-              void copyText(
-                agent.cwd,
-                'working-directory',
-                'The working directory could not be copied.',
-              )
-            }}
-            onClose={() => setDetailsOpen(false)}
-          />
-        )}
+      <div className="flex min-h-0 flex-1 flex-col">
+        <Suspense
+          fallback={
+            <p className="p-4 text-sm text-muted" role="status">
+              Loading terminal…
+            </p>
+          }
+        >
+          <BrowserTerminal key={agent.id} agentId={agent.id} available={runtimeAvailable} />
+        </Suspense>
       </div>
     </div>
   )

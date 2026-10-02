@@ -129,7 +129,10 @@ describe('Agent pane', () => {
     const onOpen = vi.fn()
     render(<AgentPane agentId="terminal-1" projects={projects} onOpen={onOpen} />)
     const open = await screen.findByRole('button', { name: 'Open Session' })
-    expect(screen.getByText('Some project directories could not be loaded.')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Retry Session link' })).toHaveAttribute(
+      'title',
+      expect.stringContaining('Some project directories could not be loaded.'),
+    )
     expect(await screen.findByRole('region', { name: 'Agent terminal' })).toBeVisible()
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('unavailable'), error)
     expect(onOpen).not.toHaveBeenCalled()
@@ -168,7 +171,7 @@ describe('Agent pane', () => {
   it('shows the native terminal and copies the attach command', async () => {
     render(<AgentPane agentId="terminal-1" />)
     expect(await screen.findByRole('region', { name: 'Agent terminal' })).toBeVisible()
-    expect(screen.getByText('/work/herdr-roam')).toBeVisible()
+    expect(screen.getByText('idle · Codex · /work/herdr-roam')).toBeVisible()
     expect(screen.getByRole('region', { name: 'Agent terminal' })).toBeVisible()
     expect(screen.queryByText('Live output')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Copy attach command' }))
@@ -186,7 +189,7 @@ describe('Agent pane', () => {
     expect(screen.getByRole('heading', { name: 'Agent details' })).toBeVisible()
     expect(screen.getByText('Working directory')).toBeVisible()
     expect(screen.getByText('Attach target')).toBeVisible()
-    expect(screen.getAllByText('/work/herdr-roam')).toHaveLength(2)
+    expect(screen.getByText('/work/herdr-roam')).toBeVisible()
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy working directory' }))
     await waitFor(() =>
@@ -201,7 +204,10 @@ describe('Agent pane', () => {
     mocks.agent.cwd = null
     render(<AgentPane agentId="terminal-1" />)
     expect(await screen.findByRole('region', { name: 'Agent terminal' })).toBeVisible()
-    expect(screen.getByText('Working directory unavailable')).toBeVisible()
+    expect(screen.getByText('idle · Codex')).toHaveAttribute(
+      'title',
+      'Working directory unavailable',
+    )
 
     fireEvent.click(screen.getByRole('button', { name: 'Show Agent details' }))
     expect(screen.getByText('Unavailable')).toBeVisible()
@@ -268,7 +274,7 @@ describe('Agent pane', () => {
     mocks.present = false
     rerender(<AgentPane {...props} />)
 
-    expect(await screen.findByText('stopped')).toBeVisible()
+    expect(await screen.findByText('stopped · Codex · /work/herdr-roam')).toBeVisible()
     expect(screen.getByRole('region', { name: 'Agent terminal' })).toHaveAttribute(
       'aria-disabled',
       'true',

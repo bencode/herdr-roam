@@ -263,19 +263,17 @@ export const AppShell = ({
             onClose={onClose}
             onCloseMany={onCloseMany}
             trailing={
-              <button
-                type="button"
-                className={cn(
-                  'grid w-10 flex-none place-items-center border-0 border-border border-l bg-transparent text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3.5',
-                  assistantOpen && 'text-foreground',
-                )}
-                onClick={() => setAssistantOpen(!assistantOpen)}
-                aria-pressed={assistantOpen}
-                aria-label={assistantOpen ? 'Close Assistant' : 'Open Assistant'}
-                title={assistantOpen ? 'Close Assistant' : 'Open Assistant'}
-              >
-                <PanelRight aria-hidden="true" />
-              </button>
+              assistantOpen ? null : (
+                <button
+                  type="button"
+                  className="grid w-10 flex-none place-items-center border-0 border-border border-l bg-transparent text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3.5"
+                  onClick={() => setAssistantOpen(true)}
+                  aria-label="Open Assistant"
+                  title="Open Assistant"
+                >
+                  <PanelRight aria-hidden="true" />
+                </button>
+              )
             }
           />
           <ResourceHost

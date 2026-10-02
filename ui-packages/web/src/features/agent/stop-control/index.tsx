@@ -1,6 +1,6 @@
 import type { AgentStatus } from '@herdr-roam/shared'
 import * as Popover from '@radix-ui/react-popover'
-import { Square } from 'lucide-react'
+import { CircleStop } from 'lucide-react'
 import { Button } from '../../../ui/button'
 
 export const AgentStopControl = ({
@@ -21,9 +21,15 @@ export const AgentStopControl = ({
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
-        <Button className="flex-none whitespace-nowrap" disabled={disabled || stopping}>
-          <Square aria-hidden="true" />
-          {stopping ? 'Stopping…' : 'Stop Agent…'}
+        <Button
+          size="compactIcon"
+          variant="dangerGhost"
+          className="flex-none"
+          aria-label={stopping ? 'Stopping…' : 'Stop Agent…'}
+          title={stopping ? 'Stopping…' : 'Stop Agent…'}
+          disabled={disabled || stopping}
+        >
+          <CircleStop aria-hidden="true" />
         </Button>
       </Popover.Trigger>
       <Popover.Portal>
