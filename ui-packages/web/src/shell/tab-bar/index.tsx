@@ -1,6 +1,6 @@
 import type { AgentStatus } from '@herdr-roam/shared'
 import { Bot, Box, FileText, Home, MessageSquare, X } from 'lucide-react'
-import { useLayoutEffect, useRef } from 'react'
+import { type ReactNode, useLayoutEffect, useRef } from 'react'
 import { useAgentRuntime } from '../../features/agent/runtime-provider'
 import { useSessionData } from '../../features/session/use-session-data'
 import { cn } from '../../lib/cn'
@@ -54,9 +54,18 @@ type Props = {
   readonly onActivate: (resource: ResourceRef) => void
   readonly onClose: (resource: ResourceRef) => void
   readonly onCloseMany: (resources: readonly ResourceRef[]) => void
+  readonly trailing?: ReactNode
 }
 
-export const TabBar = ({ tabs, active, onWorkbench, onActivate, onClose, onCloseMany }: Props) => {
+export const TabBar = ({
+  tabs,
+  active,
+  onWorkbench,
+  onActivate,
+  onClose,
+  onCloseMany,
+  trailing,
+}: Props) => {
   const { agentById, snapshot } = useAgentRuntime()
   const refs = useRef(new Map<string, HTMLButtonElement>())
   const visibleRefs = useRef(new Map<string, HTMLElement>())
@@ -201,6 +210,7 @@ export const TabBar = ({ tabs, active, onWorkbench, onActivate, onClose, onClose
           )
         })}
       </div>
+      {trailing}
     </div>
   )
 }
