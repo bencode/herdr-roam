@@ -1,7 +1,9 @@
 import type { AgentSummary, Project } from '@herdr-roam/shared'
 import { Check, Copy, MessageSquare, TerminalSquare, TriangleAlert } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState } from 'react'
+import { Banner } from '../../../ui/banner'
 import { Button } from '../../../ui/button'
+import { EmptyState } from '../../../ui/empty-state'
 import type { ResourceRef } from '../../../workbench/resource'
 import { stopAgent } from '../client'
 import { agentProviderLabel } from '../presentation'
@@ -64,13 +66,13 @@ export const AgentPane = ({
 
   if (!agent) {
     return (
-      <div className="grid h-full place-items-center p-8 text-center">
-        <div>
-          <TerminalSquare className="mx-auto mb-4 size-6 text-faint" aria-hidden="true" />
-          <h1 className="m-0 text-lg">Agent unavailable</h1>
-          <p className="mt-2 text-sm text-muted">{agentId} is not present in Herdr.</p>
-        </div>
-      </div>
+      <EmptyState
+        className="h-full content-center"
+        icon={<TerminalSquare aria-hidden="true" />}
+        title="Agent unavailable"
+      >
+        {agentId} is not present in Herdr.
+      </EmptyState>
     )
   }
 
@@ -188,15 +190,11 @@ export const AgentPane = ({
           }}
         />
       </header>
-      {!runtimeAvailable && (
-        <div className="border-warning/30 border-b bg-warning/8 px-3 py-1.5 text-xs text-muted">
-          {runtimeMessage}
-        </div>
-      )}
+      {!runtimeAvailable && <Banner tone="warning">{runtimeMessage}</Banner>}
       <div className="flex min-h-0 flex-1 flex-col">
         <Suspense
           fallback={
-            <p className="p-4 text-sm text-muted" role="status">
+            <p className="m-0 p-4 text-xs text-muted" role="status">
               Loading terminal…
             </p>
           }

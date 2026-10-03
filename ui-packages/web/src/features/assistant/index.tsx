@@ -2,15 +2,15 @@ import type { Project } from '@herdr-roam/shared'
 import { Maximize2, Minimize2, PanelRightClose, X } from 'lucide-react'
 import { type KeyboardEvent, useEffect, useRef } from 'react'
 import { cn } from '../../lib/cn'
+import { Button } from '../../ui/button'
+import { EmptyState } from '../../ui/empty-state'
+import { tabCloseClass, tabShellVariants, tabTriggerClass } from '../../ui/tab-strip'
 import type { ResourceRef } from '../../workbench/resource'
 import { AgentPane } from '../agent/agent-pane'
 import { useAgentRuntime } from '../agent/runtime-provider'
 import { StatusDot } from '../agent/status-dot'
 import { AgentMenu } from './agent-menu'
 import { useAssistantStore } from './store'
-
-const iconButtonClass =
-  'grid size-7 flex-none place-items-center rounded-sm border-0 bg-transparent text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3.5'
 
 export const AssistantPanel = ({
   projectName,
@@ -67,8 +67,8 @@ export const AssistantPanel = ({
               <div
                 key={agentId}
                 className={cn(
-                  'group flex min-w-24 max-w-48 flex-none items-stretch border-border border-r text-muted',
-                  selected && 'bg-surface text-foreground shadow-[inset_0_2px_var(--foreground)]',
+                  tabShellVariants({ selected }),
+                  'min-w-24 max-w-48 flex-none basis-auto max-[68rem]:basis-auto',
                 )}
                 onAuxClick={event => event.button === 1 && closeAgent(agentId)}
               >
@@ -79,7 +79,7 @@ export const AssistantPanel = ({
                   tabIndex={selected ? 0 : -1}
                   data-agent-id={agentId}
                   onKeyDown={event => moveFocus(event, agentId)}
-                  className="flex min-w-0 flex-1 items-center gap-1.75 border-0 bg-transparent pr-1 pl-2.5 text-left text-xs text-inherit hover:text-foreground"
+                  className={cn(tabTriggerClass, 'pl-2.5 text-xs')}
                   onClick={() => activate(agentId)}
                   title={agent?.cwd ? `${name} · ${agent.cwd}` : name}
                 >
@@ -91,10 +91,7 @@ export const AssistantPanel = ({
                 </button>
                 <button
                   type="button"
-                  className={cn(
-                    'grid size-6 flex-none place-items-center self-center rounded-sm border-0 bg-transparent text-muted opacity-0 hover:bg-hover hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 [&>svg]:w-3',
-                    selected && 'opacity-100',
-                  )}
+                  className={tabCloseClass}
                   aria-label={`Close ${name}`}
                   title={`Close ${name} (keeps the Agent running)`}
                   onClick={() => closeAgent(agentId)}
@@ -108,24 +105,22 @@ export const AssistantPanel = ({
         <div className="flex flex-none items-center gap-0.5 px-1">
           <AgentMenu projectName={projectName} />
           <span className="mx-0.5 h-4 w-px bg-border" aria-hidden="true" />
-          <button
-            type="button"
-            className={iconButtonClass}
+          <Button
+            size="compactIcon"
             aria-label={maximized ? 'Restore Assistant' : 'Maximize Assistant'}
             title={maximized ? 'Restore Assistant' : 'Maximize Assistant'}
             onClick={() => setMaximized(!maximized)}
           >
             {maximized ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}
-          </button>
-          <button
-            type="button"
-            className={iconButtonClass}
+          </Button>
+          <Button
+            size="compactIcon"
             aria-label="Close Assistant"
             title="Close Assistant"
             onClick={() => setOpen(false)}
           >
             <PanelRightClose aria-hidden="true" />
-          </button>
+          </Button>
         </div>
       </header>
       {activeAgentId ? (
@@ -138,9 +133,9 @@ export const AssistantPanel = ({
           />
         </div>
       ) : (
-        <div className="grid min-h-0 flex-1 place-items-center p-6 text-center text-sm text-muted">
+        <EmptyState className="min-h-0 flex-1 content-center">
           Open an Agent from the Agents list or with +.
-        </div>
+        </EmptyState>
       )}
     </section>
   )
