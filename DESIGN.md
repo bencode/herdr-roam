@@ -258,13 +258,18 @@ Built shadcn/ui-style on Radix and Tailwind, owned in `ui-packages/web/src/ui/`.
 - **ToggleChip** (`ui/toggle-chip`): a borderless 28px filter toggle with `aria-pressed`, `rounded-sm`, transparent at rest with `hover` fill. Pressed adds `primary-soft` fill, medium weight, and a `primary` check, so selection never relies on color alone. In the Agents board status bar, zero counts render in `faint` and a non-zero Blocked count in semibold `warning-text`.
 - **SearchField** (`ui/search-field`): leading search icon, 28/32px, focus shown on the field frame (`primary` border plus 1px ring); optional trailing count in 11px `muted`.
 - **StatusDot** (`features/agent/status-dot.tsx`): the only status-to-color map (`blocked` = `warning`, `working` = `primary`, `idle` = `muted`, `done` = `success`, `unknown` = `faint`; no status = `faint`). Always labelled. Lives with the Agent feature because it encodes Agent state, not a generic UI concept. Runtime connection dots (connected / reconnecting / unavailable) are a different signal and do not use it.
+- **PopoverContent** (`ui/popover`): the one floating surface. Portals a Radix popover onto `surface` with a 1px `border`, `rounded-md`, `--shadow-popover`, and `--z-dropdown`; `sideOffset` 4, `collisionPadding` 8. Width and padding come from the caller. Context menus share its surface class.
+- **MenuItem** (`ui/menu`): a 28px `rounded-sm` row in 12px text, with `hover` fill on hover, keyboard focus, or Radix highlight, and 45% opacity when disabled. Icons are 14px. `selected` adds a right-aligned `primary` check; `tone="muted"` is for secondary actions such as Manage. `menuItemVariants` styles Radix menu items and radio labels the same way.
+- **ContextMenu** (`ui/context-menu`): Radix ContextMenu on the popover surface, with `p-1`, items from `menuItemVariants`, and a 1px `border` separator.
+- **Tab strip** (`ui/tab-strip`): styles only, shared by tab strips whose keyboard and close behavior differ. A selected tab sits on `surface`, has an inset 2px `foreground` top rule, and connects to the content below. The close button shows on hover and is always visible on the current tab.
+- **Input** (`ui/input`): 28/32px text field on `surface` with a 1px `border`. Focus uses the SearchField treatment (`primary` border plus 1px ring). Add `font-mono` for paths.
+- **WorkspaceSelect** (`shell/context-sidebar/project-panel/workspace-select.tsx`): picks the worktree the file tree reads from. Switching is occasional, so in the Files panel it takes no row of its own: a 24px borderless trigger at the trailing edge of the Sessions/Files tab row (shown only on Files with two or more worktrees), with the branch in 11px mono `muted` truncated at 8rem and the full branch and path in its title. In forms (`layout="field"`) it is a 32px bordered field matching Input. The menu grows to its content (up to 28rem) and shows name, branch or Project marker, and the path.
 
 ### Planned primitives (phase 2, added with their regions)
 Only introduced when a region migrates and supplies real call sites.
 
-- **Select:** Radix Select for workspace, project, and theme pickers; trigger at 28/32px with fixed chevron padding, items with a `primary` check.
-- **Tabs:** strip at the 40px header line on `sidebar`, active tab marked by an inset top rule; underline variant for in-panel section switches.
-- **PopoverSurface + MenuItem:** surface on `surface` with a 1px `border`, `rounded-md`, `--shadow-popover`, z-index 20; menu items `rounded-sm`, 28px, `hover` fill on highlight.
+- **Select:** Radix Select for pickers that need one; trigger at 28/32px with fixed chevron padding, items with a `primary` check. The workspace picker is `WorkspaceSelect`, a listbox on PopoverContent.
+- **Underline tabs:** in-panel section switches.
 - **Tooltip:** small popover surface, 12px text, same shadow and stacking.
 - **Badge:** `rounded-full`, 11px.
 - **Banner:** full-width row, at least 40px, tinted status wash (about 8% fill, 30% border) with 12px text.

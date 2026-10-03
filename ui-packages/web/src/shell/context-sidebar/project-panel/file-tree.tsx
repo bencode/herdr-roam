@@ -3,12 +3,12 @@ import { useDeferredValue, useEffect, useState } from 'react'
 import { useFileCatalog } from '../../../features/file/use-file-catalog'
 import { useFileSearch } from '../../../features/file/use-file-search'
 import type { ProjectWorkspaceState } from '../../../features/project/use-project-workspaces'
+import { Button } from '../../../ui/button'
 import type { ResourceRef } from '../../../workbench/resource'
 import type { TreeProps } from './file-tree-items'
 import { DirectoryRow, FileRow } from './file-tree-items'
 import { ProjectBrowserFrame } from './resource-list'
 import styles from './style.module.scss'
-import { WorkspaceSelect } from './workspace-select'
 
 type FileResource = Extract<ResourceRef, { type: 'file' }>
 
@@ -25,7 +25,6 @@ export const FileTree = ({
   workspaces,
   query,
   onQuery,
-  onWorkspace,
   onOpen,
 }: {
   readonly projectName: string
@@ -34,7 +33,6 @@ export const FileTree = ({
   readonly workspaces: ProjectWorkspaceState
   readonly query: string
   readonly onQuery: (query: string) => void
-  readonly onWorkspace: (workspaceId: string) => void
   readonly onOpen: (resource: ResourceRef) => void
 }) => {
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
@@ -73,12 +71,6 @@ export const FileTree = ({
     onOpen,
   }
 
-  const selectWorkspace = (nextWorkspaceId: string) => {
-    onWorkspace(nextWorkspaceId)
-    setExpanded(new Set())
-    setRevision(value => value + 1)
-  }
-
   return (
     <div className={styles.fileBrowser}>
       <ProjectBrowserFrame
@@ -87,24 +79,14 @@ export const FileTree = ({
         filtered={search.items.length}
         query={query}
         onQuery={onQuery}
-        leading={
-          workspaces.items.length > 1 ? (
-            <WorkspaceSelect
-              items={workspaces.items}
-              value={workspaceId}
-              onValueChange={selectWorkspace}
-            />
-          ) : null
-        }
         countLabel={
           searching
             ? `${resultCount} ${search.items.length === 1 ? 'result' : 'results'}${search.searching ? '…' : search.error ? ' · interrupted' : ''}`
             : null
         }
         actions={
-          <button
-            type="button"
-            className={styles.refresh}
+          <Button
+            size="defaultIcon"
             onClick={() => {
               workspaces.retry()
               retry()
@@ -115,7 +97,7 @@ export const FileTree = ({
             title="Refresh files"
           >
             <RefreshCw aria-hidden="true" />
-          </button>
+          </Button>
         }
       >
         {workspaces.error && workspaces.items.length === 0 ? (

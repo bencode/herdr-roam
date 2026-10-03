@@ -1,7 +1,8 @@
 import type { Project } from '@herdr-roam/shared'
 import { ArrowLeft, Check, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Button } from '../../../ui/button'
+import { Input } from '../../../ui/input'
 
 export const AddProjectForm = ({
   onBack,
@@ -11,6 +12,7 @@ export const AddProjectForm = ({
   readonly onAdd: (path: string) => Promise<void>
 }) => {
   const [path, setPath] = useState('')
+  const pathId = useId()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -38,25 +40,22 @@ export const AddProjectForm = ({
         void submit()
       }}
     >
-      <Button
-        className="mb-2"
-        size="compact"
-        onClick={onBack}
-      >
+      <Button className="mb-2" size="compact" onClick={onBack}>
         <ArrowLeft aria-hidden="true" /> Projects
       </Button>
-      <label className="block text-xs text-muted">
+      <label className="block text-xs text-muted" htmlFor={pathId}>
         Absolute path
-        <input
-          className="mt-1.5 h-8 w-full rounded-sm border border-border bg-background px-2 font-mono text-xs outline-none placeholder:text-faint focus:border-primary"
-          value={path}
-          onChange={event => {
-            setPath(event.target.value)
-            setError(null)
-          }}
-          placeholder="/Users/name/work/project"
-        />
       </label>
+      <Input
+        id={pathId}
+        className="mt-1.5 font-mono"
+        value={path}
+        onChange={event => {
+          setPath(event.target.value)
+          setError(null)
+        }}
+        placeholder="/Users/name/work/project"
+      />
       {error && (
         <p className="mt-2 mb-0 text-xs text-danger" role="alert">
           {error}
@@ -107,11 +106,7 @@ export const ManageProjects = ({
 
   return (
     <div className="p-2">
-      <Button
-        className="mb-1"
-        size="compact"
-        onClick={onBack}
-      >
+      <Button className="mb-1" size="compact" onClick={onBack}>
         <ArrowLeft aria-hidden="true" /> Projects
       </Button>
       <div className="max-h-64 overflow-auto">
@@ -142,10 +137,7 @@ export const ManageProjects = ({
             {confirming === project.name && (
               <div className="mt-2 flex items-center gap-2 text-xs">
                 <span className="min-w-0 flex-1 text-muted">Remove from Roam?</span>
-                <Button
-                  size="compact"
-                  onClick={() => setConfirming(null)}
-                >
+                <Button size="compact" onClick={() => setConfirming(null)}>
                   Cancel
                 </Button>
                 <Button
