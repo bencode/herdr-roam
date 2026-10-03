@@ -1,4 +1,3 @@
-import { Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { cn } from '../../../lib/cn'
 import { useAssistantStore } from '../../assistant/store'
@@ -6,11 +5,12 @@ import {
   agentDirectoryLabel,
   agentMatches,
   agentProviderLabel,
-  agentStatusClasses,
   agentStatusLabels,
   agentStatusOrder,
 } from '../presentation'
+import { SearchField } from '../../../ui/search-field'
 import { useAgentRuntime } from '../runtime-provider'
+import { StatusDot } from '../status-dot'
 
 export const AgentList = () => {
   const { snapshot, transportError } = useAgentRuntime()
@@ -24,16 +24,13 @@ export const AgentList = () => {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <label className="mx-2.5 mt-3 mb-2 flex h-8 flex-none items-center gap-2 rounded-md border border-border bg-surface px-2 transition-[border-color,box-shadow] duration-150 focus-within:border-primary focus-within:shadow-[0_0_0_1px_var(--primary)] [&>svg]:w-3.5 [&>svg]:text-faint">
-        <Search aria-hidden="true" />
-        <span className="sr-only">Search agents</span>
-        <input
-          className="min-w-0 flex-1 border-0 bg-transparent text-xs outline-none! placeholder:text-faint"
-          value={query}
-          onChange={event => setQuery(event.target.value)}
-          placeholder="Search agents…"
-        />
-      </label>
+      <SearchField
+        className="mx-2.5 mt-3 mb-2 flex-none"
+        label="Search agents"
+        placeholder="Search agents…"
+        value={query}
+        onChange={event => setQuery(event.target.value)}
+      />
       {snapshot.source.state !== 'connected' && (
         <div
           className={cn(
@@ -76,21 +73,11 @@ export const AgentList = () => {
                     onClick={() => openAgent(agent.id)}
                     title={agent.cwd ?? undefined}
                   >
-                    <i
-                      className={cn(
-                        'size-1.5 flex-none rounded-full',
-                        agentStatusClasses[agent.status],
-                      )}
-                      role="img"
-                      aria-label={agent.status}
-                    />
+                    <StatusDot status={agent.status} />
                     <span className="grid min-w-0 flex-1 gap-0.5">
                       <strong className="truncate text-xs font-semibold">{agent.name}</strong>
                       <small
-                        className={cn(
-                          'truncate text-2xs',
-                          active ? 'text-muted' : 'text-faint',
-                        )}
+                        className={cn('truncate text-2xs', active ? 'text-muted' : 'text-faint')}
                       >
                         {context || 'Runtime agent'}
                       </small>

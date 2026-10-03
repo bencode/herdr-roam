@@ -3,10 +3,16 @@ import { Check, Copy, ExternalLink, TerminalSquare } from 'lucide-react'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { WorkspaceSelect } from '../../../shell/context-sidebar/project-panel/workspace-select'
 import { Button } from '../../../ui/button'
+import { SegmentedControl } from '../../../ui/segmented-control'
 import { AgentClientError, launchProjectAgent } from '../../agent/client'
 import { useAgentRuntime } from '../../agent/runtime-provider'
 import { useAssistantStore } from '../../assistant/store'
 import { useProjectWorkspaces } from '../../project/use-project-workspaces'
+
+const providerOptions: readonly { readonly value: AgentProvider; readonly label: string }[] = [
+  { value: 'codex', label: 'Codex' },
+  { value: 'claude', label: 'Claude' },
+]
 
 type LaunchOutcome = {
   readonly projectName: string
@@ -143,21 +149,16 @@ export const AgentLauncher = ({
               </>
             )}
           </div>
-          <label className="grid gap-1.5 text-xs font-medium">
-            Provider
-            <select
-              aria-label="Agent provider"
+          <div className="grid gap-1.5 text-xs font-medium">
+            <span>Provider</span>
+            <SegmentedControl
+              label="Agent provider"
+              options={providerOptions}
               value={provider}
-              className="h-9 w-40 rounded-sm border border-border bg-surface px-2 text-xs text-foreground outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
-              onChange={event => {
-                const value = event.target.value
-                if (value === 'codex' || value === 'claude') setProvider(value)
-              }}
-            >
-              <option value="codex">Codex</option>
-              <option value="claude">Claude</option>
-            </select>
-          </label>
+              onValueChange={setProvider}
+              className="w-fit"
+            />
+          </div>
           <div className="mt-1 flex justify-end">
             <Button type="submit" variant="primary" disabled={!canLaunch}>
               <TerminalSquare aria-hidden="true" />

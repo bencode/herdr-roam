@@ -93,9 +93,7 @@ describe('New Session launcher', () => {
     expect(mocks.launch).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Working directory' }))
     fireEvent.click(screen.getByRole('option', { name: /linked-task/ }))
-    fireEvent.change(screen.getByRole('combobox', { name: 'Agent provider' }), {
-      target: { value: 'claude' },
-    })
+    fireEvent.click(screen.getByRole('radio', { name: 'Claude' }))
     fireEvent.click(screen.getByRole('button', { name: 'Open Claude' }))
     await waitFor(() => expect(mocks.openAgent).toHaveBeenCalledWith(receipt.agent.id))
     expect(mocks.launch).toHaveBeenCalledWith({
@@ -175,9 +173,7 @@ describe('New Session launcher', () => {
     await ready()
     fireEvent.click(screen.getByRole('button', { name: 'Working directory' }))
     fireEvent.click(screen.getByRole('option', { name: /linked-task/ }))
-    fireEvent.change(screen.getByRole('combobox', { name: 'Agent provider' }), {
-      target: { value: 'claude' },
-    })
+    fireEvent.click(screen.getByRole('radio', { name: 'Claude' }))
     mocks.directories.mockResolvedValue({ items: [{ ...primary, path: '/other' }] })
     view.rerender(<AgentLauncher project={{ name: 'other', path: '/other' }} />)
     await waitFor(() => expect(screen.getByRole('button', { name: 'Open Claude' })).toBeEnabled())
@@ -259,9 +255,7 @@ describe('New Session launcher', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Retry directories' }))
     await ready()
     mocks.runtimeConnected = false
-    fireEvent.change(screen.getByRole('combobox', { name: 'Agent provider' }), {
-      target: { value: 'claude' },
-    })
+    fireEvent.click(screen.getByRole('radio', { name: 'Claude' }))
     expect(screen.getByRole('button', { name: 'Open Claude' })).toBeDisabled()
     expect(mocks.launch).not.toHaveBeenCalled()
   })

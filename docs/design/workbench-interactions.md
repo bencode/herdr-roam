@@ -301,8 +301,8 @@ With no workbench Tab active, the Agents activity shows the Agents board in the
 workbench area: a read-only wall of every running Agent. Blocked Agents come
 first as large cards showing the tail of their Terminal screen with Esc, Accept,
 and Open; Working Agents follow as smaller cards; Idle, Done, and Unknown Agents
-collapse into compact rows. Status chips count and filter, alongside a directory
-filter, search, and a column choice. Next blocked cycles the Assistant panel
+collapse into compact rows. A lightweight status bar counts and filters by
+status, and a column choice appears once there are cards to lay out. Next blocked cycles the Assistant panel
 through blocked Agents. Card screens poll recent output only while the card is
 visible and the page is shown: Working about every second, Blocked every two
 seconds, quiet Agents never. Accept and Esc send exactly one Enter or Escape key

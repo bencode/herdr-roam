@@ -15,19 +15,12 @@ import { cn } from '../../../lib/cn'
 import { Button } from '../../../ui/button'
 import type { ResourceRef } from '../../../workbench/resource'
 import { useAgentRuntime } from '../../agent/runtime-provider'
+import { StatusDot } from '../../agent/status-dot'
 import { useAssistantStore } from '../../assistant/store'
 import { resumeSession, SessionClientError } from '../client'
 import { type SessionDataState, useSessionData } from '../use-session-data'
 import styles from './style.module.scss'
 import { SessionTranscript } from './transcript'
-
-const statusClasses: Readonly<Record<AgentSummary['status'], string>> = {
-  blocked: 'bg-warning',
-  working: 'bg-primary',
-  idle: 'bg-muted',
-  done: 'bg-success',
-  unknown: 'bg-faint',
-}
 
 type SessionResource = Extract<ResourceRef, { type: 'session' }>
 type ResumeFailure = {
@@ -217,13 +210,10 @@ export const SessionTab = ({
   return (
     <div className="flex h-full min-h-0 flex-col bg-surface">
       <header className="flex min-h-14 flex-none items-center gap-3 border-border border-b px-5">
-        <i
-          className={cn(
-            'size-2 flex-none rounded-full',
-            agent ? statusClasses[agent.status] : 'bg-faint',
-          )}
-          role="img"
-          aria-label={agent?.status ?? 'not running'}
+        <StatusDot
+          status={agent?.status ?? null}
+          label={agent?.status ?? 'not running'}
+          className="size-2"
         />
         <div className="min-w-0">
           <div className="flex items-center gap-2">

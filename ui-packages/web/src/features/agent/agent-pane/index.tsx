@@ -1,12 +1,12 @@
-import type { AgentStatus, AgentSummary, Project } from '@herdr-roam/shared'
+import type { AgentSummary, Project } from '@herdr-roam/shared'
 import { Check, Copy, MessageSquare, TerminalSquare, TriangleAlert } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { cn } from '../../../lib/cn'
 import { Button } from '../../../ui/button'
 import type { ResourceRef } from '../../../workbench/resource'
 import { stopAgent } from '../client'
 import { agentProviderLabel } from '../presentation'
 import { useAgentRuntime } from '../runtime-provider'
+import { StatusDot } from '../status-dot'
 import { AgentStopControl } from '../stop-control'
 import { useAgentSessionResource } from '../use-agent-session-resource'
 import { AgentDetails } from './details'
@@ -14,14 +14,6 @@ import { AgentDetails } from './details'
 const BrowserTerminal = lazy(() =>
   import('../browser-terminal').then(module => ({ default: module.BrowserTerminal })),
 )
-
-const statusClasses: Readonly<Record<AgentStatus, string>> = {
-  blocked: 'bg-warning',
-  working: 'bg-primary',
-  idle: 'bg-muted',
-  done: 'bg-success',
-  unknown: 'bg-faint',
-}
 
 const EMPTY_PROJECTS: readonly Project[] = []
 
@@ -129,14 +121,7 @@ export const AgentPane = ({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <header className="flex h-8 flex-none items-center gap-1 border-border border-b pr-1.5 pl-3">
-        <i
-          className={cn(
-            'size-1.5 flex-none rounded-full',
-            current ? statusClasses[agent.status] : 'bg-faint',
-          )}
-          role="img"
-          aria-label={displayedStatus}
-        />
+        <StatusDot status={current ? agent.status : null} label={displayedStatus} />
         <p
           className="m-0 ml-1 min-w-0 flex-1 truncate text-xs text-muted first-letter:uppercase"
           title={agent.cwd ?? 'Working directory unavailable'}
