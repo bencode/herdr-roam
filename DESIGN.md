@@ -261,9 +261,12 @@ Built shadcn/ui-style on Radix and Tailwind, owned in `ui-packages/web/src/ui/`.
 - **PopoverContent** (`ui/popover`): the one floating surface. Portals a Radix popover onto `surface` with a 1px `border`, `rounded-md`, `--shadow-popover`, and `--z-dropdown`; `sideOffset` 4, `collisionPadding` 8. Width and padding come from the caller. Context menus share its surface class.
 - **MenuItem** (`ui/menu`): a 28px `rounded-sm` row in 12px text, with `hover` fill on hover, keyboard focus, or Radix highlight, and 45% opacity when disabled. Icons are 14px. `selected` adds a right-aligned `primary` check; `tone="muted"` is for secondary actions such as Manage. `menuItemVariants` styles Radix menu items and radio labels the same way.
 - **ContextMenu** (`ui/context-menu`): Radix ContextMenu on the popover surface, with `p-1`, items from `menuItemVariants`, and a 1px `border` separator.
-- **Tab strip** (`ui/tab-strip`): styles only, shared by tab strips whose keyboard and close behavior differ. A selected tab sits on `surface`, has an inset 2px `foreground` top rule, and connects to the content below. The close button shows on hover and is always visible on the current tab.
+- **Tab strip** (`ui/tab-strip`): styles only, shared by tab strips whose keyboard and close behavior differ. A selected tab sits on `surface`, has an inset 2px `foreground` top rule, and connects to the content below. The close button shows on hover and is always visible on the current tab. Used by the workbench tab bar and the Assistant Agent tabs (narrower, 12px).
 - **Input** (`ui/input`): 28/32px text field on `surface` with a 1px `border`. Focus uses the SearchField treatment (`primary` border plus 1px ring). Add `font-mono` for paths.
 - **WorkspaceSelect** (`shell/context-sidebar/project-panel/workspace-select.tsx`): picks the worktree the file tree reads from. Switching is occasional, so in the Files panel it takes no row of its own: a 24px borderless trigger at the trailing edge of the Sessions/Files tab row (shown only on Files with two or more worktrees), with the branch in 11px mono `muted` truncated at 8rem and the full branch and path in its title. In forms (`layout="field"`) it is a 32px bordered field matching Input. The menu grows to its content (up to 28rem) and shows name, branch or Project marker, and the path.
+- **SectionHeader** (`ui/section-header`): the 11px uppercase semibold Label in `faint` on a 28px row, grouping a list or menu. An optional count follows the title in regular weight; an optional action sits at the trailing edge in normal case.
+- **Banner** (`ui/banner`): a tinted status wash (8% fill, 30% border) with 12px text, at least 32px tall. Full-width rows take a bottom border; `inset` banners inside lists and menus are `rounded-md` boxes. `warning` keeps `muted` text and announces as status; `danger` uses `danger` text and announces as an alert. At most one trailing action.
+- **EmptyState** (`ui/empty-state`): centered 12px `muted` line, with an optional 20px `faint` icon and a 14px medium title above it. Used for empty lists, an empty Assistant, and an unavailable Agent.
 
 ### Planned primitives (phase 2, added with their regions)
 Only introduced when a region migrates and supplies real call sites.
@@ -272,9 +275,6 @@ Only introduced when a region migrates and supplies real call sites.
 - **Underline tabs:** in-panel section switches.
 - **Tooltip:** small popover surface, 12px text, same shadow and stacking.
 - **Badge:** `rounded-full`, 11px.
-- **Banner:** full-width row, at least 40px, tinted status wash (about 8% fill, 30% border) with 12px text.
-- **EmptyState:** a Heading or Body line in `muted` and at most one action.
-- **SectionHeader:** the 11px uppercase semibold Label in `faint` on a 28px row, grouping a list or menu.
 
 ## Do's and Don'ts
 

@@ -1,7 +1,10 @@
 import type { AgentStatus, AgentSummary } from '@herdr-roam/shared'
 import { type ReactNode, useEffect, useState } from 'react'
 import { cn } from '../../lib/cn'
+import { Banner } from '../../ui/banner'
 import { Button } from '../../ui/button'
+import { EmptyState } from '../../ui/empty-state'
+import { SectionHeader } from '../../ui/section-header'
 import { SegmentedControl } from '../../ui/segmented-control'
 import { ToggleChip } from '../../ui/toggle-chip'
 import { agentStatusLabels, agentStatusOrder } from '../agent/presentation'
@@ -65,11 +68,7 @@ const Section = ({
   readonly children: ReactNode
 }) => (
   <section className="mb-5" aria-label={title}>
-    <h2 className="m-0 mb-2 flex h-7 items-center gap-2 text-2xs font-semibold uppercase tracking-[0.08em] text-faint">
-      <span>{title}</span>
-      <span className="font-normal tabular-nums">{count}</span>
-      <span className="ml-auto normal-case tracking-normal">{action}</span>
-    </h2>
+    <SectionHeader className="mb-2 px-0" title={title} count={count} action={action} />
     {children}
   </section>
 )
@@ -155,18 +154,18 @@ export const AgentsBoard = () => {
         )}
       </header>
       {(snapshot.stale || snapshot.source.state !== 'connected') && (
-        <p className="m-0 flex-none border-warning/30 border-b bg-warning/8 px-4 py-1.5 text-xs text-muted">
+        <Banner tone="warning" className="flex-none px-4">
           Agent status may be out of date.{' '}
           {snapshot.source.state !== 'connected' && snapshot.source.message}
-        </p>
+        </Banner>
       )}
       <div className="min-h-0 flex-1 overflow-auto px-4 pt-4">
         {visible.length === 0 && (
-          <p className="mt-16 text-center text-sm text-muted">
+          <EmptyState className="mt-8">
             {snapshot.items.length === 0
               ? 'No Agents are running in Herdr.'
               : 'No Agents match these filters.'}
-          </p>
+          </EmptyState>
         )}
         {blocked.length > 0 && (
           <Section

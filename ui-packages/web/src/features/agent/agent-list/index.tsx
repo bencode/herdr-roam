@@ -8,7 +8,10 @@ import {
   agentStatusLabels,
   agentStatusOrder,
 } from '../presentation'
+import { Banner } from '../../../ui/banner'
+import { EmptyState } from '../../../ui/empty-state'
 import { SearchField } from '../../../ui/search-field'
+import { SectionHeader } from '../../../ui/section-header'
 import { useAgentRuntime } from '../runtime-provider'
 import { StatusDot } from '../status-dot'
 
@@ -32,19 +35,12 @@ export const AgentList = () => {
         onChange={event => setQuery(event.target.value)}
       />
       {snapshot.source.state !== 'connected' && (
-        <div
-          className={cn(
-            'mx-2.5 mb-2 rounded-md border px-2.5 py-2 text-2xs leading-4',
-            snapshot.stale
-              ? 'border-warning/30 bg-warning/8 text-muted'
-              : 'border-danger/30 bg-danger/8 text-muted',
-          )}
-        >
+        <Banner tone={snapshot.stale ? 'warning' : 'danger'} inset className="mx-2.5 mb-2">
           {snapshot.source.message}
           {transportError && (
             <span className="mt-1 block text-faint">{transportError.message}</span>
           )}
-        </div>
+        </Banner>
       )}
       <div className="min-h-0 flex-1 overflow-auto px-1.75 pb-3.5">
         {agentStatusOrder.map(status => {
@@ -52,10 +48,7 @@ export const AgentList = () => {
           if (agents.length === 0) return null
           return (
             <section className="mb-2" key={status}>
-              <h2 className="m-0 flex h-7 items-center px-2 text-2xs font-semibold uppercase tracking-[0.08em] text-faint">
-                <span>{agentStatusLabels[status]}</span>
-                <span className="ml-auto font-normal tabular-nums">{agents.length}</span>
-              </h2>
+              <SectionHeader title={agentStatusLabels[status]} count={agents.length} />
               {agents.map(agent => {
                 const active = agent.id === activeAgentId
                 const context = [agentProviderLabel(agent.provider), agentDirectoryLabel(agent.cwd)]
@@ -89,11 +82,11 @@ export const AgentList = () => {
           )
         })}
         {filtered.length === 0 && (
-          <p className="mx-2 mt-6 text-center text-xs text-faint">
+          <EmptyState>
             {snapshot.items.length === 0
               ? 'No agents are available.'
               : 'No agents match this search.'}
-          </p>
+          </EmptyState>
         )}
       </div>
     </div>
