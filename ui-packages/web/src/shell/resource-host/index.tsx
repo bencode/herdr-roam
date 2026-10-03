@@ -1,10 +1,16 @@
 import type { Project } from '@herdr-roam/shared'
 import { Activity } from 'react'
+import { AgentsBoard } from '../../features/agents-board'
 import { FileTab } from '../../features/file/file-tab'
 import { SessionTab } from '../../features/session/session-tab'
 import { SkillTab } from '../../features/skill/skill-tab'
 import { WorkbenchHome } from '../../features/workbench/workbench-home'
-import { type ResourceRef, resourceKey, sameResource } from '../../workbench/resource'
+import {
+  type GlobalDimension,
+  type ResourceRef,
+  resourceKey,
+  sameResource,
+} from '../../workbench/resource'
 
 const ResourceContent = ({
   resource,
@@ -23,11 +29,13 @@ const ResourceContent = ({
 
 export const ResourceHost = ({
   project,
+  dimension,
   tabs,
   active,
   onOpen,
 }: {
   readonly project: Project | null
+  readonly dimension: GlobalDimension
   readonly tabs: readonly ResourceRef[]
   readonly active: ResourceRef | null
   readonly onOpen: (resource: ResourceRef) => void
@@ -35,7 +43,9 @@ export const ResourceHost = ({
   <main className="relative min-h-0 min-w-0 flex-1 bg-surface">
     <Activity mode={active === null ? 'visible' : 'hidden'} name="workbench">
       <div className="absolute inset-0 overflow-hidden">
-        {project ? (
+        {dimension === 'agents' ? (
+          <AgentsBoard />
+        ) : project ? (
           <WorkbenchHome project={project} visible={active === null} />
         ) : (
           <div className="grid h-full place-items-center p-8 text-center">

@@ -67,11 +67,32 @@ const sameSource = (
   return false
 }
 
+export const statusSinceOf = (
+  items: readonly AgentSummary[],
+  previous: AgentRuntimeSnapshot,
+  now: string,
+): AgentRuntimeSnapshot['statusSince'] =>
+  Object.fromEntries(
+    items.map(agent => {
+      const before = previous.items.find(candidate => candidate.id === agent.id)
+      const since = previous.statusSince[agent.id]
+      return [agent.id, before?.status === agent.status && since ? since : now]
+    }),
+  )
+
+const sameStatusSince = (
+  left: AgentRuntimeSnapshot['statusSince'],
+  right: AgentRuntimeSnapshot['statusSince'],
+): boolean =>
+  Object.keys(left).length === Object.keys(right).length &&
+  Object.entries(left).every(([id, since]) => right[id] === since)
+
 export const sameAgentSnapshot = (
   left: AgentRuntimeSnapshot,
   right: AgentRuntimeSnapshot,
 ): boolean =>
   left.stale === right.stale &&
+  sameStatusSince(left.statusSince, right.statusSince) &&
   sameSource(left.source, right.source) &&
   left.items.length === right.items.length &&
   left.items.every((agent, index) => {

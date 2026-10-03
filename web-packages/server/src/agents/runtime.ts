@@ -1,12 +1,8 @@
 import type { AgentRuntimeSnapshot } from '@herdr-roam/shared'
 import { AGENT_REFRESH_MS, RECONNECT_DELAYS_MS } from '../config.js'
-import {
-  discoverHerdr,
-  HerdrDiscoveryError,
-  type HerdrDiscovery,
-} from '../herdr/discovery.js'
+import { discoverHerdr, HerdrDiscoveryError, type HerdrDiscovery } from '../herdr/discovery.js'
 import { createHerdrClient, type HerdrClient } from '../herdr/client.js'
-import { mapAgents, sameAgentSnapshot } from './mapper.js'
+import { mapAgents, sameAgentSnapshot, statusSinceOf } from './mapper.js'
 
 type Listener = (snapshot: AgentRuntimeSnapshot) => void
 
@@ -40,6 +36,7 @@ const initialSnapshot = (): AgentRuntimeSnapshot => ({
   },
   stale: false,
   items: [],
+  statusSince: {},
 })
 
 const discoveryFailure = (error: unknown, hasItems: boolean): AgentRuntimeSnapshot['source'] => {
@@ -93,6 +90,7 @@ export const createAgentRuntime = (): AgentRuntime => {
         source: { state: 'connected', version: discovery.version, protocol: discovery.protocol },
         stale: false,
         items,
+        statusSince: statusSinceOf(items, state.current, new Date().toISOString()),
       })
     } finally {
       state.refreshing = false
@@ -128,6 +126,7 @@ export const createAgentRuntime = (): AgentRuntime => {
       source: discoveryFailure(error, hasSnapshot),
       stale: hasSnapshot,
       items,
+      statusSince: state.current.statusSince,
     })
     const index = Math.min(state.reconnectAttempt, RECONNECT_DELAYS_MS.length - 1)
     const delay = RECONNECT_DELAYS_MS[index] ?? RECONNECT_DELAYS_MS.at(-1) ?? 5_000

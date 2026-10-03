@@ -50,6 +50,7 @@ describe('Agent runtime provider', () => {
     const connected: AgentRuntimeSnapshot = {
       source: { state: 'connected', version: '0.8.2', protocol: 20 },
       stale: false,
+      statusSince: {},
       items: [],
     }
     mocks.fetch.mockResolvedValue(connected)
@@ -73,6 +74,7 @@ describe('Agent runtime provider', () => {
     mocks.fetch.mockResolvedValue({
       source: { state: 'connected', version: '0.8.2', protocol: 20 },
       stale: false,
+      statusSince: {},
       items: [],
     })
     render(
@@ -90,6 +92,7 @@ describe('Agent runtime provider', () => {
           message: 'reconnecting',
         },
         stale: true,
+        statusSince: {},
         items: [
           {
             id: 'terminal-1',

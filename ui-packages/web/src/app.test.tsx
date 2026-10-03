@@ -32,6 +32,7 @@ vi.mock('./features/agent/client', () => ({
   fetchAgentSnapshot: vi.fn().mockResolvedValue({
     source: { state: 'connected', version: '0.8.2', protocol: 20 },
     stale: false,
+    statusSince: {},
     items: [
       {
         id: 'terminal-codex',
@@ -51,10 +52,13 @@ vi.mock('./features/agent/browser-terminal', () => ({
   BrowserTerminal: () => <section aria-label="Agent terminal" />,
 }))
 
+vi.mock('./features/agents-board/terminal-preview', () => ({ TerminalPreview: () => null }))
+
 vi.mock('./features/agent/runtime-provider', () => {
   const snapshot = {
     source: { state: 'connected' as const, version: '0.8.2', protocol: 20 },
     stale: false,
+    statusSince: {},
     items: [
       {
         id: 'terminal-codex',
@@ -675,10 +679,14 @@ describe('workbench application', () => {
     )
 
     fireEvent.click(screen.getByRole('link', { name: 'Agents' }))
-    fireEvent.click(await screen.findByRole('button', { name: /codex-product/ }))
+    const sidebar = screen.getByTestId('sidebar-context')
+    fireEvent.click(await within(sidebar).findByRole('button', { name: /codex-product/ }))
 
     expect(screen.getByTestId('current-path')).toHaveTextContent('/agents')
-    expect(screen.getByRole('button', { name: /codex-product/, current: 'page' })).toBeVisible()
+    expect(
+      within(sidebar).getByRole('button', { name: /codex-product/, current: 'page' }),
+    ).toBeVisible()
+    expect(screen.getByRole('region', { name: 'Working' })).toBeVisible()
     const assistant = screen.getByRole('region', { name: 'Assistant' })
     expect(within(assistant).getByRole('tab', { name: /codex-product/ })).toHaveAttribute(
       'aria-selected',

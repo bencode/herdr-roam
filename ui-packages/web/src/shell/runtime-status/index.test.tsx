@@ -9,6 +9,7 @@ const unavailable = (
 ): AgentRuntimeSnapshot => ({
   source: { state: 'unavailable', code, message },
   stale: false,
+  statusSince: {},
   items: [],
 })
 
@@ -60,6 +61,7 @@ describe('Runtime status', () => {
         snapshot={{
           source: { state: 'connected', version: '0.8.2', protocol: 20 },
           stale: false,
+          statusSince: {},
           items: [],
         }}
         transportError={null}

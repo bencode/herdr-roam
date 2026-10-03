@@ -297,6 +297,19 @@ Agents is the cross-project live-runtime view. The left pane answers how many
 agents are working and which ones need attention. Selecting an agent opens it in
 the Assistant panel.
 
+With no workbench Tab active, the Agents activity shows the Agents board in the
+workbench area: a read-only wall of every running Agent. Blocked Agents come
+first as large cards showing the tail of their Terminal screen with Esc, Accept,
+and Open; Working Agents follow as smaller cards; Idle, Done, and Unknown Agents
+collapse into compact rows. Status chips count and filter, alongside a directory
+filter, search, and a column choice. Next blocked cycles the Assistant panel
+through blocked Agents. Card screens poll recent output only while the card is
+visible and the page is shown: Working about every second, Blocked every two
+seconds, quiet Agents never. Accept and Esc send exactly one Enter or Escape key
+per click and never approve automatically. Durations are the time Herdr Roam
+observed the Agent in its current status. The browser tab title shows the number
+of blocked Agents.
+
 The Assistant panel on the right of the workbench is the only place Agent
 Terminals open; the workbench Tabs hold Sessions, Files, and Skills. The panel
 lists every running Agent, independent of the active Project, as its own tabs,

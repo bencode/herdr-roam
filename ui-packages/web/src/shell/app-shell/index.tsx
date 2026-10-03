@@ -112,6 +112,11 @@ export const AppShell = ({
     writeWidth(SIDEBAR_WIDTH_KEY, width)
   }
 
+  const blockedCount = snapshot.items.filter(agent => agent.status === 'blocked').length
+  useEffect(() => {
+    document.title = blockedCount > 0 ? `(${blockedCount} blocked) Herdr Roam` : 'Herdr Roam'
+  }, [blockedCount])
+
   useEffect(() => {
     const panel = assistantRef.current
     if (!panel) return
@@ -278,6 +283,7 @@ export const AppShell = ({
           />
           <ResourceHost
             project={projects.find(project => project.name === activeProjectName) ?? null}
+            dimension={activeDimension}
             tabs={tabs}
             active={active}
             onOpen={onOpen}

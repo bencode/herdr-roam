@@ -37,6 +37,12 @@ specific pane target, so Roam also refreshes the authoritative list every two
 seconds. The browser replaces its in-memory snapshot rather than reproducing
 Herdr's state machine.
 
+Each snapshot also carries `statusSince`, mapping Agent IDs to the ISO time Roam
+observed each Agent enter its current status. The server keeps it in memory, so
+a restart resets it, and a disconnected or stale snapshot keeps the last values.
+`GET /api/agents/:agentId/output` accepts `lines=1..500` (default 500) so the
+Agents board can read only the tail it renders.
+
 The Agent creation endpoint accepts a registered `projectName`, `provider`
 (`codex` or `claude`), optional `workspaceId`, and optional `prompt`.
 `workspaceId` defaults to `primary`. The server resolves it through the Project's

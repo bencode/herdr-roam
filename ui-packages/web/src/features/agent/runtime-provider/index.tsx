@@ -25,6 +25,7 @@ const initialSnapshot: AgentRuntimeSnapshot = {
   },
   stale: false,
   items: [],
+  statusSince: {},
 }
 
 const AgentRuntimeContext = createContext<AgentRuntimeValue | null>(null)

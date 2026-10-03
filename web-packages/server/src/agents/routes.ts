@@ -24,7 +24,16 @@ import { ProjectRegistryError } from '../projects/registry.js'
 import { ProjectWorkspaceError } from '../projects/workspaces.js'
 import { PromptImageError, readPromptImages } from './images.js'
 import { AgentLaunchError } from './launch.js'
-import { type AgentPromptInput, type AgentServiceApi, AgentServiceError } from './service.js'
+import {
+  AGENT_OUTPUT_LINES,
+  type AgentPromptInput,
+  type AgentServiceApi,
+  AgentServiceError,
+} from './service.js'
+
+const outputQuerySchema = z.object({
+  lines: z.coerce.number().int().min(1).max(AGENT_OUTPUT_LINES).optional(),
+})
 
 const errorBody = (
   code: AgentApiError['error']['code'],
@@ -214,8 +223,12 @@ export const createAgentRoutes = (service: AgentServiceApi, projects: ProjectReg
 
   routes.get('/:agentId/output', async context => {
     const agentId = context.req.param('agentId')
+    const query = outputQuerySchema.safeParse(context.req.query())
+    if (!query.success) {
+      return context.json(errorBody('invalid_agent_input', 'Output lines must be 1–500.'), 400)
+    }
     try {
-      return context.json({ agentId, ...(await service.output(agentId)) })
+      return context.json({ agentId, ...(await service.output(agentId, query.data.lines)) })
     } catch (error) {
       if (error instanceof AgentServiceError) {
         const status =

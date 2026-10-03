@@ -51,6 +51,7 @@ const agentRuntimeSnapshotSchema = z.object({
   ]),
   stale: z.boolean(),
   items: z.array(agentSummarySchema).readonly(),
+  statusSince: z.record(z.string(), z.string()),
 })
 
 const agentOutputSchema = z.object({
@@ -173,10 +174,16 @@ export const fetchAgentSnapshot = async (): Promise<AgentRuntimeSnapshot> => {
   }
 }
 
-export const fetchAgentOutput = async (agentId: string): Promise<AgentOutput> => {
+export const fetchAgentOutput = async (
+  agentId: string,
+  options: { readonly lines?: number; readonly signal?: AbortSignal } = {},
+): Promise<AgentOutput> => {
+  const query = options.lines === undefined ? '' : `?lines=${options.lines}`
   try {
     return await parsedResponse(
-      await fetch(`/api/agents/${encodeURIComponent(agentId)}/output`),
+      await fetch(`/api/agents/${encodeURIComponent(agentId)}/output${query}`, {
+        signal: options.signal,
+      }),
       agentOutputSchema.parse,
     )
   } catch (error) {

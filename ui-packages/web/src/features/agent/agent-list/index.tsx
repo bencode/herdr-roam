@@ -1,34 +1,16 @@
-import type { AgentStatus, AgentSummary } from '@herdr-roam/shared'
 import { Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { cn } from '../../../lib/cn'
 import { useAssistantStore } from '../../assistant/store'
-import { agentDirectoryLabel, agentProviderLabel } from '../presentation'
+import {
+  agentDirectoryLabel,
+  agentMatches,
+  agentProviderLabel,
+  agentStatusClasses,
+  agentStatusLabels,
+  agentStatusOrder,
+} from '../presentation'
 import { useAgentRuntime } from '../runtime-provider'
-
-const groups: readonly { readonly status: AgentStatus; readonly label: string }[] = [
-  { status: 'blocked', label: 'Blocked' },
-  { status: 'working', label: 'Working' },
-  { status: 'idle', label: 'Idle' },
-  { status: 'done', label: 'Done' },
-  { status: 'unknown', label: 'Unknown' },
-]
-
-const statusClasses: Readonly<Record<AgentStatus, string>> = {
-  blocked: 'bg-warning',
-  working: 'bg-primary',
-  idle: 'bg-muted',
-  done: 'bg-success',
-  unknown: 'bg-faint',
-}
-
-const matches = (agent: AgentSummary, query: string): boolean => {
-  const normalized = query.trim().toLowerCase()
-  if (!normalized) return true
-  return [agent.name, agent.provider, agent.cwd].some(value =>
-    value?.toLowerCase().includes(normalized),
-  )
-}
 
 export const AgentList = () => {
   const { snapshot, transportError } = useAgentRuntime()
@@ -36,7 +18,7 @@ export const AgentList = () => {
   const openAgent = useAssistantStore(state => state.openAgent)
   const [query, setQuery] = useState('')
   const filtered = useMemo(
-    () => snapshot.items.filter(agent => matches(agent, query)),
+    () => snapshot.items.filter(agent => agentMatches(agent, query)),
     [query, snapshot.items],
   )
 
@@ -68,13 +50,13 @@ export const AgentList = () => {
         </div>
       )}
       <div className="min-h-0 flex-1 overflow-auto px-1.75 pb-3.5">
-        {groups.map(group => {
-          const agents = filtered.filter(agent => agent.status === group.status)
+        {agentStatusOrder.map(status => {
+          const agents = filtered.filter(agent => agent.status === status)
           if (agents.length === 0) return null
           return (
-            <section className="mb-2" key={group.status}>
+            <section className="mb-2" key={status}>
               <h2 className="m-0 flex h-7 items-center px-2 text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-faint">
-                <span>{group.label}</span>
+                <span>{agentStatusLabels[status]}</span>
                 <span className="ml-auto font-normal tabular-nums">{agents.length}</span>
               </h2>
               {agents.map(agent => {
@@ -95,7 +77,10 @@ export const AgentList = () => {
                     title={agent.cwd ?? undefined}
                   >
                     <i
-                      className={cn('size-1.5 flex-none rounded-full', statusClasses[agent.status])}
+                      className={cn(
+                        'size-1.5 flex-none rounded-full',
+                        agentStatusClasses[agent.status],
+                      )}
                       role="img"
                       aria-label={agent.status}
                     />

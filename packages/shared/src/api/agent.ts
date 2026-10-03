@@ -36,6 +36,8 @@ export type AgentRuntimeSnapshot = {
       }
   readonly stale: boolean
   readonly items: readonly AgentSummary[]
+  /** Agent ID to the ISO time Roam observed it enter its current status. */
+  readonly statusSince: Readonly<Record<string, string>>
 }
 
 export type AgentOutput = {

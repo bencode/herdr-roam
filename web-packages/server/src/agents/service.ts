@@ -25,7 +25,7 @@ export type AgentPromptInput = {
 export type AgentServiceApi = {
   readonly snapshot: () => AgentRuntimeSnapshot
   readonly subscribe: (listener: Listener) => () => void
-  readonly output: (agentId: string) => Promise<Omit<AgentOutput, 'agentId'>>
+  readonly output: (agentId: string, lines?: number) => Promise<Omit<AgentOutput, 'agentId'>>
   readonly prompt: (agentId: string, input: AgentPromptInput) => Promise<void>
   readonly input: (agentId: string, request: AgentInputRequest) => Promise<void>
   readonly focus: (agentId: string) => Promise<void>
@@ -43,7 +43,7 @@ export type AgentServiceApi = {
   ) => Promise<SessionResumeReceipt>
 }
 
-const AGENT_OUTPUT_LINES = 500
+export const AGENT_OUTPUT_LINES = 500
 const AGENT_OUTPUT_MAX_BYTES = 512 * 1024
 
 export type AgentService = AgentServiceApi & {
@@ -112,10 +112,11 @@ const boundedOutput = (text: string): Omit<AgentOutput, 'agentId'> => {
 const readOutput = async (
   runtime: AgentRuntime,
   agentId: string,
+  lines: number,
 ): Promise<Omit<AgentOutput, 'agentId'>> => {
   const [agent, client] = connectedAgent(runtime, agentId)
   try {
-    return boundedOutput(await client.readAgent(agent.attachTarget, AGENT_OUTPUT_LINES))
+    return boundedOutput(await client.readAgent(agent.attachTarget, lines))
   } catch (error) {
     const message = error instanceof HerdrApiError ? error.message : 'Recent output is unavailable.'
     throw new AgentServiceError('agent_output_unavailable', message, { cause: error })
@@ -222,7 +223,7 @@ export const createAgentService = (): AgentService => {
     stop: runtime.stop,
     snapshot: runtime.snapshot,
     subscribe: runtime.subscribe,
-    output: agentId => readOutput(runtime, agentId),
+    output: (agentId, lines = AGENT_OUTPUT_LINES) => readOutput(runtime, agentId, lines),
     prompt: (agentId, input) => submitPrompt(runtime, agentId, input),
     input: (agentId, request) => submitInput(runtime, agentId, request),
     focus: agentId => focusAgent(runtime, agentId),
