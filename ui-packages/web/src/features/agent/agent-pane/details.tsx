@@ -52,7 +52,7 @@ export const AgentDetails = ({ agent, copiedDirectory, onCopyDirectory }: Props)
           <div>
             <dt>Working directory</dt>
             <dd className="flex items-start gap-1.5">
-              <span className="min-w-0 flex-1 break-all font-mono text-[0.6875rem] leading-4">
+              <span className="min-w-0 flex-1 break-all font-mono text-2xs leading-4">
                 {agent.cwd ?? 'Unavailable'}
               </span>
               {agent.cwd && (
@@ -72,7 +72,7 @@ export const AgentDetails = ({ agent, copiedDirectory, onCopyDirectory }: Props)
           </div>
           <div>
             <dt>Attach target</dt>
-            <dd className="font-mono text-[0.6875rem]">{agent.attachTarget}</dd>
+            <dd className="font-mono text-2xs">{agent.attachTarget}</dd>
           </div>
         </dl>
       </Popover.Content>

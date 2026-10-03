@@ -229,12 +229,12 @@ export const SessionTab = ({
           <div className="flex items-center gap-2">
             <h1 className="m-0 truncate text-sm font-semibold">{title}</h1>
             <span className="text-xs capitalize text-muted">{agent?.status ?? 'not running'}</span>
-            <span className="rounded-full bg-raised px-2 py-0.5 text-[0.625rem] text-muted capitalize">
+            <span className="rounded-full bg-raised px-2 py-0.5 text-2xs text-muted capitalize">
               {resource.provider}
             </span>
           </div>
           {cwd && (
-            <p className="mt-1 mb-0 truncate font-mono text-[0.6875rem] text-faint" title={cwd}>
+            <p className="mt-1 mb-0 truncate font-mono text-2xs text-faint" title={cwd}>
               {cwd}
             </p>
           )}

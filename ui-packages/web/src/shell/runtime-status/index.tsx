@@ -46,7 +46,7 @@ export const RuntimeStatus = ({
       <Popover.Trigger asChild>
         <button
           type="button"
-          className="flex h-full min-w-0 flex-1 items-center gap-2 rounded-sm px-1.5 text-left text-[0.6875rem] text-muted hover:bg-hover hover:text-foreground"
+          className="flex h-full min-w-0 flex-1 items-center gap-2 rounded-sm px-1.5 text-left text-2xs text-muted hover:bg-hover hover:text-foreground"
           aria-label={`Runtime status: ${label}`}
         >
           <i
@@ -59,7 +59,7 @@ export const RuntimeStatus = ({
           {connected ? (
             <>
               <span>{snapshot.items.length} agents</span>
-              <span className="text-warning">{blocked} blocked</span>
+              <span className="text-warning-text">{blocked} blocked</span>
             </>
           ) : (
             <span>{reconnecting ? 'Herdr reconnecting' : 'Herdr offline'}</span>
@@ -93,7 +93,7 @@ export const RuntimeStatus = ({
               )}
               {command && (
                 <div className="mt-3 flex items-center gap-2 rounded-sm bg-background px-2.5 py-2">
-                  <code className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[0.6875rem]">
+                  <code className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-2xs">
                     {command}
                   </code>
                   <Button

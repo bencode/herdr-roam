@@ -103,7 +103,7 @@ export const ProjectSelect = ({
                 >
                   <p className="m-0">{error}</p>
                   {configPath && (
-                    <p className="mt-1 mb-0 truncate font-mono text-[0.625rem]">{configPath}</p>
+                    <p className="mt-1 mb-0 truncate font-mono text-2xs">{configPath}</p>
                   )}
                 </div>
               )}

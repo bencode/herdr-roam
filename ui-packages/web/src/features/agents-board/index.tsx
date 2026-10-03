@@ -65,7 +65,7 @@ const Section = ({
   readonly children: ReactNode
 }) => (
   <section className="mb-5" aria-label={title}>
-    <h2 className="m-0 mb-2 flex h-7 items-center gap-2 text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-faint">
+    <h2 className="m-0 mb-2 flex h-7 items-center gap-2 text-2xs font-semibold uppercase tracking-[0.08em] text-faint">
       <span>{title}</span>
       <span className="font-normal tabular-nums">{count}</span>
       <span className="ml-auto normal-case tracking-normal">{action}</span>

@@ -37,7 +37,7 @@ export const AgentList = () => {
       {snapshot.source.state !== 'connected' && (
         <div
           className={cn(
-            'mx-2.5 mb-2 rounded-md border px-2.5 py-2 text-[0.6875rem] leading-4',
+            'mx-2.5 mb-2 rounded-md border px-2.5 py-2 text-2xs leading-4',
             snapshot.stale
               ? 'border-warning/30 bg-warning/8 text-muted'
               : 'border-danger/30 bg-danger/8 text-muted',
@@ -55,7 +55,7 @@ export const AgentList = () => {
           if (agents.length === 0) return null
           return (
             <section className="mb-2" key={status}>
-              <h2 className="m-0 flex h-7 items-center px-2 text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-faint">
+              <h2 className="m-0 flex h-7 items-center px-2 text-2xs font-semibold uppercase tracking-[0.08em] text-faint">
                 <span>{agentStatusLabels[status]}</span>
                 <span className="ml-auto font-normal tabular-nums">{agents.length}</span>
               </h2>
@@ -88,7 +88,7 @@ export const AgentList = () => {
                       <strong className="truncate text-xs font-semibold">{agent.name}</strong>
                       <small
                         className={cn(
-                          'truncate text-[0.625rem]',
+                          'truncate text-2xs',
                           active ? 'text-muted' : 'text-faint',
                         )}
                       >

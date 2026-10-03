@@ -23,12 +23,12 @@ const Activity = ({ activity }: { readonly activity: SessionActivityEntry }) => 
     {(activity.input || activity.output) && (
       <div className={styles.activityContent}>
         {activity.input && (
-          <pre className="m-0 max-h-64 overflow-auto whitespace-pre-wrap rounded-sm bg-raised p-3 font-mono text-[0.6875rem] leading-5">
+          <pre className="m-0 max-h-64 overflow-auto whitespace-pre-wrap rounded-sm bg-raised p-3 font-mono text-2xs leading-5">
             {activity.input}
           </pre>
         )}
         {activity.output && (
-          <pre className="m-0 max-h-80 overflow-auto whitespace-pre-wrap rounded-sm bg-raised p-3 font-mono text-[0.6875rem] leading-5">
+          <pre className="m-0 max-h-80 overflow-auto whitespace-pre-wrap rounded-sm bg-raised p-3 font-mono text-2xs leading-5">
             {activity.output}
           </pre>
         )}
@@ -96,7 +96,7 @@ export const SessionTranscript = ({
                 <ul className="m-0 mt-2 flex list-none flex-wrap gap-2 p-0">
                   {entry.attachments.map(attachment => (
                     <li
-                      className="flex items-center gap-1.5 rounded-sm bg-raised px-2 py-1 font-mono text-[0.6875rem] text-muted"
+                      className="flex items-center gap-1.5 rounded-sm bg-raised px-2 py-1 font-mono text-2xs text-muted"
                       key={attachment.id}
                     >
                       <ImageIcon className="size-3" />

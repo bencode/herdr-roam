@@ -176,14 +176,14 @@
 
   blockquote {
     border: 0;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     background: var(--sidebar);
     padding: 0.25em 0.9em;
     color: var(--muted);
   }
 
   pre {
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     background: var(--sidebar);
     padding: 1.1em 1.2em;
     font-size: 0.82em;
@@ -242,7 +242,7 @@
     flex: none;
     overflow: hidden;
     border: 0;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     background: transparent;
     padding-right: 0.625rem;
     color: var(--muted);

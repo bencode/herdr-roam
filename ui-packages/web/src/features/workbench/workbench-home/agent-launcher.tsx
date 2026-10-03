@@ -137,7 +137,7 @@ export const AgentLauncher = ({
                     if (!recovery) setOutcome(null)
                   }}
                 />
-                <p className="m-0 break-all font-mono text-[0.6875rem] leading-5 text-muted">
+                <p className="m-0 break-all font-mono text-2xs leading-5 text-muted">
                   {selected?.path ?? 'Selected directory is unavailable. Choose another directory.'}
                 </p>
               </>

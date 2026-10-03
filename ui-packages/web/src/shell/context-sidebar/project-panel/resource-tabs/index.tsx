@@ -25,7 +25,7 @@ export const ProjectViewTabs = ({ value, onValueChange }: Props) => (
           type="button"
           key={section}
           className={cn(
-            'relative min-w-0 rounded-t-sm border-0 bg-transparent px-1 text-center text-[0.6875rem] text-muted transition-colors duration-150 hover:bg-hover hover:text-foreground',
+            'relative min-w-0 rounded-t-sm border-0 bg-transparent px-1 text-center text-2xs text-muted transition-colors duration-150 hover:bg-hover hover:text-foreground',
             active &&
               "font-semibold text-foreground after:absolute after:right-1.5 after:bottom-[-1px] after:left-1.5 after:h-0.5 after:bg-primary after:content-['']",
           )}

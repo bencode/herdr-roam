@@ -82,7 +82,7 @@ export const AgentMenu = ({ projectName }: { readonly projectName: string }) => 
           sideOffset={4}
           aria-label="Add Agent"
         >
-          <p className="m-0 px-2 pt-1 pb-1.5 text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-faint">
+          <p className="m-0 px-2 pt-1 pb-1.5 text-2xs font-semibold uppercase tracking-[0.08em] text-faint">
             Running Agents
           </p>
           {available.length === 0 ? (

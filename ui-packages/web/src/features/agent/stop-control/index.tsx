@@ -44,7 +44,7 @@ export const AgentStopControl = ({
             {historyAvailable && ' Session history stays available.'}
           </p>
           {interruptsWork && (
-            <p className="mt-1.5 mb-0 text-xs leading-5 text-warning">
+            <p className="mt-1.5 mb-0 text-xs leading-5 text-warning-text">
               Current work or pending input will be interrupted.
             </p>
           )}

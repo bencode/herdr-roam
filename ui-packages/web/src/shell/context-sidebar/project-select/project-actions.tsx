@@ -120,7 +120,7 @@ export const ManageProjects = ({
             <div className="flex items-center gap-2">
               <span className="min-w-0 flex-1">
                 <strong className="block truncate text-xs font-medium">{project.name}</strong>
-                <small className="block truncate font-mono text-[0.625rem] text-faint">
+                <small className="block truncate font-mono text-2xs text-faint">
                   {project.path}
                 </small>
               </span>

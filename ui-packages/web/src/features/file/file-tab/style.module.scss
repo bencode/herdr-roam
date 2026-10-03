@@ -40,15 +40,15 @@
 
   span {
     color: var(--muted);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.625rem;
+    font-family: var(--font-code);
+    font-size: 0.6875rem;
   }
 }
 
 .metadata {
   margin-left: auto;
   color: var(--faint);
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   white-space: nowrap;
 }
 
@@ -59,7 +59,7 @@
   flex: none;
   place-items: center;
   border: 0;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--muted);
 
@@ -70,7 +70,6 @@
 
   &:focus-visible {
     outline: 2px solid var(--primary);
-    outline-offset: 1px;
   }
 
   &:disabled {
@@ -112,7 +111,7 @@
     height: 1.75rem;
     margin-top: 0.25rem;
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     background: var(--surface);
     padding: 0 0.75rem;
     color: var(--foreground);

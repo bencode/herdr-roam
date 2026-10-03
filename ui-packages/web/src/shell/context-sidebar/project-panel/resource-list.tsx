@@ -62,7 +62,7 @@ export const ProjectBrowserFrame = ({
             placeholder={`Search ${title.toLowerCase()}…`}
           />
           {resolvedCountLabel !== null && (
-            <span className="flex-none text-[0.625rem] text-muted tabular-nums" aria-live="polite">
+            <span className="flex-none text-2xs text-muted tabular-nums" aria-live="polite">
               {resolvedCountLabel}
             </span>
           )}
@@ -92,7 +92,7 @@ const Empty = ({
   readonly filtered: boolean
   readonly resource: string
 }) => (
-  <div className="grid justify-items-center gap-1 px-4 py-8 text-center text-muted [&>span]:max-w-52 [&>span]:text-[0.6875rem] [&>span]:leading-normal [&>strong]:text-xs [&>strong]:text-foreground">
+  <div className="grid justify-items-center gap-1 px-4 py-8 text-center text-muted [&>span]:max-w-52 [&>span]:text-2xs [&>span]:leading-normal [&>strong]:text-xs [&>strong]:text-foreground">
     <strong>{filtered ? `No matching ${resource}` : `No ${resource} yet`}</strong>
     <span>{filtered ? 'Try a different search.' : `This project has no ${resource} to show.`}</span>
   </div>
@@ -129,7 +129,7 @@ const SessionRows = ({
           <button
             type="button"
             key={`${session.provider}:${session.id}`}
-            className="flex min-h-12 w-full min-w-0 items-start gap-2.5 rounded-sm border-0 bg-transparent px-2 py-2.25 text-left text-foreground hover:bg-hover [&>span]:grid [&>span]:min-w-0 [&>span]:flex-1 [&>span]:gap-0.75 [&_small]:truncate [&_small]:text-[0.625rem] [&_small]:text-faint [&_strong]:truncate [&_strong]:text-xs [&_strong]:font-semibold"
+            className="flex min-h-12 w-full min-w-0 items-start gap-2.5 rounded-sm border-0 bg-transparent px-2 py-2.25 text-left text-foreground hover:bg-hover [&>span]:grid [&>span]:min-w-0 [&>span]:flex-1 [&>span]:gap-0.75 [&_small]:truncate [&_small]:text-2xs [&_small]:text-faint [&_strong]:truncate [&_strong]:text-xs [&_strong]:font-semibold"
             onClick={() =>
               onOpen({
                 type: 'session',
@@ -201,7 +201,7 @@ export const ResourceList = ({ projectName, query, onQuery, onOpen }: Props) => 
           </div>
           {(sessionState.hasNewer || sessionState.value.nextCursor) && (
             <nav
-              className="mt-2 flex items-center gap-1 border-border border-t px-2 pt-2 text-[0.625rem] text-muted"
+              className="mt-2 flex items-center gap-1 border-border border-t px-2 pt-2 text-2xs text-muted"
               aria-label="Session pages"
             >
               <button
