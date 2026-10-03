@@ -1,7 +1,7 @@
-import type { AgentStatus } from '@herdr-roam/shared'
 import { Box, FileText, Home, MessageSquare, X } from 'lucide-react'
 import { type ReactNode, useLayoutEffect, useRef } from 'react'
 import { useAgentRuntime } from '../../features/agent/runtime-provider'
+import { StatusDot } from '../../features/agent/status-dot'
 import { useSessionData } from '../../features/session/use-session-data'
 import { cn } from '../../lib/cn'
 import {
@@ -13,14 +13,6 @@ import {
 import { TabContextMenu } from './tab-context-menu'
 
 const WORKBENCH_KEY = 'workbench'
-
-const statusClasses: Readonly<Record<AgentStatus, string>> = {
-  working: 'bg-primary',
-  blocked: 'bg-warning',
-  idle: 'bg-muted',
-  done: 'bg-success',
-  unknown: 'bg-faint',
-}
 
 const SessionTitle = ({
   resource,
@@ -179,13 +171,7 @@ export const TabBar = ({
                   onKeyDown={event => keyboard(event, key)}
                   title={`${title} · ${owner}`}
                 >
-                  {status && (
-                    <i
-                      className={cn('size-1.5 flex-none rounded-full', statusClasses[status])}
-                      role="img"
-                      aria-label={status}
-                    />
-                  )}
+                  {status && <StatusDot status={status} />}
                   {!status && <ResourceIcon resource={resource} />}
                   {resource.type === 'session' ? (
                     <SessionTitle resource={resource} />

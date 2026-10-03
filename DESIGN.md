@@ -238,7 +238,7 @@ Borders are 1px everywhere. Focus is drawn as an inset outline so it never colli
 Controls are compact, quiet at rest, and only gain fill on hover, press, or selection.
 
 ### Buttons
-The one shipped primitive (`ui-packages/web/src/ui/button`). Defaults: `variant="ghost"`, `size="default"`, `type="button"`.
+Built with `class-variance-authority` and Tailwind in `ui-packages/web/src/ui/button`; variant and size names are a stable API. Defaults: `variant="ghost"`, `size="default"`, `type="button"`.
 
 - **Shape:** 6px (`rounded-md`) at default size; 4px (`rounded-sm`) at compact size.
 - **Sizes:** `compact` 28px tall, 10px horizontal padding, 12px icons; `default` 32px tall, 10px padding, 14px icons; `compactIcon` 28px square; `defaultIcon` 32px square. Label text is 12px with a 20px line box; icon and label sit 6px apart.
@@ -251,19 +251,24 @@ The one shipped primitive (`ui-packages/web/src/ui/button`). Defaults: `variant=
 - **Disabled:** 45% opacity, `not-allowed` cursor; no hover response.
 - **Motion:** 150ms on color, background, border, and filter.
 
-### Planned primitives (phase 1, only those with real call sites)
-To be built shadcn/ui-style on Radix and Tailwind, owned in `ui-packages/web/src/ui/`, consuming the tokens above. Only primitives with existing call sites are in scope.
+### Shipped primitives (phase 1)
+Built shadcn/ui-style on Radix and Tailwind, owned in `ui-packages/web/src/ui/`. Merge classes with `cn()` (tailwind-merge, aware of the `text-2xs` token). Each was added together with its call sites; a primitive whose last caller goes away is removed with it (Select was dropped when the board's directory filter was removed).
 
-- **IconButton:** Button's `compactIcon` and `defaultIcon` sizes with a required accessible label, not a separate component.
-- **Select:** Radix select replacing native `<select>` in app controls; trigger styled like a secondary button, listbox on PopoverSurface.
-- **SearchField / Input:** 28px or 32px, `rounded-md`, 1px `border` stroke on `surface`, `faint` placeholder and leading icon, `primary` caret, global focus ring.
-- **Tabs:** strip at the 40px header line on `sidebar`, active tab marked by a `primary` underline.
+- **SegmentedControl** (`ui/segmented-control`): native radio inputs in a `fieldset` with a visually hidden legend, so arrow keys and screen readers work natively. Track on `raised`, selected segment on `surface` with medium weight. Use for 2–5 mutually exclusive, always-visible options (provider, column count) instead of a select.
+- **ToggleChip** (`ui/toggle-chip`): a borderless 28px filter toggle with `aria-pressed`, `rounded-sm`, transparent at rest with `hover` fill. Pressed adds `primary-soft` fill, medium weight, and a `primary` check, so selection never relies on color alone. In the Agents board status bar, zero counts render in `faint` and a non-zero Blocked count in semibold `warning-text`.
+- **SearchField** (`ui/search-field`): leading search icon, 28/32px, focus shown on the field frame (`primary` border plus 1px ring); optional trailing count in 11px `muted`.
+- **StatusDot** (`features/agent/status-dot.tsx`): the only status-to-color map (`blocked` = `warning`, `working` = `primary`, `idle` = `muted`, `done` = `success`, `unknown` = `faint`; no status = `faint`). Always labelled. Lives with the Agent feature because it encodes Agent state, not a generic UI concept. Runtime connection dots (connected / reconnecting / unavailable) are a different signal and do not use it.
+
+### Planned primitives (phase 2, added with their regions)
+Only introduced when a region migrates and supplies real call sites.
+
+- **Select:** Radix Select for workspace, project, and theme pickers; trigger at 28/32px with fixed chevron padding, items with a `primary` check.
+- **Tabs:** strip at the 40px header line on `sidebar`, active tab marked by an inset top rule; underline variant for in-panel section switches.
 - **PopoverSurface + MenuItem:** surface on `surface` with a 1px `border`, `rounded-md`, `--shadow-popover`, z-index 20; menu items `rounded-sm`, 28px, `hover` fill on highlight.
 - **Tooltip:** small popover surface, 12px text, same shadow and stacking.
-- **StatusDot:** `rounded-full`, one shared status-to-color map: `blocked` = `warning`, `working` = `primary`, `idle` = `muted`, `done` = `success`, `unknown` = `faint`. Always paired with a text or accessible label.
-- **Badge / ToggleChip / SegmentedControl:** Badge is `rounded-full`, 11 or 12px; ToggleChip and SegmentedControl are controls at 28px, `rounded-sm`, with `primary-soft` for the selected state.
+- **Badge:** `rounded-full`, 11px.
 - **Banner:** full-width row, at least 40px, tinted status wash (about 8% fill, 30% border) with 12px text.
-- **EmptyState:** centered on `surface`, a Heading or Body line in `muted` and at most one action.
+- **EmptyState:** a Heading or Body line in `muted` and at most one action.
 - **SectionHeader:** the 11px uppercase semibold Label in `faint` on a 28px row, grouping a list or menu.
 
 ## Do's and Don'ts

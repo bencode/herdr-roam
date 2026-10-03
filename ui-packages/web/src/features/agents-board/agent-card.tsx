@@ -6,10 +6,10 @@ import { sendAgentInput } from '../agent/client'
 import {
   agentDirectoryLabel,
   agentProviderLabel,
-  agentStatusClasses,
   agentStatusLabels,
   formatElapsed,
 } from '../agent/presentation'
+import { StatusDot } from '../agent/status-dot'
 import { TerminalPreview } from './terminal-preview'
 import { useAgentScreen } from './use-agent-screen'
 
@@ -27,11 +27,7 @@ const Heading = ({ agent, since, now }: Omit<CardProps, 'onOpen'>) => {
     .join(' · ')
   return (
     <>
-      <i
-        className={cn('size-1.5 flex-none rounded-full', agentStatusClasses[agent.status])}
-        role="img"
-        aria-label={agent.status}
-      />
+      <StatusDot status={agent.status} />
       <span className="min-w-0 truncate font-medium text-foreground">{agent.name}</span>
       <span className="min-w-0 truncate text-muted" title={agent.cwd ?? undefined}>
         {context}

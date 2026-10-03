@@ -1,18 +1,10 @@
 import type { AgentStatus, AgentSummary, SessionSummary } from '@herdr-roam/shared'
-import { Search } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useAgentRuntime } from '../../../features/agent/runtime-provider'
+import { StatusDot } from '../../../features/agent/status-dot'
 import { useProjectSessions } from '../../../features/session/use-session-data'
-import { cn } from '../../../lib/cn'
+import { SearchField } from '../../../ui/search-field'
 import type { ResourceRef } from '../../../workbench/resource'
-
-const statusClasses: Readonly<Record<AgentStatus, string>> = {
-  working: 'bg-primary',
-  blocked: 'bg-warning',
-  idle: 'bg-primary',
-  done: 'bg-success',
-  unknown: 'bg-faint',
-}
 
 type BrowserFrameProps = {
   readonly title: string
@@ -51,22 +43,14 @@ export const ProjectBrowserFrame = ({
         aria-label={`${title} tools`}
       >
         {leading}
-        <label className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md border border-border bg-surface px-2 transition-[border-color,box-shadow] duration-150 focus-within:border-primary focus-within:shadow-[0_0_0_1px_var(--primary)] [&>svg]:w-3.5 [&>svg]:flex-none [&>svg]:text-faint">
-          <Search aria-hidden="true" />
-          <span className="sr-only">Search {title.toLowerCase()}</span>
-          <input
-            className="min-w-0 flex-1 border-0 bg-transparent text-xs outline-none! placeholder:text-faint"
-            aria-label={`Search ${title.toLowerCase()}`}
-            value={query}
-            onChange={event => onQuery(event.target.value)}
-            placeholder={`Search ${title.toLowerCase()}…`}
-          />
-          {resolvedCountLabel !== null && (
-            <span className="flex-none text-2xs text-muted tabular-nums" aria-live="polite">
-              {resolvedCountLabel}
-            </span>
-          )}
-        </label>
+        <SearchField
+          className="flex-1"
+          label={`Search ${title.toLowerCase()}`}
+          placeholder={`Search ${title.toLowerCase()}…`}
+          value={query}
+          onChange={event => onQuery(event.target.value)}
+          trailing={resolvedCountLabel}
+        />
         {actions}
       </fieldset>
       <div className="min-h-0 flex-1 overflow-auto px-1.75 pb-3.5">{children}</div>
@@ -75,13 +59,10 @@ export const ProjectBrowserFrame = ({
 }
 
 const Status = ({ value }: { readonly value: AgentStatus | 'not-running' }) => (
-  <i
-    className={cn(
-      'mt-[0.3rem] size-1.5 flex-none rounded-full',
-      value === 'not-running' ? 'bg-faint' : statusClasses[value],
-    )}
-    role="img"
-    aria-label={value}
+  <StatusDot
+    status={value === 'not-running' ? null : value}
+    label={value}
+    className="mt-[0.3rem]"
   />
 )
 

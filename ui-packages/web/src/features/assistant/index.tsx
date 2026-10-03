@@ -1,20 +1,13 @@
-import type { AgentStatus, Project } from '@herdr-roam/shared'
+import type { Project } from '@herdr-roam/shared'
 import { Maximize2, Minimize2, PanelRightClose, X } from 'lucide-react'
 import { type KeyboardEvent, useEffect, useRef } from 'react'
 import { cn } from '../../lib/cn'
 import type { ResourceRef } from '../../workbench/resource'
 import { AgentPane } from '../agent/agent-pane'
 import { useAgentRuntime } from '../agent/runtime-provider'
+import { StatusDot } from '../agent/status-dot'
 import { AgentMenu } from './agent-menu'
 import { useAssistantStore } from './store'
-
-const statusClasses: Readonly<Record<AgentStatus, string>> = {
-  blocked: 'bg-warning',
-  working: 'bg-primary',
-  idle: 'bg-muted',
-  done: 'bg-success',
-  unknown: 'bg-faint',
-}
 
 const iconButtonClass =
   'grid size-7 flex-none place-items-center rounded-sm border-0 bg-transparent text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3.5'
@@ -90,13 +83,9 @@ export const AssistantPanel = ({
                   onClick={() => activate(agentId)}
                   title={agent?.cwd ? `${name} · ${agent.cwd}` : name}
                 >
-                  <i
-                    className={cn(
-                      'size-1.5 flex-none rounded-full',
-                      agent ? statusClasses[agent.status] : 'bg-faint',
-                    )}
-                    role="img"
-                    aria-label={agent?.status ?? 'unavailable'}
+                  <StatusDot
+                    status={agent?.status ?? null}
+                    label={agent?.status ?? 'unavailable'}
                   />
                   <span className="truncate">{name}</span>
                 </button>

@@ -1,20 +1,12 @@
-import type { AgentProvider, AgentStatus } from '@herdr-roam/shared'
+import type { AgentProvider } from '@herdr-roam/shared'
 import * as Popover from '@radix-ui/react-popover'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
-import { cn } from '../../lib/cn'
 import { AgentClientError, launchProjectAgent } from '../agent/client'
 import { agentDirectoryLabel, agentProviderLabel } from '../agent/presentation'
 import { useAgentRuntime } from '../agent/runtime-provider'
+import { StatusDot } from '../agent/status-dot'
 import { useAssistantStore } from './store'
-
-const statusClasses: Readonly<Record<AgentStatus, string>> = {
-  blocked: 'bg-warning',
-  working: 'bg-primary',
-  idle: 'bg-muted',
-  done: 'bg-success',
-  unknown: 'bg-faint',
-}
 
 const providers: readonly AgentProvider[] = ['claude', 'codex']
 
@@ -96,14 +88,7 @@ export const AgentMenu = ({ projectName }: { readonly projectName: string }) => 
                 onClick={() => attach(agent.id)}
                 title={agent.cwd ?? undefined}
               >
-                <i
-                  className={cn(
-                    'mt-[0.3rem] size-1.5 flex-none rounded-full',
-                    statusClasses[agent.status],
-                  )}
-                  role="img"
-                  aria-label={agent.status}
-                />
+                <StatusDot status={agent.status} className="mt-[0.3rem]" />
                 <span className="min-w-0">
                   <span className="block truncate font-medium">{agent.name}</span>
                   <span className="block truncate text-muted">

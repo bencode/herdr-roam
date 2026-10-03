@@ -97,6 +97,17 @@ describe('Agents board', () => {
     expect(useAssistantStore.getState().activeAgentId).toBe('a-one')
   })
 
+  it('offers column choices only when there are cards to lay out', () => {
+    mocks.agents = [agent('docs', 'idle')]
+    const view = render(<AgentsBoard />)
+    expect(screen.queryByRole('group', { name: 'Columns' })).not.toBeInTheDocument()
+
+    mocks.agents = [agent('docs', 'idle'), agent('web', 'working')]
+    view.rerender(<AgentsBoard />)
+    fireEvent.click(screen.getByRole('radio', { name: '3' }))
+    expect(screen.getByRole('radio', { name: '3' })).toBeChecked()
+  })
+
   it('formats observed status durations', () => {
     const since = '2026-10-02T10:00:00.000Z'
     const at = (seconds: number) => Date.parse(since) + seconds * 1000
