@@ -12,7 +12,6 @@ type BrowserFrameProps = {
   readonly filtered: number
   readonly query: string
   readonly onQuery: (query: string) => void
-  readonly leading?: ReactNode
   readonly countLabel?: string | null
   readonly actions?: ReactNode
   readonly children: ReactNode
@@ -24,7 +23,6 @@ export const ProjectBrowserFrame = ({
   filtered,
   query,
   onQuery,
-  leading,
   countLabel,
   actions,
   children,
@@ -42,7 +40,6 @@ export const ProjectBrowserFrame = ({
         className="m-0 flex min-w-0 flex-none items-center gap-1.5 border-0 bg-sidebar px-2.5 py-2"
         aria-label={`${title} tools`}
       >
-        {leading}
         <SearchField
           className="flex-1"
           label={`Search ${title.toLowerCase()}`}

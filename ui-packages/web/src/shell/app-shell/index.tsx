@@ -6,6 +6,7 @@ import { useAgentRuntime } from '../../features/agent/runtime-provider'
 import { AssistantPanel } from '../../features/assistant'
 import { useAssistantStore } from '../../features/assistant/store'
 import { cn } from '../../lib/cn'
+import { Button } from '../../ui/button'
 import type { GlobalDimension, ProjectSection, ResourceRef } from '../../workbench/resource'
 import { ActivityBar } from '../activity-bar'
 import { BrandMark } from '../brand-mark'
@@ -210,15 +211,14 @@ export const AppShell = ({
                 onAdd={onAddProject}
                 onRemove={onRemoveProject}
               />
-              <button
-                type="button"
-                className="grid size-7 flex-none place-items-center rounded-sm border-0 bg-transparent text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3.5"
+              <Button
+                size="compactIcon"
                 onClick={() => setCollapsed(true)}
                 title="Collapse sidebar"
                 aria-label="Collapse sidebar"
               >
                 <PanelLeft aria-hidden="true" />
-              </button>
+              </Button>
             </div>
           </header>
           <div className="flex min-h-0 min-w-0 flex-1">
@@ -241,7 +241,7 @@ export const AppShell = ({
                 projectRouteKey={projectRouteKey}
                 onOpen={onOpen}
               />
-              <footer className="flex h-10.5 flex-none border-border border-t px-2">
+              <footer className="flex h-10 flex-none border-border border-t px-2">
                 <RuntimeStatus
                   snapshot={snapshot}
                   transportError={transportError?.message ?? null}
@@ -269,15 +269,16 @@ export const AppShell = ({
             onCloseMany={onCloseMany}
             trailing={
               assistantOpen ? null : (
-                <button
-                  type="button"
-                  className="grid w-10 flex-none place-items-center border-0 border-border border-l bg-transparent text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3.5"
-                  onClick={() => setAssistantOpen(true)}
-                  aria-label="Open Assistant"
-                  title="Open Assistant"
-                >
-                  <PanelRight aria-hidden="true" />
-                </button>
+                <div className="grid w-10 flex-none place-items-center border-border border-l">
+                  <Button
+                    size="compactIcon"
+                    onClick={() => setAssistantOpen(true)}
+                    aria-label="Open Assistant"
+                    title="Open Assistant"
+                  >
+                    <PanelRight aria-hidden="true" />
+                  </Button>
+                </div>
               )
             }
           />

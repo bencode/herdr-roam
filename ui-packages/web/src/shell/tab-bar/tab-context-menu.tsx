@@ -1,7 +1,12 @@
-import * as ContextMenu from '@radix-ui/react-context-menu'
 import type { KeyboardEvent, ReactNode } from 'react'
 import { type ResourceRef, resourceKey } from '../../workbench/resource'
-import styles from './style.module.scss'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '../../ui/context-menu'
 
 type Props = {
   readonly children: ReactNode
@@ -32,35 +37,21 @@ export const TabContextMenu = ({ children, resource, tabs, onCloseMany }: Props)
   const rightTabs = index < 0 ? [] : tabs.slice(index + 1)
 
   return (
-    <ContextMenu.Root>
-      <ContextMenu.Trigger asChild onKeyDown={openFromKeyboard}>
+    <ContextMenu>
+      <ContextMenuTrigger asChild onKeyDown={openFromKeyboard}>
         {children}
-      </ContextMenu.Trigger>
-      <ContextMenu.Portal>
-        <ContextMenu.Content className={styles.menu} collisionPadding={8} aria-label="Tab actions">
-          <ContextMenu.Item className={styles.menuItem} onSelect={() => onCloseMany([resource])}>
-            Close
-          </ContextMenu.Item>
-          <ContextMenu.Item
-            className={styles.menuItem}
-            disabled={otherTabs.length === 0}
-            onSelect={() => onCloseMany(otherTabs)}
-          >
-            Close Other Tabs
-          </ContextMenu.Item>
-          <ContextMenu.Item
-            className={styles.menuItem}
-            disabled={rightTabs.length === 0}
-            onSelect={() => onCloseMany(rightTabs)}
-          >
-            Close Tabs to the Right
-          </ContextMenu.Item>
-          <ContextMenu.Separator className={styles.menuSeparator} />
-          <ContextMenu.Item className={styles.menuItem} onSelect={() => onCloseMany(tabs)}>
-            Close All Tabs
-          </ContextMenu.Item>
-        </ContextMenu.Content>
-      </ContextMenu.Portal>
-    </ContextMenu.Root>
+      </ContextMenuTrigger>
+      <ContextMenuContent aria-label="Tab actions">
+        <ContextMenuItem onSelect={() => onCloseMany([resource])}>Close</ContextMenuItem>
+        <ContextMenuItem disabled={otherTabs.length === 0} onSelect={() => onCloseMany(otherTabs)}>
+          Close Other Tabs
+        </ContextMenuItem>
+        <ContextMenuItem disabled={rightTabs.length === 0} onSelect={() => onCloseMany(rightTabs)}>
+          Close Tabs to the Right
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onSelect={() => onCloseMany(tabs)}>Close All Tabs</ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }

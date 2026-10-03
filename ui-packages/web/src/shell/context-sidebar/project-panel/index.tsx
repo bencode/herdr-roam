@@ -8,6 +8,7 @@ import type { ProjectSection, ResourceRef } from '../../../workbench/resource'
 import { FileTree } from './file-tree'
 import { ResourceList } from './resource-list'
 import { ProjectViewTabs } from './resource-tabs'
+import { WorkspaceSelect } from './workspace-select'
 
 type Props = {
   readonly activeProjectName: string
@@ -69,17 +70,28 @@ export const ProjectPanel = ({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid="project-panel">
-      <ProjectViewTabs value={selectedSection} onValueChange={activate} />
+      <ProjectViewTabs
+        value={selectedSection}
+        onValueChange={activate}
+        trailing={
+          selectedSection === 'files' && (
+            <WorkspaceSelect
+              items={workspaces.items}
+              value={workspaceId}
+              onValueChange={selectWorkspace}
+            />
+          )
+        }
+      />
       {selectedSection === 'files' ? (
         <FileTree
-          key={activeProjectName}
+          key={`${activeProjectName}:${workspaceId}`}
           projectName={activeProjectName}
           activeFile={activeFile}
           workspaceId={workspaceId}
           workspaces={workspaces}
           query={query}
           onQuery={setQuery}
-          onWorkspace={selectWorkspace}
           onOpen={onOpen}
         />
       ) : (

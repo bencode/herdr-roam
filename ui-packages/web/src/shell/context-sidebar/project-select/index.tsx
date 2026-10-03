@@ -1,7 +1,9 @@
 import type { Project } from '@herdr-roam/shared'
 import * as Popover from '@radix-ui/react-popover'
-import { Check, ChevronDown, FolderPlus, Settings2 } from 'lucide-react'
+import { ChevronDown, FolderPlus, Settings2 } from 'lucide-react'
 import { useState } from 'react'
+import { MenuItem } from '../../../ui/menu'
+import { PopoverContent } from '../../../ui/popover'
 import { AddProjectForm, ManageProjects } from './project-actions'
 
 type Mode = 'list' | 'add' | 'manage'
@@ -52,85 +54,64 @@ export const ProjectSelect = ({
           <ChevronDown className="w-3.5 flex-none text-muted" aria-hidden="true" />
         </button>
       </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content
-          className="z-[var(--z-dropdown)] w-[var(--radix-popover-trigger-width)] min-w-64 rounded-md border border-border bg-surface text-foreground shadow-[var(--shadow-popover)] outline-none"
-          align="start"
-          sideOffset={4}
-          onOpenAutoFocus={event => {
-            if (mode === 'list') event.preventDefault()
-          }}
-        >
-          {mode === 'add' && (
-            <AddProjectForm
-              onBack={() => setMode('list')}
-              onAdd={async path => {
-                const project = await onAdd(path)
-                onValueChange(project.name)
-                close()
-              }}
-            />
-          )}
-          {mode === 'manage' && (
-            <ManageProjects
-              projects={projects}
-              onBack={() => setMode('list')}
-              onRemove={onRemove}
-            />
-          )}
-          {mode === 'list' && (
-            <div className="p-1">
-              {projects.map(project => (
-                <button
-                  type="button"
-                  className="flex min-h-8 w-full items-center gap-2 rounded-sm px-2 text-left text-xs hover:bg-hover"
-                  key={project.name}
-                  onClick={() => {
-                    onValueChange(project.name)
-                    close()
-                  }}
-                >
-                  <span className="min-w-0 flex-1 truncate">{project.name}</span>
-                  {project.name === value && (
-                    <Check className="size-3 flex-none text-primary" aria-hidden="true" />
-                  )}
-                </button>
-              ))}
-              {error && (
-                <div
-                  className="m-1 rounded-sm bg-danger/8 px-2 py-2 text-xs text-danger"
-                  role="alert"
-                >
-                  <p className="m-0">{error}</p>
-                  {configPath && (
-                    <p className="mt-1 mb-0 truncate font-mono text-2xs">{configPath}</p>
-                  )}
-                </div>
-              )}
-              <div className="mt-1 border-border border-t pt-1">
-                <button
-                  type="button"
-                  className="flex h-8 w-full items-center gap-2 rounded-sm px-2 text-left text-xs hover:bg-hover [&_svg]:size-3.5"
-                  disabled={Boolean(error)}
-                  onClick={() => setMode('add')}
-                >
-                  <FolderPlus aria-hidden="true" /> Add project…
-                </button>
-                {projects.length > 0 && (
-                  <button
-                    type="button"
-                    className="flex h-8 w-full items-center gap-2 rounded-sm px-2 text-left text-xs text-muted hover:bg-hover hover:text-foreground [&_svg]:size-3.5"
-                    disabled={Boolean(error)}
-                    onClick={() => setMode('manage')}
-                  >
-                    <Settings2 aria-hidden="true" /> Manage projects…
-                  </button>
+      <PopoverContent
+        className="w-(--radix-popover-trigger-width) min-w-64"
+        align="start"
+        onOpenAutoFocus={event => {
+          if (mode === 'list') event.preventDefault()
+        }}
+      >
+        {mode === 'add' && (
+          <AddProjectForm
+            onBack={() => setMode('list')}
+            onAdd={async path => {
+              const project = await onAdd(path)
+              onValueChange(project.name)
+              close()
+            }}
+          />
+        )}
+        {mode === 'manage' && (
+          <ManageProjects projects={projects} onBack={() => setMode('list')} onRemove={onRemove} />
+        )}
+        {mode === 'list' && (
+          <div className="p-1">
+            {projects.map(project => (
+              <MenuItem
+                key={project.name}
+                selected={project.name === value}
+                onClick={() => {
+                  onValueChange(project.name)
+                  close()
+                }}
+              >
+                <span className="min-w-0 flex-1 truncate">{project.name}</span>
+              </MenuItem>
+            ))}
+            {error && (
+              <div
+                className="m-1 rounded-sm bg-danger/8 px-2 py-2 text-xs text-danger"
+                role="alert"
+              >
+                <p className="m-0">{error}</p>
+                {configPath && (
+                  <p className="mt-1 mb-0 truncate font-mono text-2xs">{configPath}</p>
                 )}
               </div>
+            )}
+            <div className="mt-1 border-border border-t pt-1">
+              <MenuItem disabled={Boolean(error)} onClick={() => setMode('add')}>
+                <FolderPlus aria-hidden="true" /> Add project…
+              </MenuItem>
+              {projects.length > 0 && (
+                <MenuItem tone="muted" disabled={Boolean(error)} onClick={() => setMode('manage')}>
+                  <Settings2 aria-hidden="true" /> Manage projects…
+                </MenuItem>
+              )}
             </div>
-          )}
-        </Popover.Content>
-      </Popover.Portal>
+          </div>
+        )}
+      </PopoverContent>
     </Popover.Root>
   )
 }

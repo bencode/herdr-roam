@@ -181,9 +181,6 @@ describe('ProjectPanel', () => {
     )
 
     const trigger = await screen.findByRole('button', { name: 'File directory' })
-    const tools = screen.getByRole('group', { name: 'Files tools' })
-    expect(within(tools).getByRole('textbox', { name: 'Search files' })).toBeVisible()
-    expect(within(tools).getByRole('button', { name: 'File directory' })).toBe(trigger)
     expect(trigger).toHaveTextContent('main')
     fireEvent.click(trigger)
     fireEvent.click(await screen.findByRole('option', { name: /feature-task/ }))
