@@ -141,7 +141,11 @@ const entryBytes = (entry: SessionEntry): number => {
 
 const boundedPage = (
   entries: readonly PositionedSessionEntry[],
-): { readonly entries: readonly SessionEntry[]; readonly firstOffset: number | null } => {
+): {
+  readonly entries: readonly SessionEntry[]
+  readonly firstOffset: number | null
+  readonly truncated: boolean
+} => {
   let index = entries.length
   let count = 0
   let bytes = 0
@@ -163,7 +167,11 @@ const boundedPage = (
     index = groupStart
   }
   const selected = entries.slice(index)
-  return { entries: selected.map(value => value.entry), firstOffset: selected[0]?.offset ?? null }
+  return {
+    entries: selected.map(value => value.entry),
+    firstOffset: selected[0]?.offset ?? null,
+    truncated: index > 0,
+  }
 }
 
 const providerRange = (
@@ -218,7 +226,7 @@ export const createSessionService = (roots: SessionRoots): SessionServiceApi => 
         const range = await providerRange(value, { before: beforeOffset })
         const page = boundedPage(range.entries)
         const olderOffset =
-          page.firstOffset !== null && page.firstOffset > range.start
+          page.truncated && page.firstOffset !== null
             ? page.firstOffset
             : range.start > 0
               ? range.start

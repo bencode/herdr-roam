@@ -128,6 +128,16 @@ describe('Session service', () => {
     })
   })
 
+  it('offers no older page when the whole history fits after leading metadata', async () => {
+    const { project, roots } = await createFixture()
+    const service = createSessionService(roots)
+
+    await expect(service.page(project, 'codex', 'codex-1')).resolves.toMatchObject({
+      entries: [expect.objectContaining({ kind: 'message', text: 'Codex continuation' })],
+      olderCursor: null,
+    })
+  })
+
   it('pages and searches Project Sessions without persisting a catalog', async () => {
     const { project, roots } = await createFixture()
     const service = createSessionService(roots)
