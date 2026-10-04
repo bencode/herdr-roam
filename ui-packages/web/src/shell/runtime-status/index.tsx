@@ -60,7 +60,9 @@ export const RuntimeStatus = ({
           {connected ? (
             <>
               <span>{snapshot.items.length} agents</span>
-              <span className="text-warning-text">{blocked} blocked</span>
+              <span className={blocked > 0 ? 'text-warning-text' : 'text-faint'}>
+                {blocked} blocked
+              </span>
             </>
           ) : (
             <span>{reconnecting ? 'Herdr reconnecting' : 'Herdr offline'}</span>

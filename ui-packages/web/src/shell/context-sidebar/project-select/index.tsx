@@ -47,7 +47,7 @@ export const ProjectSelect = ({
       <Popover.Trigger asChild>
         <button
           type="button"
-          className="flex h-7.5 min-w-0 flex-1 items-center justify-between gap-2 rounded-sm border-0 bg-transparent px-2 text-left font-semibold transition-colors duration-150 hover:bg-hover data-[state=open]:bg-hover"
+          className="flex h-(--control-sm) min-w-0 flex-1 items-center justify-between gap-2 rounded-sm border-0 bg-transparent px-2 text-left text-xs font-semibold transition-colors duration-150 hover:bg-hover data-[state=open]:bg-hover"
           aria-label="Active project"
         >
           <span className="truncate">{active?.name ?? 'Add project'}</span>

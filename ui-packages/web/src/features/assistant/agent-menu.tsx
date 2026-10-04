@@ -77,7 +77,7 @@ export const AgentMenu = ({ projectName }: { readonly projectName: string }) => 
               onClick={() => attach(agent.id)}
               title={agent.cwd ?? undefined}
             >
-              <StatusDot status={agent.status} className="mt-[0.3rem]" />
+              <StatusDot status={agent.status} className="mt-1.25" />
               <span className="min-w-0">
                 <span className="block truncate font-medium">{agent.name}</span>
                 <span className="block truncate text-muted">

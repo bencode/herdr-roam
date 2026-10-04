@@ -24,7 +24,7 @@ export const AgentDetails = ({ agent, copiedDirectory, onCopyDirectory }: Props)
       </Button>
     </Popover.Trigger>
     <PopoverContent className="w-72" align="end">
-      <header className="flex h-9 items-center border-border border-b pr-1.5 pl-3">
+      <header className="flex h-8 items-center border-border border-b pr-1.5 pl-3">
         <h2 className="m-0 text-xs font-semibold">Agent details</h2>
         <Popover.Close asChild>
           <Button aria-label="Close Agent details" className="ml-auto" size="compactIcon">

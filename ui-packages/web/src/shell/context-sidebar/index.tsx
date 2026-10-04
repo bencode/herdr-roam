@@ -1,6 +1,7 @@
 import { Activity } from 'react'
 import { AgentList } from '../../features/agent/agent-list'
 import { SkillList } from '../../features/skill/skill-list'
+import { EmptyState } from '../../ui/empty-state'
 import type { GlobalDimension, ProjectSection, ResourceRef } from '../../workbench/resource'
 import { ProjectPanel } from './project-panel'
 
@@ -32,7 +33,7 @@ export const ContextSidebar = (props: Props) => {
               onOpen={props.onOpen}
             />
           ) : (
-            <p className="m-0 px-4 py-5 text-xs text-muted">No project selected.</p>
+            <EmptyState>No project selected.</EmptyState>
           )}
         </div>
       </Activity>

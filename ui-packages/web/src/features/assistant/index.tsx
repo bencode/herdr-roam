@@ -79,7 +79,7 @@ export const AssistantPanel = ({
                   tabIndex={selected ? 0 : -1}
                   data-agent-id={agentId}
                   onKeyDown={event => moveFocus(event, agentId)}
-                  className={cn(tabTriggerClass, 'pl-2.5 text-xs')}
+                  className={tabTriggerClass}
                   onClick={() => activate(agentId)}
                   title={agent?.cwd ? `${name} · ${agent.cwd}` : name}
                 >

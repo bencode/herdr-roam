@@ -135,7 +135,7 @@ Light and dark are equal citizens, authored together as `light-dark()` pairs in 
 A restrained cool-grey ramp with one blue accent and three status hues; every value is an OKLCH light/dark pair and the tokens in the frontmatter are normative.
 
 ### Primary
-- **Instrument Blue** (`primary`): primary buttons, active tab underline, selection, caret, focus ring (`--color-ring` aliases it), and the `working` status. It is the only chromatic voice in the chrome.
+- **Instrument Blue** (`primary`): primary buttons, the active in-panel section underline, selection, caret, focus ring (`--color-ring` aliases it), and the `working` status. It is the only chromatic voice in the chrome.
 - **Blue Wash** (`primary-soft`): quiet selected or active backgrounds where a full primary fill would shout (selected list rows, active chips).
 - **On Accent** (`on-accent`): label color on filled primary and danger buttons; near-white in light, near-black in dark so the label keeps AA on both fills.
 
@@ -261,22 +261,24 @@ Built shadcn/ui-style on Radix and Tailwind, owned in `ui-packages/web/src/ui/`.
 - **PopoverContent** (`ui/popover`): the one floating surface. Portals a Radix popover onto `surface` with a 1px `border`, `rounded-md`, `--shadow-popover`, and `--z-dropdown`; `sideOffset` 4, `collisionPadding` 8. Width and padding come from the caller. Context menus share its surface class.
 - **MenuItem** (`ui/menu`): a 28px `rounded-sm` row in 12px text, with `hover` fill on hover, keyboard focus, or Radix highlight, and 45% opacity when disabled. Icons are 14px. `selected` adds a right-aligned `primary` check; `tone="muted"` is for secondary actions such as Manage. `menuItemVariants` styles Radix menu items and radio labels the same way.
 - **ContextMenu** (`ui/context-menu`): Radix ContextMenu on the popover surface, with `p-1`, items from `menuItemVariants`, and a 1px `border` separator.
-- **Tab strip** (`ui/tab-strip`): styles only, shared by tab strips whose keyboard and close behavior differ. A selected tab sits on `surface`, has an inset 2px `foreground` top rule, and connects to the content below. The close button shows on hover and is always visible on the current tab. Used by the workbench tab bar and the Assistant Agent tabs (narrower, 12px).
+- **Tab strip** (`ui/tab-strip`): styles only, shared by tab strips whose keyboard and close behavior differ. A selected tab sits on `surface`, has an inset 2px `foreground` top rule, and connects to the content below. The close button shows on hover and is always visible on the current tab. Used by the workbench tab bar and the Assistant Agent tabs (narrower, 12px). Labels are 12px with 14px icons.
 - **Input** (`ui/input`): 28/32px text field on `surface` with a 1px `border`. Focus uses the SearchField treatment (`primary` border plus 1px ring). Add `font-mono` for paths.
 - **WorkspaceSelect** (`shell/context-sidebar/project-panel/workspace-select.tsx`): picks the worktree the file tree reads from. Switching is occasional, so in the Files panel it takes no row of its own: a 24px borderless trigger at the trailing edge of the Sessions/Files tab row (shown only on Files with two or more worktrees), with the branch in 11px mono `muted` truncated at 8rem and the full branch and path in its title. In forms (`layout="field"`) it is a 32px bordered field matching Input. The menu grows to its content (up to 28rem) and shows name, branch or Project marker, and the path.
 - **SectionHeader** (`ui/section-header`): the 11px uppercase semibold Label in `faint` on a 28px row, grouping a list or menu. An optional count follows the title in regular weight; an optional action sits at the trailing edge in normal case.
 - **Banner** (`ui/banner`): a tinted status wash (8% fill, 30% border) with 12px text, at least 32px tall. Full-width rows take a bottom border; `inset` banners inside lists and menus are `rounded-md` boxes. `warning` keeps `muted` text and announces as status; `danger` uses `danger` text and announces as an alert. At most one trailing action.
 - **EmptyState** (`ui/empty-state`): centered 12px `muted` line, with an optional 20px `faint` icon and a 14px medium `h2` title above it, and at most one action below (a compact secondary Button such as Try again). Used for empty or failed lists, an empty Assistant, an unavailable Agent, and the no-project workbench.
 - **Reader controls** (`components/reader`): the Markdown header uses a compact SegmentedControl and compactIcon Buttons; reading settings sit on PopoverContent. The reading-theme swatches are the one place raw colors are allowed, because each previews its theme's own paper and ink. The code reader keeps 12px top padding and a 2.5em line-number gutter with 1em on each side.
+- **Underline tabs** (`shell/context-sidebar/project-panel/resource-tabs`): in-panel section switches such as Sessions / Files. 12px labels on a 32px row; the active one is semibold with a 2px `primary` underline. Document tabs (workbench, Assistant) use the tab strip's `foreground` top rule instead, so the two never read as the same control.
+- **List rows** (`ui/list-row`): the two-line sidebar row shared by Sessions, Agents and Skills. 8px padding, a 12px semibold title, an 11px `faint` meta line, `hover` fill, `primary-soft` when active, and a status dot aligned to the title's first line.
 - **Tree rows** (`ui/tree-row`, shared by the project file tree and the Skill contents tree): 28px `rounded-sm` rows in 12px `muted`, 13px icons, `hover` fill; the open file uses `primary-soft`. Each tree sets its own indent (14px per level for files, 12px in the narrower Skill contents). In-tree Load more and Retry directory are full-width compact ghost Buttons.
 - **DetailHeader** (`ui/detail-header`): the 40px single-line header of File, Skill and Session tabs. A 14px icon (or StatusDot), the 12px semibold `h1` title (truncated at 45%), the path or working directory in 11px mono `faint` filling the rest with its full value in the title, then meta (size, Badges, status) and compact actions at the trailing edge.
 - **Badge** (`ui/badge`): `rounded-full` 1px `border` pill, 11px `muted`, for scope, source and provider labels.
+- **Size exceptions:** activity-bar buttons are 36px squares; the Agent pane toolbar and the Agent details popover header are 32px sub-toolbars under the 40px Assistant tab line, keeping terminal space.
 
 ### Planned primitives (phase 2, added with their regions)
 Only introduced when a region migrates and supplies real call sites.
 
 - **Select:** Radix Select for pickers that need one; trigger at 28/32px with fixed chevron padding, items with a `primary` check. The workspace picker is `WorkspaceSelect`, a listbox on PopoverContent.
-- **Underline tabs:** in-panel section switches.
 - **Tooltip:** small popover surface, 12px text, same shadow and stacking.
 
 ## Do's and Don'ts
