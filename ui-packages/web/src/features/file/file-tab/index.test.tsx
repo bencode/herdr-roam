@@ -56,7 +56,7 @@ describe('FileTab', () => {
     renderTab('docs/guide.md')
 
     expect(await screen.findByRole('heading', { name: 'Guide' })).toBeVisible()
-    fireEvent.click(screen.getByRole('button', { name: 'source' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Source' }))
     expect(await screen.findByRole('region', { name: 'markdown source' })).toBeVisible()
     expect(screen.queryByRole('heading', { name: 'Guide' })).not.toBeInTheDocument()
   })

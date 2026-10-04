@@ -1,6 +1,7 @@
 import type { FileView } from '@herdr-roam/shared'
 import { lazy, Suspense } from 'react'
 import type { MarkdownView } from './markdown-view'
+import { EmptyState } from '../../ui/empty-state'
 import styles from './style.module.scss'
 
 const CodeReader = lazy(() =>
@@ -32,14 +33,18 @@ export const FileReader = ({
   readonly markdownView: MarkdownView
 }) => {
   if (file.kind === 'binary') {
-    return <div className={styles.centered}>This binary file cannot be previewed.</div>
+    return (
+      <EmptyState className="min-h-48 content-center">
+        This binary file cannot be previewed.
+      </EmptyState>
+    )
   }
   if (file.kind === 'oversized') {
     return (
-      <div className={styles.centered}>
+      <EmptyState className="min-h-48 content-center">
         This {file.previewKind} is larger than the {Math.round(file.limit / 1024 / 1024)} MiB
         preview limit.
-      </div>
+      </EmptyState>
     )
   }
 

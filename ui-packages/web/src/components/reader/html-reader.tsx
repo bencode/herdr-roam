@@ -1,11 +1,17 @@
 import type { ProjectFileView } from '@herdr-roam/shared'
 import { lazy, Suspense, useState } from 'react'
+import { SegmentedControl } from '../../ui/segmented-control'
 import styles from './style.module.scss'
 
 const CodeReader = lazy(() =>
   import('./code-reader').then(module => ({ default: module.CodeReader })),
 )
 type HtmlFile = Extract<ProjectFileView, { kind: 'html' }>
+
+const viewOptions = [
+  { value: 'preview', label: 'Preview' },
+  { value: 'source', label: 'Source' },
+] as const
 
 const escapedAttribute = (value: string): string =>
   value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;')
@@ -25,20 +31,15 @@ export const HtmlReader = ({
 
   return (
     <div className={styles.htmlReader}>
-      <fieldset className={styles.modeBar}>
-        <legend className="sr-only">HTML view</legend>
-        {(['preview', 'source'] as const).map(value => (
-          <button
-            type="button"
-            key={value}
-            data-active={mode === value || undefined}
-            aria-pressed={mode === value}
-            onClick={() => setMode(value)}
-          >
-            {value}
-          </button>
-        ))}
-      </fieldset>
+      <div className="flex h-10 flex-none items-center border-border border-b px-4">
+        <SegmentedControl
+          size="sm"
+          label="HTML view"
+          options={viewOptions}
+          value={mode}
+          onValueChange={setMode}
+        />
+      </div>
       {mode === 'preview' ? (
         <iframe
           className={styles.htmlFrame}
