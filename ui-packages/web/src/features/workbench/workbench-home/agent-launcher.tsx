@@ -2,6 +2,7 @@ import type { AgentLaunchRecovery, AgentProvider, Project } from '@herdr-roam/sh
 import { Check, Copy, ExternalLink, TerminalSquare } from 'lucide-react'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { WorkspaceSelect } from '../../../shell/context-sidebar/project-panel/workspace-select'
+import { Banner } from '../../../ui/banner'
 import { Button } from '../../../ui/button'
 import { SegmentedControl } from '../../../ui/segmented-control'
 import { AgentClientError, launchProjectAgent } from '../../agent/client'
@@ -123,12 +124,17 @@ export const AgentLauncher = ({
                 Loading directories…
               </p>
             ) : workspaces.error ? (
-              <div className="flex items-center gap-2 text-xs text-danger" role="alert">
-                <span className="min-w-0 flex-1">{workspaces.error.message}</span>
-                <Button size="compact" onClick={workspaces.retry}>
-                  Retry directories
-                </Button>
-              </div>
+              <Banner
+                tone="danger"
+                inset
+                action={
+                  <Button size="compact" onClick={workspaces.retry}>
+                    Retry directories
+                  </Button>
+                }
+              >
+                {workspaces.error.message}
+              </Banner>
             ) : (
               <>
                 <WorkspaceSelect
@@ -168,11 +174,11 @@ export const AgentLauncher = ({
         </fieldset>
       </form>
       {!runtimeAvailable && (
-        <p className="mt-3 mb-0 text-xs text-muted" role="status">
+        <Banner tone="warning" inset className="mt-3">
           {snapshot.source.state === 'connected'
             ? 'Herdr runtime state is stale.'
             : `${snapshot.source.message} Check Runtime status at the bottom left for setup.`}
-        </p>
+        </Banner>
       )}
       {launching && (
         <p className="mt-3 mb-0 text-xs text-muted" role="status">
@@ -188,8 +194,8 @@ export const AgentLauncher = ({
         </div>
       )}
       {result?.failure && (
-        <div className="mt-3 rounded-md border border-danger/30 bg-danger/8 p-3 text-xs">
-          <p className="m-0 text-danger" role="alert">
+        <Banner tone="danger" inset className="mt-3 py-2.5">
+          <p className="m-0">
             {result.failure.message}
             {recovery && ' The runtime workspace was kept for recovery.'}
           </p>
@@ -215,7 +221,7 @@ export const AgentLauncher = ({
               {copyFeedback && <span role="status">{copyFeedback}</span>}
             </div>
           )}
-        </div>
+        </Banner>
       )}
     </div>
   )

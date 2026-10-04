@@ -4,11 +4,11 @@ import { useFileCatalog } from '../../../features/file/use-file-catalog'
 import { useFileSearch } from '../../../features/file/use-file-search'
 import type { ProjectWorkspaceState } from '../../../features/project/use-project-workspaces'
 import { Button } from '../../../ui/button'
+import { EmptyState } from '../../../ui/empty-state'
 import type { ResourceRef } from '../../../workbench/resource'
 import type { TreeProps } from './file-tree-items'
 import { DirectoryRow, FileRow } from './file-tree-items'
 import { ProjectBrowserFrame } from './resource-list'
-import styles from './style.module.scss'
 
 type FileResource = Extract<ResourceRef, { type: 'file' }>
 
@@ -72,7 +72,7 @@ export const FileTree = ({
   }
 
   return (
-    <div className={styles.fileBrowser}>
+    <div className="flex min-h-0 flex-1 flex-col">
       <ProjectBrowserFrame
         title="Files"
         total={root.total}
@@ -101,15 +101,19 @@ export const FileTree = ({
         }
       >
         {workspaces.error && workspaces.items.length === 0 ? (
-          <div className={styles.empty} role="status">
-            <strong>Directories unavailable</strong>
-            <span>{workspaces.error.message}</span>
-            <button type="button" onClick={workspaces.retry}>
-              Try again
-            </button>
-          </div>
+          <EmptyState
+            title="Directories unavailable"
+            role="status"
+            action={
+              <Button size="compact" variant="secondary" onClick={workspaces.retry}>
+                Try again
+              </Button>
+            }
+          >
+            {workspaces.error.message}
+          </EmptyState>
         ) : items.length > 0 ? (
-          <div className={styles.tree} aria-busy={loading}>
+          <div className="pt-0.5" aria-busy={loading}>
             {items.map(entry =>
               entry.kind === 'directory' && !searching ? (
                 <DirectoryRow key={entry.path} entry={entry} level={0} {...treeProps} />
@@ -126,28 +130,31 @@ export const FileTree = ({
               ),
             )}
             {!searching && root.nextCursor && (
-              <button type="button" className={styles.more} onClick={root.loadMore}>
+              <Button size="compact" className="w-full" onClick={root.loadMore}>
                 Load more
-              </button>
+              </Button>
             )}
           </div>
         ) : loading || workspaces.loading ? (
-          <div className={styles.empty}>{searching ? 'Searching Files…' : 'Loading Files…'}</div>
+          <p className="m-0 px-4 py-8 text-center text-xs text-muted" role="status">
+            {searching ? 'Searching Files…' : 'Loading Files…'}
+          </p>
         ) : error ? (
-          <div className={styles.empty} role="status">
-            <strong>Files unavailable</strong>
-            <span>{error.message}</span>
-            <button type="button" onClick={retry}>
-              Try again
-            </button>
-          </div>
+          <EmptyState
+            title="Files unavailable"
+            role="status"
+            action={
+              <Button size="compact" variant="secondary" onClick={retry}>
+                Try again
+              </Button>
+            }
+          >
+            {error.message}
+          </EmptyState>
         ) : (
-          <div className={styles.empty}>
-            <strong>{deferredQuery ? 'No matching Files' : 'No Files to show'}</strong>
-            <span>
-              {deferredQuery ? 'Try a different path.' : 'This Project directory is empty.'}
-            </span>
-          </div>
+          <EmptyState title={deferredQuery ? 'No matching Files' : 'No Files to show'}>
+            {deferredQuery ? 'Try a different path.' : 'This Project directory is empty.'}
+          </EmptyState>
         )}
       </ProjectBrowserFrame>
     </div>

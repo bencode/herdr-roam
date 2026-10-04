@@ -3,6 +3,9 @@ import type { ReactNode } from 'react'
 import { useAgentRuntime } from '../../../features/agent/runtime-provider'
 import { StatusDot } from '../../../features/agent/status-dot'
 import { useProjectSessions } from '../../../features/session/use-session-data'
+import { Banner } from '../../../ui/banner'
+import { Button } from '../../../ui/button'
+import { EmptyState } from '../../../ui/empty-state'
 import { SearchField } from '../../../ui/search-field'
 import type { ResourceRef } from '../../../workbench/resource'
 
@@ -70,10 +73,9 @@ const Empty = ({
   readonly filtered: boolean
   readonly resource: string
 }) => (
-  <div className="grid justify-items-center gap-1 px-4 py-8 text-center text-muted [&>span]:max-w-52 [&>span]:text-2xs [&>span]:leading-normal [&>strong]:text-xs [&>strong]:text-foreground">
-    <strong>{filtered ? `No matching ${resource}` : `No ${resource} yet`}</strong>
-    <span>{filtered ? 'Try a different search.' : `This project has no ${resource} to show.`}</span>
-  </div>
+  <EmptyState title={filtered ? `No matching ${resource}` : `No ${resource} yet`}>
+    {filtered ? 'Try a different search.' : `This project has no ${resource} to show.`}
+  </EmptyState>
 )
 
 const SessionRows = ({
@@ -157,17 +159,19 @@ export const ResourceList = ({ projectName, query, onQuery, onOpen }: Props) => 
       countLabel={String(total)}
     >
       {sessionState.loading && visible.length === 0 ? (
-        <div className="px-4 py-8 text-center text-xs text-muted">Loading Sessions…</div>
+        <p className="m-0 px-4 py-8 text-center text-xs text-muted" role="status">
+          Loading Sessions…
+        </p>
       ) : sessionState.error && visible.length === 0 ? (
-        <div className="px-4 py-8 text-center text-xs text-danger" role="status">
+        <EmptyState title="Sessions unavailable" role="status">
           {sessionState.error.message}
-        </div>
+        </EmptyState>
       ) : visible.length > 0 ? (
         <>
           {sessionState.error && (
-            <div className="px-3 py-2 text-xs text-danger" role="status">
+            <Banner tone="danger" inset className="mx-1 mb-1">
               {sessionState.error.message}
-            </div>
+            </Banner>
           )}
           <div aria-busy={sessionState.loading}>
             <SessionRows
@@ -182,25 +186,23 @@ export const ResourceList = ({ projectName, query, onQuery, onOpen }: Props) => 
               className="mt-2 flex items-center gap-1 border-border border-t px-2 pt-2 text-2xs text-muted"
               aria-label="Session pages"
             >
-              <button
-                type="button"
-                className="h-7 rounded-sm px-2 hover:bg-hover disabled:opacity-40"
+              <Button
+                size="compact"
                 disabled={!sessionState.hasNewer || sessionState.loading}
                 onClick={sessionState.newer}
               >
                 Newer
-              </button>
+              </Button>
               <span className="mx-auto tabular-nums">
                 {pageStart}–{pageEnd} of {total}
               </span>
-              <button
-                type="button"
-                className="h-7 rounded-sm px-2 hover:bg-hover disabled:opacity-40"
+              <Button
+                size="compact"
                 disabled={!sessionState.value.nextCursor || sessionState.loading}
                 onClick={sessionState.older}
               >
                 Older
-              </button>
+              </Button>
             </nav>
           )}
         </>
