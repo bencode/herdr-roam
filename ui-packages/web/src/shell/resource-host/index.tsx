@@ -5,6 +5,7 @@ import { FileTab } from '../../features/file/file-tab'
 import { SessionTab } from '../../features/session/session-tab'
 import { SkillTab } from '../../features/skill/skill-tab'
 import { WorkbenchHome } from '../../features/workbench/workbench-home'
+import { EmptyState } from '../../ui/empty-state'
 import {
   type GlobalDimension,
   type ResourceRef,
@@ -48,14 +49,9 @@ export const ResourceHost = ({
         ) : project ? (
           <WorkbenchHome project={project} visible={active === null} />
         ) : (
-          <div className="grid h-full place-items-center p-8 text-center">
-            <div>
-              <h1 className="m-0 text-lg">Add a project to start</h1>
-              <p className="mt-2 mb-0 text-sm text-muted">
-                Open the project menu in the sidebar and add an absolute directory path.
-              </p>
-            </div>
-          </div>
+          <EmptyState className="h-full content-center" title="Add a project to start">
+            Open the project menu in the sidebar and add an absolute directory path.
+          </EmptyState>
         )}
       </div>
     </Activity>

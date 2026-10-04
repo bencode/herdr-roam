@@ -1,8 +1,11 @@
 import type { ProjectFileEntry } from '@herdr-roam/shared'
 import { ChevronDown, ChevronRight, File, Folder } from 'lucide-react'
 import { useFileCatalog } from '../../../features/file/use-file-catalog'
+import { Button } from '../../../ui/button'
 import type { ResourceRef } from '../../../workbench/resource'
-import styles from './style.module.scss'
+
+const rowClass =
+  'flex h-(--control-sm) w-full min-w-0 items-center gap-1.5 rounded-sm border-0 bg-transparent pr-1.75 text-left text-xs text-muted hover:bg-hover hover:text-foreground data-active:bg-primary-soft data-active:text-foreground [&>span]:min-w-0 [&>span]:truncate [&>svg]:w-3.25 [&>svg]:flex-none'
 
 export type TreeProps = {
   readonly projectName: string
@@ -31,7 +34,7 @@ export const FileRow = ({
 }) => (
   <button
     type="button"
-    className={styles.row}
+    className={rowClass}
     data-active={active || undefined}
     style={{ paddingLeft: `${0.5 + level * 0.875}rem` }}
     onClick={() => onOpen({ type: 'file', projectName, workspaceId, path: entry.path })}
@@ -52,7 +55,7 @@ export const DirectoryRow = ({
     <div>
       <button
         type="button"
-        className={styles.row}
+        className={rowClass}
         style={{ paddingLeft: `${0.5 + level * 0.875}rem` }}
         onClick={() => props.onFolder(entry.path)}
         aria-expanded={open}
@@ -102,19 +105,22 @@ const DirectoryChildren = ({
         ),
       )}
       {state.loading && state.items.length === 0 && (
-        <div className={styles.inlineStatus} style={{ paddingLeft: `${0.75 + level * 0.875}rem` }}>
+        <div
+          className="flex min-h-7 items-center text-2xs text-faint"
+          style={{ paddingLeft: `${0.75 + level * 0.875}rem` }}
+        >
           Loading…
         </div>
       )}
       {state.error && (
-        <button type="button" className={styles.inlineError} onClick={state.retry}>
+        <Button size="compact" className="w-full text-danger" onClick={state.retry}>
           Retry directory
-        </button>
+        </Button>
       )}
       {state.nextCursor && (
-        <button type="button" className={styles.more} onClick={state.loadMore}>
+        <Button size="compact" className="w-full" onClick={state.loadMore}>
           Load more
-        </button>
+        </Button>
       )}
     </div>
   )
