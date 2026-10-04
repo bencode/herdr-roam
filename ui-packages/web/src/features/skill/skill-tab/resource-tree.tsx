@@ -1,9 +1,11 @@
 import type { FileEntry } from '@herdr-roam/shared'
 import { ChevronDown, ChevronRight, File, FileText, Folder } from 'lucide-react'
 import { useState } from 'react'
+import { Button } from '../../../ui/button'
+import { SectionHeader } from '../../../ui/section-header'
+import { treeRowClass } from '../../../ui/tree-row'
 import type { ResourceRef } from '../../../workbench/resource'
 import { useSkillFiles } from '../use-skill-files'
-import styles from './style.module.scss'
 
 type SkillResource = Extract<ResourceRef, { type: 'skill' }>
 
@@ -29,7 +31,7 @@ const FileRow = ({
 }) => (
   <button
     type="button"
-    className={styles.treeRow}
+    className={treeRowClass}
     data-active={selected || undefined}
     style={{ paddingLeft: `${0.5 + level * 0.75}rem` }}
     onClick={() => onSelect(entry.path)}
@@ -64,16 +66,18 @@ const DirectoryChildren = ({
           />
         ),
       )}
-      {state.loading && state.items.length === 0 && <p className={styles.treeStatus}>Loading…</p>}
+      {state.loading && state.items.length === 0 && (
+        <p className="m-0 flex min-h-7 items-center pl-2 text-2xs text-faint">Loading…</p>
+      )}
       {state.error && (
-        <button type="button" className={styles.treeRetry} onClick={state.retry}>
+        <Button size="compact" className="w-full text-danger" onClick={state.retry}>
           Retry directory
-        </button>
+        </Button>
       )}
       {state.nextCursor && (
-        <button type="button" className={styles.treeMore} onClick={state.loadMore}>
+        <Button size="compact" className="w-full" onClick={state.loadMore}>
           Load more
-        </button>
+        </Button>
       )}
     </div>
   )
@@ -92,7 +96,7 @@ const DirectoryRow = ({
     <div>
       <button
         type="button"
-        className={styles.treeRow}
+        className={treeRowClass}
         style={{ paddingLeft: `${0.5 + level * 0.75}rem` }}
         onClick={() => props.onToggle(entry.path)}
         aria-expanded={open}
@@ -137,11 +141,14 @@ export const ResourceTree = ({
   }
 
   return (
-    <aside className={styles.contents} aria-label="Skill contents">
-      <strong className={styles.contentsTitle}>Contents</strong>
+    <aside
+      className="min-h-0 overflow-auto border-border border-l bg-[color-mix(in_oklab,var(--sidebar)_55%,var(--surface))] px-2 pt-4 pb-8 @max-[54rem]:row-start-1 @max-[54rem]:max-h-48 @max-[54rem]:border-b @max-[54rem]:border-l-0 @max-[54rem]:py-3"
+      aria-label="Skill contents"
+    >
+      <SectionHeader title="Contents" className="mb-1" />
       <button
         type="button"
-        className={styles.treeRow}
+        className={treeRowClass}
         data-active={selectedPath === null || undefined}
         onClick={() => onSelect(null)}
       >
@@ -162,16 +169,18 @@ export const ResourceTree = ({
             />
           ),
         )}
-        {root.loading && root.items.length === 0 && <p className={styles.treeStatus}>Loading…</p>}
+        {root.loading && root.items.length === 0 && (
+          <p className="m-0 flex min-h-7 items-center pl-2 text-2xs text-faint">Loading…</p>
+        )}
         {root.error && (
-          <button type="button" className={styles.treeRetry} onClick={root.retry}>
+          <Button size="compact" className="w-full text-danger" onClick={root.retry}>
             Retry contents
-          </button>
+          </Button>
         )}
         {root.nextCursor && (
-          <button type="button" className={styles.treeMore} onClick={root.loadMore}>
+          <Button size="compact" className="w-full" onClick={root.loadMore}>
             Load more
-          </button>
+          </Button>
         )}
       </div>
     </aside>

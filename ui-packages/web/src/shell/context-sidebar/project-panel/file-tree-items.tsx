@@ -2,10 +2,8 @@ import type { ProjectFileEntry } from '@herdr-roam/shared'
 import { ChevronDown, ChevronRight, File, Folder } from 'lucide-react'
 import { useFileCatalog } from '../../../features/file/use-file-catalog'
 import { Button } from '../../../ui/button'
+import { treeRowClass } from '../../../ui/tree-row'
 import type { ResourceRef } from '../../../workbench/resource'
-
-const rowClass =
-  'flex h-(--control-sm) w-full min-w-0 items-center gap-1.5 rounded-sm border-0 bg-transparent pr-1.75 text-left text-xs text-muted hover:bg-hover hover:text-foreground data-active:bg-primary-soft data-active:text-foreground [&>span]:min-w-0 [&>span]:truncate [&>svg]:w-3.25 [&>svg]:flex-none'
 
 export type TreeProps = {
   readonly projectName: string
@@ -34,7 +32,7 @@ export const FileRow = ({
 }) => (
   <button
     type="button"
-    className={rowClass}
+    className={treeRowClass}
     data-active={active || undefined}
     style={{ paddingLeft: `${0.5 + level * 0.875}rem` }}
     onClick={() => onOpen({ type: 'file', projectName, workspaceId, path: entry.path })}
@@ -55,7 +53,7 @@ export const DirectoryRow = ({
     <div>
       <button
         type="button"
-        className={rowClass}
+        className={treeRowClass}
         style={{ paddingLeft: `${0.5 + level * 0.875}rem` }}
         onClick={() => props.onFolder(entry.path)}
         aria-expanded={open}

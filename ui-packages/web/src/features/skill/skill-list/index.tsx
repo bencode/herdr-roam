@@ -1,11 +1,15 @@
 import type { SkillScope, SkillSummary } from '@herdr-roam/shared'
-import { AlertTriangle, RefreshCw, Search } from 'lucide-react'
+import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { useDeferredValue, useMemo, useState } from 'react'
+import { Badge } from '../../../ui/badge'
+import { Button } from '../../../ui/button'
+import { EmptyState } from '../../../ui/empty-state'
+import { SearchField } from '../../../ui/search-field'
+import { SectionHeader } from '../../../ui/section-header'
 import type { ResourceRef } from '../../../workbench/resource'
 import { sameResource } from '../../../workbench/resource'
 import { skillSourceLabel } from '../client'
 import { useSkillCatalog } from '../use-skill-catalog'
-import styles from './style.module.scss'
 
 type SkillResource = Extract<ResourceRef, { type: 'skill' }>
 
@@ -44,35 +48,34 @@ const SkillGroup = ({
   readonly active: SkillResource | null
   readonly onOpen: (resource: ResourceRef) => void
 }) => (
-  <section className={styles.group} aria-labelledby={`skills-${scope}`}>
-    <header>
-      <h2 id={`skills-${scope}`}>{title}</h2>
-      <span>{items.length}</span>
-    </header>
+  <section className="[&+&]:mt-3.5" aria-labelledby={`skills-${scope}`}>
+    <SectionHeader id={`skills-${scope}`} title={title} count={items.length} />
     {items.length > 0 ? (
-      <div className={styles.rows}>
+      <div className="grid gap-0.5">
         {items.map(skill => {
           const resource = resourceOf(skill)
           return (
             <button
               type="button"
               key={`${skill.scope}:${skill.id}`}
-              className={styles.row}
+              className="flex w-full min-w-0 items-center gap-2 rounded-sm border-0 bg-transparent px-2 py-1.5 text-left text-foreground hover:bg-hover data-active:bg-primary-soft"
               data-active={active && sameResource(active, resource) ? true : undefined}
               onClick={() => onOpen(resource)}
               title={`${skill.location} · ${skillSourceLabel(skill.source)}`}
             >
-              <span className={styles.rowText}>
-                <strong>{skill.name}</strong>
-                {skill.description && <small>{skill.description}</small>}
+              <span className="grid min-w-0 flex-1 gap-0.5">
+                <strong className="truncate text-xs font-semibold">{skill.name}</strong>
+                {skill.description && (
+                  <small className="truncate text-2xs text-muted">{skill.description}</small>
+                )}
               </span>
-              <span className={styles.source}>{skillSourceLabel(skill.source)}</span>
+              <Badge>{skillSourceLabel(skill.source)}</Badge>
             </button>
           )
         })}
       </div>
     ) : (
-      <p className={styles.groupEmpty}>
+      <p className="m-0 px-2 py-3 text-2xs text-faint">
         {query ? 'No matching Skills' : `No ${scope === 'project' ? 'Project' : 'Personal'} Skills`}
       </p>
     )}
@@ -100,40 +103,43 @@ export const SkillList = ({
   const personalSkills = filtered.filter(skill => skill.scope === 'user')
 
   return (
-    <div className={styles.panel}>
-      <div className={styles.toolbar}>
-        <label className={styles.search}>
-          <Search aria-hidden="true" />
-          <span className="sr-only">Search skills</span>
-          <input
-            value={query}
-            onChange={event => setQuery(event.target.value)}
-            placeholder="Search skills…"
-          />
-        </label>
-        <button
-          type="button"
-          className={styles.refresh}
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex flex-none gap-1 px-2.5 pt-3 pb-2">
+        <SearchField
+          className="flex-1"
+          label="Search skills"
+          placeholder="Search skills…"
+          value={query}
+          onChange={event => setQuery(event.target.value)}
+        />
+        <Button
+          size="defaultIcon"
           onClick={state.reload}
           disabled={state.loading}
           aria-label="Refresh Skills"
           title="Refresh Skills"
         >
           <RefreshCw aria-hidden="true" />
-        </button>
+        </Button>
       </div>
 
-      <div className={styles.catalog} aria-busy={state.loading}>
+      <div className="min-h-0 flex-1 overflow-auto px-1.75 pb-3.5" aria-busy={state.loading}>
         {state.loading && !state.value ? (
-          <p className={styles.status}>Loading Skills…</p>
+          <p className="m-0 px-2 py-3 text-2xs text-faint" role="status">
+            Loading Skills…
+          </p>
         ) : state.error ? (
-          <div className={styles.error} role="status">
-            <strong>Skills unavailable</strong>
-            <span>{state.error.message}</span>
-            <button type="button" onClick={state.reload}>
-              Try again
-            </button>
-          </div>
+          <EmptyState
+            title="Skills unavailable"
+            role="status"
+            action={
+              <Button size="compact" variant="secondary" onClick={state.reload}>
+                Try again
+              </Button>
+            }
+          >
+            {state.error.message}
+          </EmptyState>
         ) : (
           <>
             {projectName && (
@@ -155,16 +161,16 @@ export const SkillList = ({
               onOpen={onOpen}
             />
             {(state.value?.warnings.length ?? 0) > 0 && (
-              <details className={styles.warnings}>
-                <summary>
-                  <AlertTriangle aria-hidden="true" />
+              <details className="mx-2 mt-3.5 border-border border-t pt-2.5 text-2xs text-muted">
+                <summary className="flex cursor-pointer items-center gap-1.5">
+                  <AlertTriangle className="size-3 flex-none text-warning" aria-hidden="true" />
                   {state.value?.warnings.length} Skills unavailable
                 </summary>
-                <ul>
+                <ul className="m-0 mt-2.5 grid gap-2 pl-4">
                   {state.value?.warnings.map(warning => (
                     <li key={`${warning.source}:${warning.location}`}>
-                      <strong>{warning.location}</strong>
-                      <span>{warning.message}</span>
+                      <strong className="block">{warning.location}</strong>
+                      <span className="block">{warning.message}</span>
                     </li>
                   ))}
                 </ul>

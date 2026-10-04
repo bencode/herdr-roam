@@ -2,10 +2,12 @@ import { FileCode2, RefreshCw } from 'lucide-react'
 import { FileReader } from '../../../components/reader'
 import { MarkdownControls } from '../../../components/reader/markdown-controls'
 import { isMarkdownLike, useMarkdownView } from '../../../components/reader/markdown-view'
+import { Button } from '../../../ui/button'
+import { DetailHeader } from '../../../ui/detail-header'
+import { EmptyState } from '../../../ui/empty-state'
 import type { ResourceRef } from '../../../workbench/resource'
 import { projectFileRawUrl } from '../client'
 import { useFileView } from '../use-file-view'
-import styles from './style.module.scss'
 
 const fileSize = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`
@@ -24,47 +26,58 @@ export const FileTab = ({
 }) => {
   const state = useFileView(resource.projectName, resource.workspaceId, resource.path, active)
   const markdownView = useMarkdownView()
+  const name = resource.path.split('/').at(-1) ?? resource.path
   const rawUrl = (path: string) =>
     projectFileRawUrl(resource.projectName, resource.workspaceId, path)
 
   return (
-    <div className={styles.tab}>
-      <header className={styles.header}>
-        <FileCode2 aria-hidden="true" />
-        <div className={styles.identity}>
-          <strong>{resource.path.split('/').at(-1) ?? resource.path}</strong>
-          <span title={resource.path}>{resource.path}</span>
-        </div>
-        {state.value && (
-          <span className={styles.metadata}>
-            {fileSize(state.value.size)} · {state.value.mediaType}
-          </span>
-        )}
-        {state.value && isMarkdownLike(state.value) && (
-          <MarkdownControls view={markdownView} showOutlineToggle />
-        )}
-        <button
-          type="button"
-          className={styles.refresh}
-          onClick={state.reload}
-          disabled={state.loading}
-          aria-label="Refresh file"
-          title="Refresh file"
-        >
-          <RefreshCw aria-hidden="true" />
-        </button>
-      </header>
-      <div className={styles.body} aria-busy={state.loading}>
+    <div className="flex h-full min-h-0 flex-col bg-surface">
+      <DetailHeader
+        icon={<FileCode2 aria-hidden="true" />}
+        title={name}
+        detail={resource.path === name ? undefined : resource.path}
+        meta={
+          state.value && (
+            <span className="whitespace-nowrap">
+              {fileSize(state.value.size)} · {state.value.mediaType}
+            </span>
+          )
+        }
+        actions={
+          <>
+            {state.value && isMarkdownLike(state.value) && (
+              <MarkdownControls view={markdownView} showOutlineToggle />
+            )}
+            <Button
+              size="compactIcon"
+              onClick={state.reload}
+              disabled={state.loading}
+              aria-label="Refresh file"
+              title="Refresh file"
+            >
+              <RefreshCw aria-hidden="true" />
+            </Button>
+          </>
+        }
+      />
+      <div className="flex min-h-0 flex-1 flex-col overflow-auto" aria-busy={state.loading}>
         {state.loading && !state.value ? (
-          <div className={styles.status}>Loading file…</div>
+          <p className="m-0 px-4 py-16 text-center text-xs text-muted" role="status">
+            Loading file…
+          </p>
         ) : state.error ? (
-          <div className={styles.error} role="status">
-            <strong>File unavailable</strong>
-            <span>{state.error.message}</span>
-            <button type="button" onClick={state.reload}>
-              Try again
-            </button>
-          </div>
+          <EmptyState
+            className="min-h-64 content-center"
+            title="File unavailable"
+            role="status"
+            action={
+              <Button size="compact" variant="secondary" onClick={state.reload}>
+                Try again
+              </Button>
+            }
+          >
+            {state.error.message}
+          </EmptyState>
         ) : state.value ? (
           <FileReader
             file={state.value}

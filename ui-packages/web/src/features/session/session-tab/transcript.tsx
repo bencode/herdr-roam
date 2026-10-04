@@ -2,6 +2,7 @@ import type { SessionActivityEntry, SessionEntry, SessionProvider } from '@herdr
 import { AlertTriangle, ChevronRight, Image as ImageIcon } from 'lucide-react'
 import { Markdown } from '../../../components/markdown'
 import { cn } from '../../../lib/cn'
+import { EmptyState } from '../../../ui/empty-state'
 import styles from './style.module.scss'
 
 const Activity = ({ activity }: { readonly activity: SessionActivityEntry }) => (
@@ -46,9 +47,9 @@ export const SessionTranscript = ({
 }) => {
   if (entries.length === 0) {
     return (
-      <div className="grid min-h-60 place-items-center text-center text-sm text-muted">
+      <EmptyState className="min-h-60 content-center">
         This Session has no readable messages yet.
-      </div>
+      </EmptyState>
     )
   }
 

@@ -267,7 +267,9 @@ Built shadcn/ui-style on Radix and Tailwind, owned in `ui-packages/web/src/ui/`.
 - **SectionHeader** (`ui/section-header`): the 11px uppercase semibold Label in `faint` on a 28px row, grouping a list or menu. An optional count follows the title in regular weight; an optional action sits at the trailing edge in normal case.
 - **Banner** (`ui/banner`): a tinted status wash (8% fill, 30% border) with 12px text, at least 32px tall. Full-width rows take a bottom border; `inset` banners inside lists and menus are `rounded-md` boxes. `warning` keeps `muted` text and announces as status; `danger` uses `danger` text and announces as an alert. At most one trailing action.
 - **EmptyState** (`ui/empty-state`): centered 12px `muted` line, with an optional 20px `faint` icon and a 14px medium `h2` title above it, and at most one action below (a compact secondary Button such as Try again). Used for empty or failed lists, an empty Assistant, an unavailable Agent, and the no-project workbench.
-- **File tree rows** (`shell/context-sidebar/project-panel/file-tree-items.tsx`): 28px `rounded-sm` rows in 12px `muted`, 13px icons, `hover` fill; the open file uses `primary-soft`. Nesting indents by 14px per level. In-tree Load more and Retry directory are full-width compact ghost Buttons.
+- **Tree rows** (`ui/tree-row`, shared by the project file tree and the Skill contents tree): 28px `rounded-sm` rows in 12px `muted`, 13px icons, `hover` fill; the open file uses `primary-soft`. Each tree sets its own indent (14px per level for files, 12px in the narrower Skill contents). In-tree Load more and Retry directory are full-width compact ghost Buttons.
+- **DetailHeader** (`ui/detail-header`): the 40px single-line header of File, Skill and Session tabs. A 14px icon (or StatusDot), the 12px semibold `h1` title (truncated at 45%), the path or working directory in 11px mono `faint` filling the rest with its full value in the title, then meta (size, Badges, status) and compact actions at the trailing edge.
+- **Badge** (`ui/badge`): `rounded-full` 1px `border` pill, 11px `muted`, for scope, source and provider labels.
 
 ### Planned primitives (phase 2, added with their regions)
 Only introduced when a region migrates and supplies real call sites.
@@ -275,7 +277,6 @@ Only introduced when a region migrates and supplies real call sites.
 - **Select:** Radix Select for pickers that need one; trigger at 28/32px with fixed chevron padding, items with a `primary` check. The workspace picker is `WorkspaceSelect`, a listbox on PopoverContent.
 - **Underline tabs:** in-panel section switches.
 - **Tooltip:** small popover surface, 12px text, same shadow and stacking.
-- **Badge:** `rounded-full`, 11px.
 
 ## Do's and Don'ts
 
