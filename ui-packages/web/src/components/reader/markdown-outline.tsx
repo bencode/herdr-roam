@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { SectionHeader } from '../../ui/section-header'
 import styles from './style.module.scss'
 
 export type MarkdownHeading = {
@@ -35,7 +36,7 @@ export const MarkdownOutline = ({
 
   const nav = (
     <nav className={styles.outline} data-variant={variant} aria-label="On this page">
-      <strong>On this page</strong>
+      <SectionHeader title="On this page" className="mb-1.5 flex-none px-2.5" />
       {headings.map(heading => (
         <button
           type="button"

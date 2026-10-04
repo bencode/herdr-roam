@@ -144,8 +144,18 @@ export const CodeReader = ({
         style={syntaxTheme}
         showLineNumbers
         wrapLongLines={false}
-        customStyle={{ margin: 0, minHeight: '100%', background: 'transparent', padding: '1.5rem' }}
-        lineNumberStyle={{ color: 'var(--faint)', minWidth: '3.25em', paddingRight: '1.25em' }}
+        customStyle={{
+          margin: 0,
+          minHeight: '100%',
+          background: 'transparent',
+          padding: '0.75rem 0',
+        }}
+        lineNumberStyle={{
+          color: 'var(--faint)',
+          minWidth: '2.5em',
+          paddingLeft: '1em',
+          paddingRight: '1em',
+        }}
       >
         {content}
       </SyntaxHighlighter>

@@ -387,7 +387,7 @@ describe('workbench application', () => {
         <CurrentPath />
       </MemoryRouter>,
     )
-    const source = await screen.findByRole('button', { name: 'source' })
+    const source = await screen.findByRole('radio', { name: 'Source' })
     await within(screen.getByTestId('context-sidebar')).findByRole('button', {
       name: 'vision-and-scope.md',
     })
@@ -402,7 +402,7 @@ describe('workbench application', () => {
       'aria-selected',
       'true',
     )
-    expect(screen.getByRole('button', { name: 'source' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('radio', { name: 'Source' })).toBeChecked()
 
     fireEvent.click(await sidebar.findByRole('button', { name: /Product scan/ }))
     await waitFor(() =>
@@ -411,7 +411,7 @@ describe('workbench application', () => {
       ),
     )
     fireEvent.click(screen.getByRole('tab', { name: /vision-and-scope.md/ }))
-    expect(screen.getByRole('button', { name: 'source' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('radio', { name: 'Source' })).toBeChecked()
     await sidebar.findByRole('button', { name: 'vision-and-scope.md' })
   })
 
