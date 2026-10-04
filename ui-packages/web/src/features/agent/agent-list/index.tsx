@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { cn } from '../../../lib/cn'
 import { useAssistantStore } from '../../assistant/store'
 import {
   agentDirectoryLabel,
@@ -10,6 +9,13 @@ import {
 } from '../presentation'
 import { Banner } from '../../../ui/banner'
 import { EmptyState } from '../../../ui/empty-state'
+import {
+  listRowClass,
+  listRowMarkerClass,
+  listRowMetaClass,
+  listRowTextClass,
+  listRowTitleClass,
+} from '../../../ui/list-row'
 import { SearchField } from '../../../ui/search-field'
 import { SectionHeader } from '../../../ui/section-header'
 import { useAgentRuntime } from '../runtime-provider'
@@ -28,7 +34,7 @@ export const AgentList = () => {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <SearchField
-        className="mx-2.5 mt-3 mb-2 flex-none"
+        className="mx-2.5 my-2 flex-none"
         label="Search agents"
         placeholder="Search agents…"
         value={query}
@@ -59,21 +65,14 @@ export const AgentList = () => {
                     type="button"
                     key={agent.id}
                     aria-current={active ? 'page' : undefined}
-                    className={cn(
-                      'flex w-full items-start gap-2.5 rounded-sm border-0 px-2 py-2 text-left [&>i]:mt-[0.32rem]',
-                      active ? 'bg-primary-soft text-foreground' : 'bg-transparent hover:bg-hover',
-                    )}
+                    className={listRowClass}
                     onClick={() => openAgent(agent.id)}
                     title={agent.cwd ?? undefined}
                   >
-                    <StatusDot status={agent.status} />
-                    <span className="grid min-w-0 flex-1 gap-0.5">
-                      <strong className="truncate text-xs font-semibold">{agent.name}</strong>
-                      <small
-                        className={cn('truncate text-2xs', active ? 'text-muted' : 'text-faint')}
-                      >
-                        {context || 'Runtime agent'}
-                      </small>
+                    <StatusDot status={agent.status} className={listRowMarkerClass} />
+                    <span className={listRowTextClass}>
+                      <strong className={listRowTitleClass}>{agent.name}</strong>
+                      <small className={listRowMetaClass}>{context || 'Runtime agent'}</small>
                     </span>
                   </button>
                 )

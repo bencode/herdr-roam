@@ -6,6 +6,13 @@ import { useProjectSessions } from '../../../features/session/use-session-data'
 import { Banner } from '../../../ui/banner'
 import { Button } from '../../../ui/button'
 import { EmptyState } from '../../../ui/empty-state'
+import {
+  listRowClass,
+  listRowMarkerClass,
+  listRowMetaClass,
+  listRowTextClass,
+  listRowTitleClass,
+} from '../../../ui/list-row'
 import { SearchField } from '../../../ui/search-field'
 import type { ResourceRef } from '../../../workbench/resource'
 
@@ -62,7 +69,7 @@ const Status = ({ value }: { readonly value: AgentStatus | 'not-running' }) => (
   <StatusDot
     status={value === 'not-running' ? null : value}
     label={value}
-    className="mt-[0.3rem]"
+    className={listRowMarkerClass}
   />
 )
 
@@ -109,7 +116,7 @@ const SessionRows = ({
           <button
             type="button"
             key={`${session.provider}:${session.id}`}
-            className="flex min-h-12 w-full min-w-0 items-start gap-2.5 rounded-sm border-0 bg-transparent px-2 py-2.25 text-left text-foreground hover:bg-hover [&>span]:grid [&>span]:min-w-0 [&>span]:flex-1 [&>span]:gap-0.75 [&_small]:truncate [&_small]:text-2xs [&_small]:text-faint [&_strong]:truncate [&_strong]:text-xs [&_strong]:font-semibold"
+            className={listRowClass}
             onClick={() =>
               onOpen({
                 type: 'session',
@@ -121,9 +128,9 @@ const SessionRows = ({
             title={session.title}
           >
             <Status value={agent?.status ?? 'not-running'} />
-            <span>
-              <strong>{session.title}</strong>
-              <small>
+            <span className={listRowTextClass}>
+              <strong className={listRowTitleClass}>{session.title}</strong>
+              <small className={listRowMetaClass}>
                 <span className="capitalize">{session.provider}</span> ·{' '}
                 {relativeTime(session.updatedAt)}
               </small>

@@ -114,7 +114,7 @@ export const AgentsBoard = () => {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-surface">
-      <header className="flex flex-none flex-wrap items-center gap-0.5 border-border border-b px-3 py-1.5">
+      <header className="flex h-10 flex-none items-center gap-0.5 overflow-x-auto border-border border-b px-3">
         {agentStatusOrder.map(status => {
           const count = snapshot.items.filter(agent => agent.status === status).length
           if (count === 0 && status === 'unknown') return null

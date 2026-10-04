@@ -261,7 +261,7 @@
     width: min(18rem, 100% - 1.75rem);
     background: var(--surface);
     box-shadow: var(--shadow-popover);
-    animation: outline-in 140ms ease-out;
+    animation: outline-in 150ms ease-out;
   }
 }
 
@@ -315,7 +315,7 @@
   img {
     max-width: 100%;
     max-height: calc(100vh - 9rem);
-    box-shadow: 0 8px 30px rgb(0 0 0 / 12%);
+    outline: 1px solid var(--border);
   }
 }
 

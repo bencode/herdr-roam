@@ -4,6 +4,12 @@ import { useDeferredValue, useMemo, useState } from 'react'
 import { Badge } from '../../../ui/badge'
 import { Button } from '../../../ui/button'
 import { EmptyState } from '../../../ui/empty-state'
+import {
+  listRowClass,
+  listRowMetaClass,
+  listRowTextClass,
+  listRowTitleClass,
+} from '../../../ui/list-row'
 import { SearchField } from '../../../ui/search-field'
 import { SectionHeader } from '../../../ui/section-header'
 import type { ResourceRef } from '../../../workbench/resource'
@@ -58,15 +64,15 @@ const SkillGroup = ({
             <button
               type="button"
               key={`${skill.scope}:${skill.id}`}
-              className="flex w-full min-w-0 items-center gap-2 rounded-sm border-0 bg-transparent px-2 py-1.5 text-left text-foreground hover:bg-hover data-active:bg-primary-soft"
+              className={listRowClass}
               data-active={active && sameResource(active, resource) ? true : undefined}
               onClick={() => onOpen(resource)}
               title={`${skill.location} · ${skillSourceLabel(skill.source)}`}
             >
-              <span className="grid min-w-0 flex-1 gap-0.5">
-                <strong className="truncate text-xs font-semibold">{skill.name}</strong>
+              <span className={listRowTextClass}>
+                <strong className={listRowTitleClass}>{skill.name}</strong>
                 {skill.description && (
-                  <small className="truncate text-2xs text-muted">{skill.description}</small>
+                  <small className={listRowMetaClass}>{skill.description}</small>
                 )}
               </span>
               <Badge>{skillSourceLabel(skill.source)}</Badge>
@@ -104,7 +110,7 @@ export const SkillList = ({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex flex-none gap-1 px-2.5 pt-3 pb-2">
+      <div className="flex flex-none gap-1.5 px-2.5 py-2">
         <SearchField
           className="flex-1"
           label="Search skills"
@@ -125,7 +131,7 @@ export const SkillList = ({
 
       <div className="min-h-0 flex-1 overflow-auto px-1.75 pb-3.5" aria-busy={state.loading}>
         {state.loading && !state.value ? (
-          <p className="m-0 px-2 py-3 text-2xs text-faint" role="status">
+          <p className="m-0 px-4 py-8 text-center text-xs text-muted" role="status">
             Loading Skills…
           </p>
         ) : state.error ? (

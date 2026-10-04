@@ -175,19 +175,19 @@ export const AppShell = ({
               {sidebarCollapsed ? (
                 <button
                   type="button"
-                  className="group relative grid h-full w-full place-items-center border-0 bg-transparent text-muted outline-none hover:bg-hover hover:text-foreground focus-visible:bg-hover focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                  className="group relative grid h-full w-full place-items-center border-0 bg-transparent text-muted hover:bg-hover hover:text-foreground focus-visible:bg-hover focus-visible:text-foreground"
                   onClick={() => setCollapsed(false)}
                   title="Expand sidebar"
                   aria-label="Expand sidebar"
                 >
                   <span
-                    className="transition-opacity duration-100 group-hover:opacity-0 group-focus-visible:opacity-0"
+                    className="transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0"
                     aria-hidden="true"
                   >
                     <BrandMark />
                   </span>
                   <PanelLeft
-                    className="absolute size-4 opacity-0 transition-opacity duration-100 group-hover:opacity-100 group-focus-visible:opacity-100"
+                    className="absolute size-4 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
                     aria-hidden="true"
                   />
                 </button>

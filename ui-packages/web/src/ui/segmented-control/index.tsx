@@ -40,7 +40,7 @@ export const SegmentedControl = <Value extends string>({
             key={option.value}
             className={cn(
               'relative flex cursor-pointer items-center rounded-sm px-2.5 text-xs text-muted transition-colors duration-150 hover:text-foreground has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-primary has-[:focus-visible]:-outline-offset-2',
-              checked && 'bg-surface font-medium text-foreground shadow-xs',
+              checked && 'bg-surface font-medium text-foreground',
             )}
           >
             <input

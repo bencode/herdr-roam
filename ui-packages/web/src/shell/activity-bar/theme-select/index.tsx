@@ -42,7 +42,7 @@ export const ThemeSelect = () => {
       <Popover.Trigger asChild>
         <button
           type="button"
-          className="m-1 grid size-9 place-items-center rounded-md border-0 bg-transparent text-muted hover:bg-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring data-[state=open]:bg-hover data-[state=open]:text-foreground [&_svg]:size-4"
+          className="m-1 grid size-9 place-items-center rounded-md border-0 bg-transparent text-muted hover:bg-hover hover:text-foreground data-[state=open]:bg-hover data-[state=open]:text-foreground [&_svg]:size-4"
           title={`Theme: ${selected.label}`}
           aria-label={`Theme: ${selected.label}`}
         >

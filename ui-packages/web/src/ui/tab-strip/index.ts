@@ -15,7 +15,7 @@ export const tabShellVariants = cva(
 )
 
 export const tabTriggerClass =
-  'flex min-w-0 flex-1 items-center gap-1.75 border-0 bg-transparent pr-1.5 pl-2.75 text-left text-inherit hover:bg-hover hover:text-foreground group-[.bg-surface]:hover:bg-transparent [&>span]:truncate [&>span]:min-w-0 [&>svg]:w-3.25 [&>svg]:flex-none [&>svg]:text-faint group-[.bg-surface]:[&>svg]:text-foreground'
+  'flex min-w-0 flex-1 items-center gap-1.5 border-0 bg-transparent pr-1.5 pl-2.5 text-left text-xs text-inherit hover:bg-hover hover:text-foreground group-[.bg-surface]:hover:bg-transparent [&>span]:truncate [&>span]:min-w-0 [&>svg]:size-3.5 [&>svg]:flex-none [&>svg]:text-faint group-[.bg-surface]:[&>svg]:text-foreground'
 
 export const tabCloseClass =
   'grid size-6 flex-none place-items-center self-center rounded-sm border-0 bg-transparent text-muted opacity-0 hover:bg-hover hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 group-[.bg-surface]:opacity-100 [&>svg]:w-3'
