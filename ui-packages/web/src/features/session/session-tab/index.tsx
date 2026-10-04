@@ -3,7 +3,6 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  CircleAlert,
   Copy,
   ExternalLink,
   MessageSquare,
@@ -12,7 +11,11 @@ import {
 } from 'lucide-react'
 import { type RefObject, useEffect, useRef, useState } from 'react'
 import { cn } from '../../../lib/cn'
+import { Badge } from '../../../ui/badge'
+import { Banner } from '../../../ui/banner'
 import { Button } from '../../../ui/button'
+import { DetailHeader } from '../../../ui/detail-header'
+import { EmptyState } from '../../../ui/empty-state'
 import type { ResourceRef } from '../../../workbench/resource'
 import { useAgentRuntime } from '../../agent/runtime-provider'
 import { StatusDot } from '../../agent/status-dot'
@@ -43,19 +46,21 @@ const HistoryPanel = ({
   readonly transcript: RefObject<HTMLDivElement | null>
 }) => {
   if (data.loading && !data.value) {
-    return <p className="grid h-full place-items-center text-muted">Loading Session history…</p>
+    return (
+      <p className="m-0 grid h-full place-items-center text-xs text-muted" role="status">
+        Loading Session history…
+      </p>
+    )
   }
   if (!data.value) {
     return (
-      <div className="grid h-full place-items-center p-8 text-center">
-        <div>
-          <MessageSquare className="mx-auto mb-4 size-6 text-faint" aria-hidden="true" />
-          <h2 className="m-0 text-lg">Session unavailable</h2>
-          <p className="mt-2 text-sm text-muted">
-            {data.error?.message ?? 'Native Session history could not be found.'}
-          </p>
-        </div>
-      </div>
+      <EmptyState
+        className="h-full content-center"
+        icon={<MessageSquare aria-hidden="true" />}
+        title="Session unavailable"
+      >
+        {data.error?.message ?? 'Native Session history could not be found.'}
+      </EmptyState>
     )
   }
 
@@ -63,12 +68,9 @@ const HistoryPanel = ({
   return (
     <div className="min-h-0 flex-1 overflow-auto" ref={transcript}>
       {data.error && (
-        <div
-          className="sticky top-0 z-10 border-danger/30 border-b bg-danger/8 px-5 py-2 text-xs text-danger"
-          role="status"
-        >
+        <Banner tone="danger" className="sticky top-0 z-10 px-5">
           {data.error.message}
-        </div>
+        </Banner>
       )}
       {(session.olderCursor || data.hasNewer) && (
         <nav
@@ -209,70 +211,70 @@ export const SessionTab = ({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-surface">
-      <header className="flex min-h-14 flex-none items-center gap-3 border-border border-b px-5">
-        <StatusDot
-          status={agent?.status ?? null}
-          label={agent?.status ?? 'not running'}
-          className="size-2"
-        />
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h1 className="m-0 truncate text-sm font-semibold">{title}</h1>
-            <span className="text-xs capitalize text-muted">{agent?.status ?? 'not running'}</span>
-            <span className="rounded-full bg-raised px-2 py-0.5 text-2xs text-muted capitalize">
-              {resource.provider}
-            </span>
-          </div>
-          {cwd && (
-            <p className="mt-1 mb-0 truncate font-mono text-2xs text-faint" title={cwd}>
-              {cwd}
-            </p>
-          )}
-        </div>
-        <div className="ml-auto flex flex-none items-center gap-1.5">
-          {!agent && data.value && (
-            <Button
-              aria-label="Resume Session"
-              disabled={!runtimeAvailable || resuming}
-              variant="primary"
-              onClick={() => void resume()}
-            >
-              <RotateCcw aria-hidden="true" />
-              {resuming ? 'Resuming…' : 'Resume'}
-            </Button>
-          )}
-          {agent && (
-            <Button onClick={() => openAgent(agent.id)}>
-              <TerminalSquare aria-hidden="true" />
-              Open Agent
-            </Button>
-          )}
-        </div>
-      </header>
+      <DetailHeader
+        icon={
+          <StatusDot
+            status={agent?.status ?? null}
+            label={agent?.status ?? 'not running'}
+            className="size-2"
+          />
+        }
+        title={title}
+        detail={cwd || undefined}
+        meta={
+          <>
+            <span className="capitalize">{agent?.status ?? 'not running'}</span>
+            <Badge className="capitalize">{resource.provider}</Badge>
+          </>
+        }
+        actions={
+          <>
+            {!agent && data.value && (
+              <Button
+                size="compact"
+                aria-label="Resume Session"
+                disabled={!runtimeAvailable || resuming}
+                variant="primary"
+                onClick={() => void resume()}
+              >
+                <RotateCcw aria-hidden="true" />
+                {resuming ? 'Resuming…' : 'Resume'}
+              </Button>
+            )}
+            {agent && (
+              <Button size="compact" onClick={() => openAgent(agent.id)}>
+                <TerminalSquare aria-hidden="true" />
+                Open Agent
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {resumeFailure && (
-        <div
-          className="flex min-h-10 flex-none items-center gap-2 border-danger/30 border-b bg-danger/8 px-5 py-2 text-xs"
-          role="alert"
+        <Banner
+          tone="danger"
+          className="flex-none px-5"
+          action={
+            <>
+              {recoveryAgentId && (
+                <Button size="compact" onClick={() => openAgent(recoveryAgentId)}>
+                  <ExternalLink aria-hidden="true" />
+                  Open Agent
+                </Button>
+              )}
+              {resumeFailure.recovery && (
+                <Button size="compact" onClick={() => void copyAttach()}>
+                  {copiedAttach ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+                  {copiedAttach ? 'Copied' : 'Copy attach'}
+                </Button>
+              )}
+            </>
+          }
         >
-          <CircleAlert className="size-3.5 flex-none text-danger" aria-hidden="true" />
-          <span className="min-w-0 flex-1 text-danger">
-            {resumeFailure.message}
-            {resumeFailure.recovery && ' The Herdr Workspace was kept for recovery.'}
-          </span>
-          {recoveryAgentId && (
-            <Button size="compact" onClick={() => openAgent(recoveryAgentId)}>
-              <ExternalLink aria-hidden="true" />
-              Open Agent
-            </Button>
-          )}
-          {resumeFailure.recovery && (
-            <Button size="compact" onClick={() => void copyAttach()}>
-              {copiedAttach ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
-              {copiedAttach ? 'Copied' : 'Copy attach'}
-            </Button>
-          )}
-        </div>
+          {resumeFailure.message}
+          {resumeFailure.recovery && ' The Herdr Workspace was kept for recovery.'}
+        </Banner>
       )}
 
       <HistoryPanel data={data} provider={resource.provider} transcript={transcript} />

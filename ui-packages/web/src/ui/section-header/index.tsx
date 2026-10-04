@@ -3,13 +3,15 @@ import { cn } from '../../lib/cn'
 
 type SectionHeaderProps = {
   readonly title: string
+  readonly id?: string
   readonly count?: number
   readonly action?: ReactNode
   readonly className?: string
 }
 
-export const SectionHeader = ({ title, count, action, className }: SectionHeaderProps) => (
+export const SectionHeader = ({ title, id, count, action, className }: SectionHeaderProps) => (
   <h2
+    id={id}
     className={cn(
       'm-0 flex h-7 items-center gap-2 px-2 text-2xs font-semibold uppercase tracking-[0.08em] text-faint',
       className,

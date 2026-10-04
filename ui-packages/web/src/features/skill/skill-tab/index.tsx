@@ -3,12 +3,15 @@ import { useState } from 'react'
 import { FileReader } from '../../../components/reader'
 import { MarkdownControls } from '../../../components/reader/markdown-controls'
 import { isMarkdownLike, useMarkdownView } from '../../../components/reader/markdown-view'
+import { Badge } from '../../../ui/badge'
+import { Button } from '../../../ui/button'
+import { DetailHeader } from '../../../ui/detail-header'
+import { EmptyState } from '../../../ui/empty-state'
 import type { ResourceRef } from '../../../workbench/resource'
 import { skillTitle } from '../../../workbench/resource'
 import { skillFileRawUrl, skillSourceLabel } from '../client'
 import { useSkillDetail, useSkillFile } from '../use-skill-detail'
 import { ResourceTree } from './resource-tree'
-import styles from './style.module.scss'
 
 type SkillResource = Extract<ResourceRef, { type: 'skill' }>
 
@@ -21,13 +24,18 @@ const ErrorState = ({
   readonly message: string
   readonly onRetry: () => void
 }) => (
-  <div className={styles.error} role="status">
-    <strong>{title}</strong>
-    <span>{message}</span>
-    <button type="button" onClick={onRetry}>
-      Try again
-    </button>
-  </div>
+  <EmptyState
+    className="min-h-64 flex-1 content-center"
+    title={title}
+    role="status"
+    action={
+      <Button size="compact" variant="secondary" onClick={onRetry}>
+        Try again
+      </Button>
+    }
+  >
+    {message}
+  </EmptyState>
 )
 
 export const SkillTab = ({ resource }: { readonly resource: SkillResource }) => {
@@ -47,41 +55,43 @@ export const SkillTab = ({ resource }: { readonly resource: SkillResource }) => 
   const openPath = (path: string) => setSelectedPath(path === 'SKILL.md' ? null : path)
 
   return (
-    <div className={styles.tab}>
-      <header className={styles.header}>
-        <Box aria-hidden="true" />
-        <div className={styles.identity}>
-          <div>
-            <strong>{detail.value?.name ?? skillTitle(resource.skillId)}</strong>
-            <span className={styles.badge}>
-              {resource.scope === 'project' ? 'Project' : 'Personal'}
-            </span>
-            {detail.value && (
-              <span className={styles.badge}>{skillSourceLabel(detail.value.source)}</span>
+    <div className="flex h-full min-h-0 flex-col bg-surface">
+      <DetailHeader
+        icon={<Box aria-hidden="true" />}
+        title={detail.value?.name ?? skillTitle(resource.skillId)}
+        detail={detail.value?.location}
+        meta={
+          <>
+            <Badge>{resource.scope === 'project' ? 'Project' : 'Personal'}</Badge>
+            {detail.value && <Badge>{skillSourceLabel(detail.value.source)}</Badge>}
+          </>
+        }
+        actions={
+          <>
+            {file && isMarkdownLike(file) && (
+              <MarkdownControls view={markdownView} showOutlineToggle={false} />
             )}
-          </div>
-          {detail.value && <span title={detail.value.location}>{detail.value.location}</span>}
-        </div>
-        {file && isMarkdownLike(file) && (
-          <div className={styles.controls}>
-            <MarkdownControls view={markdownView} showOutlineToggle={false} />
-          </div>
-        )}
-        <button
-          type="button"
-          className={styles.refresh}
-          onClick={reload}
-          disabled={loading}
-          aria-label="Refresh Skill"
-          title="Refresh Skill"
+            <Button
+              size="compactIcon"
+              onClick={reload}
+              disabled={loading}
+              aria-label="Refresh Skill"
+              title="Refresh Skill"
+            >
+              <RefreshCw aria-hidden="true" />
+            </Button>
+          </>
+        }
+      />
+      <div className="@container grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_14rem] @max-[54rem]:grid-cols-[minmax(0,1fr)] @max-[54rem]:grid-rows-[auto_minmax(0,1fr)]">
+        <main
+          className="flex min-h-0 min-w-0 overflow-hidden @max-[54rem]:row-start-2"
+          aria-busy={loading}
         >
-          <RefreshCw aria-hidden="true" />
-        </button>
-      </header>
-      <div className={styles.body}>
-        <main className={styles.reader} aria-busy={loading}>
           {loading && !file ? (
-            <div className={styles.status}>Loading Skill…</div>
+            <p className="m-0 flex-1 px-4 py-16 text-center text-xs text-muted" role="status">
+              Loading Skill…
+            </p>
           ) : error ? (
             <ErrorState
               title={selectedPath ? 'File unavailable' : 'Skill unavailable'}

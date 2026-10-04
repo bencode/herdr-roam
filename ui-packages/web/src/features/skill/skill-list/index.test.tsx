@@ -53,8 +53,8 @@ describe('SkillList', () => {
       />,
     )
 
-    expect(screen.getByRole('heading', { name: 'Project · fixture' })).toBeVisible()
-    expect(screen.getByRole('heading', { name: 'Personal' })).toBeVisible()
+    expect(screen.getByRole('heading', { name: /^Project · fixture/ })).toBeVisible()
+    expect(screen.getByRole('heading', { name: /^Personal/ })).toBeVisible()
     expect(screen.getAllByText('shared')).toHaveLength(2)
     expect(screen.getByRole('button', { name: /Personal copyClaude/ })).toHaveAttribute(
       'data-active',
