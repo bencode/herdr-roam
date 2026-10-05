@@ -13,7 +13,7 @@ It keeps active work, durable conversation history, project files, reusable Skil
 
 - Organizes local work by Git project and worktree.
 - Starts native Codex and Claude agents in a selected working directory.
-- Shows active agents across projects and opens their native terminal when interaction is needed.
+- Shows active agents across projects with live status, can notify you when one is blocked, and opens their native terminal when interaction is needed.
 - Reads resumable Codex and Claude Session history without attaching to a process.
 - Browses project files with dedicated Markdown, source code, HTML, and image views.
 - Surfaces existing project and user-level Skills without introducing another format or registry.
