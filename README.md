@@ -48,6 +48,10 @@ pnpm start
 
 Open <http://127.0.0.1:4310>.
 
+Projects are discovered from the working directories of running Herdr agents; add others from the project menu in the sidebar. The registry lives in your OS config directory under `herdr-roam/config.json`. Session history is read in place from `~/.codex/sessions` and `~/.claude/projects`.
+
+Set `ROAM_HOST` and `ROAM_PORT` to change the listen address (default `127.0.0.1:4310`).
+
 ## Development
 
 With the Herdr server running, start the API server on port `4311` and the Vite app on port `4310`:
