@@ -2,7 +2,10 @@
 
 Herdr Roam is a local personal AI software studio for coordinating Codex and Claude agents managed by [Herdr](https://herdr.dev).
 
-![Herdr Roam product tour](docs/assets/herdr-roam-demo.gif)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/herdr-roam-dark.png">
+  <img alt="Herdr Roam reading a source file next to its project tree" src="docs/assets/herdr-roam-light.png">
+</picture>
 
 It keeps active work, durable conversation history, project files, reusable Skills, and native agent terminals in one focused interface. Herdr continues to own processes and PTYs; Herdr Roam provides the coordination and reading layer above them.
 
