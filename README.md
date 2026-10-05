@@ -23,7 +23,7 @@ It keeps active work, durable conversation history, project files, reusable Skil
 
 - Node.js 24
 - pnpm 10
-- Herdr 0.8.x
+- Herdr 0.9.x
 - An installed and authenticated Codex or Claude CLI
 
 Herdr Roam currently supports one local user and one local host. It is designed to bind to loopback and does not provide authentication for public or shared-network deployment.

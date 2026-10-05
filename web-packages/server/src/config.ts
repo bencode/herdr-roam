@@ -2,7 +2,7 @@ import { homedir, platform } from 'node:os'
 import { join } from 'node:path'
 import type { SkillSource } from '@herdr-roam/shared'
 
-export const HERDR_PROTOCOL = 20
+export const HERDR_PROTOCOL = 22
 export const HERDR_REQUEST_TIMEOUT_MS = 5_000
 export const HERDR_MAX_MESSAGE_BYTES = 4 * 1024 * 1024
 export const SSE_HEARTBEAT_MS = 15_000
