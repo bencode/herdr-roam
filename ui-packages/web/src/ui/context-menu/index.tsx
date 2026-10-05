@@ -1,5 +1,5 @@
 import * as RadixContextMenu from '@radix-ui/react-context-menu'
-import type { ComponentPropsWithRef } from 'react'
+import type { ComponentPropsWithRef, KeyboardEvent } from 'react'
 import { cn } from '../../lib/cn'
 import { menuItemVariants } from '../menu'
 import { popoverSurfaceClass } from '../popover'
@@ -34,3 +34,19 @@ export const ContextMenuSeparator = ({
 }: ComponentPropsWithRef<typeof RadixContextMenu.Separator>) => (
   <RadixContextMenu.Separator {...props} className={cn('my-1 h-px bg-border', className)} />
 )
+
+/** Opens a context menu from the keyboard (ContextMenu key or Shift+F10) at the element's edge. */
+export const openContextMenuFromKeyboard = (event: KeyboardEvent<HTMLElement>): void => {
+  const requested = event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')
+  if (!requested) return
+  event.preventDefault()
+  const bounds = event.currentTarget.getBoundingClientRect()
+  event.currentTarget.dispatchEvent(
+    new MouseEvent('contextmenu', {
+      bubbles: true,
+      cancelable: true,
+      clientX: bounds.left + Math.min(bounds.width / 2, 24),
+      clientY: bounds.bottom,
+    }),
+  )
+}

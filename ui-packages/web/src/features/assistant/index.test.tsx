@@ -83,6 +83,30 @@ describe('Assistant panel', () => {
     expect(mocks.stop).not.toHaveBeenCalled()
   })
 
+  it('closes other tabs from the tab context menu and keeps the chosen Agent active', async () => {
+    mocks.agents = [
+      agent('agent-1', 'reviewer'),
+      agent('agent-2', 'writer'),
+      agent('agent-3', 'tester'),
+    ]
+    act(() => {
+      useAssistantStore.getState().openAgent('agent-1')
+      useAssistantStore.getState().openAgent('agent-2')
+      useAssistantStore.getState().openAgent('agent-3')
+    })
+    renderPanel()
+
+    fireEvent.contextMenu(screen.getByRole('tab', { name: /writer/ }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Close Other Tabs' }))
+
+    expect(screen.getAllByRole('tab').map(tab => tab.textContent)).toEqual(['writer'])
+    expect(screen.getByRole('tab', { name: /writer/ })).toHaveAttribute('aria-selected', 'true')
+    expect(await screen.findByRole('region', { name: 'Agent terminal' })).toHaveTextContent(
+      'agent-2',
+    )
+    expect(mocks.stop).not.toHaveBeenCalled()
+  })
+
   it('removes background tabs for Agents that are no longer running', () => {
     mocks.agents = [agent('agent-1', 'reviewer'), agent('agent-2', 'writer')]
     act(() => {

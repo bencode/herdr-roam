@@ -1,4 +1,4 @@
-import type { KeyboardEvent, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { type ResourceRef, resourceKey } from '../../workbench/resource'
 import {
   ContextMenu,
@@ -6,6 +6,7 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
+  openContextMenuFromKeyboard,
 } from '../../ui/context-menu'
 
 type Props = {
@@ -13,21 +14,6 @@ type Props = {
   readonly resource: ResourceRef
   readonly tabs: readonly ResourceRef[]
   readonly onCloseMany: (resources: readonly ResourceRef[]) => void
-}
-
-const openFromKeyboard = (event: KeyboardEvent<HTMLElement>): void => {
-  const requested = event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')
-  if (!requested) return
-  event.preventDefault()
-  const bounds = event.currentTarget.getBoundingClientRect()
-  event.currentTarget.dispatchEvent(
-    new MouseEvent('contextmenu', {
-      bubbles: true,
-      cancelable: true,
-      clientX: bounds.left + Math.min(bounds.width / 2, 24),
-      clientY: bounds.bottom,
-    }),
-  )
 }
 
 export const TabContextMenu = ({ children, resource, tabs, onCloseMany }: Props) => {
@@ -38,7 +24,7 @@ export const TabContextMenu = ({ children, resource, tabs, onCloseMany }: Props)
 
   return (
     <ContextMenu>
-      <ContextMenuTrigger asChild onKeyDown={openFromKeyboard}>
+      <ContextMenuTrigger asChild onKeyDown={openContextMenuFromKeyboard}>
         {children}
       </ContextMenuTrigger>
       <ContextMenuContent aria-label="Tab actions">

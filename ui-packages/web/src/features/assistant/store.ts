@@ -14,6 +14,7 @@ type AssistantStore = AssistantSnapshot & {
   readonly openAgent: (agentId: string) => void
   readonly activate: (agentId: string) => void
   readonly closeAgent: (agentId: string) => void
+  readonly closeAgents: (agentIds: readonly string[]) => void
   readonly setOpen: (open: boolean) => void
   readonly setMaximized: (maximized: boolean) => void
   // The active tab stays so a stopped Agent can show its final state and open its Session.
@@ -77,9 +78,15 @@ const snapshotOf = (state: AssistantSnapshot): AssistantSnapshot => ({
   activeAgentId: state.activeAgentId,
 })
 
-const neighbourOf = (agentIds: readonly string[], agentId: string): string | null => {
-  const index = agentIds.indexOf(agentId)
-  return agentIds[index + 1] ?? agentIds[index - 1] ?? null
+// The tab that takes over when the active one closes: the nearest survivor, right side first.
+const survivorNear = (
+  agentIds: readonly string[],
+  activeAgentId: string,
+  closing: ReadonlySet<string>,
+): string | null => {
+  const index = agentIds.indexOf(activeAgentId)
+  const kept = (id: string | undefined): id is string => id !== undefined && !closing.has(id)
+  return agentIds.slice(index + 1).find(kept) ?? agentIds.slice(0, index).findLast(kept) ?? null
 }
 
 export const useAssistantStore = create<AssistantStore>((set, get) => {
@@ -102,11 +109,16 @@ export const useAssistantStore = create<AssistantStore>((set, get) => {
     activate: agentId => {
       if (get().agentIds.includes(agentId)) update({ activeAgentId: agentId })
     },
-    closeAgent: agentId => {
+    closeAgent: agentId => get().closeAgents([agentId]),
+    closeAgents: closingIds => {
       const { agentIds, activeAgentId } = get()
+      const closing = new Set(closingIds)
       update({
-        agentIds: agentIds.filter(id => id !== agentId),
-        activeAgentId: activeAgentId === agentId ? neighbourOf(agentIds, agentId) : activeAgentId,
+        agentIds: agentIds.filter(id => !closing.has(id)),
+        activeAgentId:
+          activeAgentId && closing.has(activeAgentId)
+            ? survivorNear(agentIds, activeAgentId, closing)
+            : activeAgentId,
       })
     },
     setOpen: open => {

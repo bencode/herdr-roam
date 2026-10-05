@@ -55,3 +55,6 @@ export const agentMatches = (agent: AgentSummary, query: string): boolean => {
     value?.toLowerCase().includes(normalized),
   )
 }
+
+export const agentAttachCommand = (agent: AgentSummary): string =>
+  `herdr agent attach ${agent.attachTarget}`
