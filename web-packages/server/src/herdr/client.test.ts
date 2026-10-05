@@ -70,6 +70,17 @@ describe('Herdr socket client', () => {
     await expect(createHerdrClient(socketPath).listAgents()).rejects.toBeInstanceOf(HerdrApiError)
   })
 
+  it('reports a lost event stream so the runtime can resubscribe', async () => {
+    const socketPath = await socketServer(
+      request =>
+        `${JSON.stringify({ id: request.id, result: { type: 'subscription_started' } })}\n${JSON.stringify({ id: request.id, error: { code: 'events_lost', message: 'reader fell behind' } })}\n`,
+    )
+    const disconnected = new Promise<unknown>(resolve => {
+      void createHerdrClient(socketPath).subscribe(() => undefined, resolve)
+    })
+    await expect(disconnected).resolves.toMatchObject({ code: 'events_lost' })
+  })
+
   it('reads a bounded recent ANSI snapshot', async () => {
     let received: ReceivedRequest | null = null
     const socketPath = await socketServer(request => {

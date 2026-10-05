@@ -7,17 +7,17 @@ describe('Herdr discovery', () => {
     await expect(
       discoverHerdr(async () =>
         JSON.stringify({
-        running: true,
-        version: '0.8.2',
-        protocol: 20,
-        compatible: true,
-        socket: '/tmp/herdr.sock',
+          running: true,
+          version: '0.9.3',
+          protocol: 22,
+          compatible: true,
+          socket: '/tmp/herdr.sock',
         }),
       ),
     ).resolves.toEqual({
       socketPath: '/tmp/herdr.sock',
-      version: '0.8.2',
-      protocol: 20,
+      version: '0.9.3',
+      protocol: 22,
     })
   })
 
@@ -26,8 +26,8 @@ describe('Herdr discovery', () => {
       discoverHerdr(async () =>
         JSON.stringify({
           running: false,
-          version: '0.8.2',
-          protocol: 20,
+          version: '0.9.3',
+          protocol: 22,
           compatible: true,
           socket: null,
         }),
@@ -40,8 +40,8 @@ describe('Herdr discovery', () => {
       discoverHerdr(async () =>
         JSON.stringify({
           running: true,
-          version: '0.9.0',
-          protocol: 21,
+          version: '0.8.2',
+          protocol: 20,
           compatible: false,
           socket: '/tmp/herdr.sock',
         }),

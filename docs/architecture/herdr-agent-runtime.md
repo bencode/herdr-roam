@@ -10,7 +10,7 @@ ownership. Existing HTTP output, Prompt, input, and focus APIs remain compatible
 
 Herdr is the only source of live Agent state. The Roam server discovers the
 default local server with `herdr status server --json`, connects to its Unix
-socket, and translates protocol 20 responses into browser-facing contracts.
+socket, and translates protocol 22 responses into browser-facing contracts.
 It does not start or stop Herdr in this slice.
 
 The server keeps only the latest Agent snapshot in memory. A disconnect after

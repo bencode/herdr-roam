@@ -177,7 +177,15 @@ const openSubscription = (
         })
         return
       }
-      const event = eventEnvelopeSchema.safeParse(parseJson(line))
+      const raw = parseJson(line)
+      const failure = errorResponseSchema.safeParse(raw)
+      if (failure.success) {
+        throw new HerdrApiError(
+          failure.data.error.code,
+          `Herdr event stream failed: ${failure.data.error.message}`,
+        )
+      }
+      const event = eventEnvelopeSchema.safeParse(raw)
       if (!event.success)
         throw new Error('Herdr returned an invalid event.', { cause: event.error })
       onEvent()
