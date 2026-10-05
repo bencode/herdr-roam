@@ -2,6 +2,7 @@ import type { Project } from '@herdr-roam/shared'
 import { PanelLeft, PanelRight } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Group, Panel, Separator, useDefaultLayout, usePanelRef } from 'react-resizable-panels'
+import { useBlockedNotifications } from '../../features/agent/blocked-notifications'
 import { useAgentRuntime } from '../../features/agent/runtime-provider'
 import { AssistantPanel } from '../../features/assistant'
 import { useAssistantStore } from '../../features/assistant/store'
@@ -88,6 +89,7 @@ export const AppShell = ({
   const maximized = useAssistantStore(state => state.maximized)
   const setAssistantOpen = useAssistantStore(state => state.setOpen)
   const setMaximized = useAssistantStore(state => state.setMaximized)
+  const openAgent = useAssistantStore(state => state.openAgent)
   const assistantRef = usePanelRef()
   const workbenchRef = usePanelRef()
   const assistantWidth = useRef(
@@ -117,6 +119,7 @@ export const AppShell = ({
   useEffect(() => {
     document.title = blockedCount > 0 ? `(${blockedCount} blocked) Herdr Roam` : 'Herdr Roam'
   }, [blockedCount])
+  useBlockedNotifications(snapshot.items, openAgent)
 
   useEffect(() => {
     const panel = assistantRef.current

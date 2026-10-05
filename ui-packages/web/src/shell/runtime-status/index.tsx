@@ -2,6 +2,11 @@ import type { AgentRuntimeSnapshot } from '@herdr-roam/shared'
 import * as Popover from '@radix-ui/react-popover'
 import { Check, Copy, ExternalLink } from 'lucide-react'
 import { useState } from 'react'
+import {
+  blockedNotificationsSupported,
+  readBlockedNotifications,
+  writeBlockedNotifications,
+} from '../../features/agent/blocked-notifications'
 import { cn } from '../../lib/cn'
 import { Button } from '../../ui/button'
 import { PopoverContent } from '../../ui/popover'
@@ -15,6 +20,43 @@ const commandFor = (snapshot: AgentRuntimeSnapshot): string | null => {
   if (snapshot.source.code === 'herdr_missing') return INSTALL_COMMAND
   if (snapshot.source.code === 'herdr_not_running') return START_COMMAND
   return null
+}
+
+const BlockedNotificationsToggle = () => {
+  const [enabled, setEnabled] = useState(readBlockedNotifications)
+  const [denied, setDenied] = useState(false)
+
+  const change = async (next: boolean) => {
+    if (!next) {
+      writeBlockedNotifications(false)
+      setEnabled(false)
+      return
+    }
+    const permission = await Notification.requestPermission()
+    const granted = permission === 'granted'
+    writeBlockedNotifications(granted)
+    setEnabled(granted)
+    setDenied(!granted)
+  }
+
+  return (
+    <div className="mt-3 border-border border-t pt-3">
+      <label className="flex cursor-pointer items-center gap-2 text-xs text-muted">
+        <input
+          type="checkbox"
+          className="accent-primary"
+          checked={enabled}
+          onChange={event => void change(event.target.checked)}
+        />
+        Notify when an Agent is blocked
+      </label>
+      {denied && (
+        <p className="mt-1.5 mb-0 text-2xs text-faint">
+          Notifications are blocked in this browser.
+        </p>
+      )}
+    </div>
+  )
 }
 
 export const RuntimeStatus = ({
@@ -117,6 +159,7 @@ export const RuntimeStatus = ({
             )}
           </>
         )}
+        {blockedNotificationsSupported() && <BlockedNotificationsToggle />}
       </PopoverContent>
     </Popover.Root>
   )

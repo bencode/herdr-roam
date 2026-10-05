@@ -19,6 +19,8 @@ type RuntimeState = {
   client: HerdrClient | null
   discovery: HerdrDiscovery | null
   unsubscribeHerdr: (() => void) | null
+  unsubscribeStatus: (() => void) | null
+  statusPaneKey: string
   reconnectTimer: NodeJS.Timeout | null
   refreshTimer: NodeJS.Timeout | null
   reconnectAttempt: number
@@ -58,6 +60,8 @@ export const createAgentRuntime = (): AgentRuntime => {
     client: null,
     discovery: null,
     unsubscribeHerdr: null,
+    unsubscribeStatus: null,
+    statusPaneKey: '',
     reconnectTimer: null,
     refreshTimer: null,
     reconnectAttempt: 0,
@@ -75,6 +79,45 @@ export const createAgentRuntime = (): AgentRuntime => {
     })
   }
 
+  const closeStatusSubscription = () => {
+    state.unsubscribeStatus?.()
+    state.unsubscribeStatus = null
+    state.statusPaneKey = ''
+  }
+
+  // Status changes only arrive on per-pane subscriptions, so follow the current pane set.
+  const followAgentStatus = async (
+    client: HerdrClient,
+    paneIds: readonly string[],
+    connectionId: number,
+  ) => {
+    const key = paneIds.toSorted().join(' ')
+    if (key === state.statusPaneKey) return
+    closeStatusSubscription()
+    if (paneIds.length === 0) return
+    state.statusPaneKey = key
+    try {
+      const unsubscribe = await client.subscribeAgentStatus(
+        paneIds,
+        () => queueRefresh(connectionId),
+        error => {
+          console.error('Herdr Agent status stream failed', error)
+          if (state.statusPaneKey === key) closeStatusSubscription()
+        },
+      )
+      if (connectionId !== state.connectionId || state.statusPaneKey !== key) {
+        unsubscribe()
+        return
+      }
+      state.unsubscribeStatus = unsubscribe
+      // Catch changes that landed before the subscription existed.
+      queueRefresh(connectionId)
+    } catch (error) {
+      console.error('Herdr Agent status subscription failed', error)
+      if (state.statusPaneKey === key) state.statusPaneKey = ''
+    }
+  }
+
   const refresh = async (connectionId: number): Promise<void> => {
     const { client, discovery } = state
     if (!client || !discovery || connectionId !== state.connectionId) return
@@ -84,7 +127,8 @@ export const createAgentRuntime = (): AgentRuntime => {
     }
     state.refreshing = true
     try {
-      const items = mapAgents(await client.listAgents())
+      const agents = await client.listAgents()
+      const items = mapAgents(agents)
       if (connectionId !== state.connectionId) return
       setSnapshot({
         source: { state: 'connected', version: discovery.version, protocol: discovery.protocol },
@@ -92,6 +136,11 @@ export const createAgentRuntime = (): AgentRuntime => {
         items,
         statusSince: statusSinceOf(items, state.current, new Date().toISOString()),
       })
+      await followAgentStatus(
+        client,
+        agents.map(agent => agent.pane_id),
+        connectionId,
+      )
     } finally {
       state.refreshing = false
       if (state.refreshPending && connectionId === state.connectionId) {
@@ -115,6 +164,7 @@ export const createAgentRuntime = (): AgentRuntime => {
     console.error('Herdr connection failed', error)
     state.connectionId += 1
     state.unsubscribeHerdr?.()
+    closeStatusSubscription()
     if (state.refreshTimer) clearInterval(state.refreshTimer)
     state.unsubscribeHerdr = null
     state.refreshTimer = null
@@ -172,6 +222,7 @@ export const createAgentRuntime = (): AgentRuntime => {
       state.refreshTimer = null
       state.unsubscribeHerdr?.()
       state.unsubscribeHerdr = null
+      closeStatusSubscription()
       state.client = null
       state.discovery = null
     },
