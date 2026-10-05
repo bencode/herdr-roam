@@ -6,7 +6,7 @@ import { Button } from '../../../ui/button'
 import { EmptyState } from '../../../ui/empty-state'
 import type { ResourceRef } from '../../../workbench/resource'
 import { stopAgent } from '../client'
-import { agentProviderLabel } from '../presentation'
+import { agentAttachCommand, agentProviderLabel } from '../presentation'
 import { useAgentRuntime } from '../runtime-provider'
 import { StatusDot } from '../status-dot'
 import { AgentStopControl } from '../stop-control'
@@ -79,7 +79,7 @@ export const AgentPane = ({
   const runtimeAvailable =
     Boolean(current) && snapshot.source.state === 'connected' && !snapshot.stale
   const runtimeMessage = unavailableMessage(current, snapshot.source, snapshot.stale)
-  const attachCommand = `herdr agent attach ${agent.attachTarget}`
+  const attachCommand = agentAttachCommand(agent)
   const providerLabel = agentProviderLabel(agent.provider)
 
   const copyText = async (

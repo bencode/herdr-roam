@@ -10,6 +10,7 @@ import { AgentPane } from '../agent/agent-pane'
 import { useAgentRuntime } from '../agent/runtime-provider'
 import { StatusDot } from '../agent/status-dot'
 import { AgentMenu } from './agent-menu'
+import { AgentTabMenu } from './agent-tab-menu'
 import { useAssistantStore } from './store'
 
 export const AssistantPanel = ({
@@ -23,8 +24,17 @@ export const AssistantPanel = ({
 }) => {
   const { snapshot, agentById } = useAgentRuntime()
   const knownNames = useRef(new Map<string, string>())
-  const { agentIds, activeAgentId, maximized, activate, closeAgent, setOpen, setMaximized, prune } =
-    useAssistantStore()
+  const {
+    agentIds,
+    activeAgentId,
+    maximized,
+    activate,
+    closeAgent,
+    closeAgents,
+    setOpen,
+    setMaximized,
+    prune,
+  } = useAssistantStore()
   const runtimeCurrent = snapshot.source.state === 'connected' && !snapshot.stale
 
   useEffect(() => {
@@ -64,41 +74,48 @@ export const AssistantPanel = ({
             if (agent) knownNames.current.set(agentId, agent.name)
             const name = knownNames.current.get(agentId) ?? agentId
             return (
-              <div
+              <AgentTabMenu
                 key={agentId}
-                className={cn(
-                  tabShellVariants({ selected }),
-                  'min-w-24 max-w-48 flex-none basis-auto max-[68rem]:basis-auto',
-                )}
-                onAuxClick={event => event.button === 1 && closeAgent(agentId)}
+                agentId={agentId}
+                agentIds={agentIds}
+                agent={agent ?? null}
+                onCloseMany={closeAgents}
               >
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={selected}
-                  tabIndex={selected ? 0 : -1}
-                  data-agent-id={agentId}
-                  onKeyDown={event => moveFocus(event, agentId)}
-                  className={tabTriggerClass}
-                  onClick={() => activate(agentId)}
-                  title={agent?.cwd ? `${name} · ${agent.cwd}` : name}
+                <div
+                  className={cn(
+                    tabShellVariants({ selected }),
+                    'min-w-24 max-w-48 flex-none basis-auto max-[68rem]:basis-auto',
+                  )}
+                  onAuxClick={event => event.button === 1 && closeAgent(agentId)}
                 >
-                  <StatusDot
-                    status={agent?.status ?? null}
-                    label={agent?.status ?? 'unavailable'}
-                  />
-                  <span className="truncate">{name}</span>
-                </button>
-                <button
-                  type="button"
-                  className={tabCloseClass}
-                  aria-label={`Close ${name}`}
-                  title={`Close ${name} (keeps the Agent running)`}
-                  onClick={() => closeAgent(agentId)}
-                >
-                  <X aria-hidden="true" />
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    tabIndex={selected ? 0 : -1}
+                    data-agent-id={agentId}
+                    onKeyDown={event => moveFocus(event, agentId)}
+                    className={tabTriggerClass}
+                    onClick={() => activate(agentId)}
+                    title={agent?.cwd ? `${name} · ${agent.cwd}` : name}
+                  >
+                    <StatusDot
+                      status={agent?.status ?? null}
+                      label={agent?.status ?? 'unavailable'}
+                    />
+                    <span className="truncate">{name}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={tabCloseClass}
+                    aria-label={`Close ${name}`}
+                    title={`Close ${name} (keeps the Agent running)`}
+                    onClick={() => closeAgent(agentId)}
+                  >
+                    <X aria-hidden="true" />
+                  </button>
+                </div>
+              </AgentTabMenu>
             )
           })}
         </div>
