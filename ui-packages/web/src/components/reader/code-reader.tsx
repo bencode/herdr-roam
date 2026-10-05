@@ -152,7 +152,7 @@ export const CodeReader = ({
         }}
         lineNumberStyle={{
           color: 'var(--faint)',
-          minWidth: '2.5em',
+          minWidth: '4.5em',
           paddingLeft: '1em',
           paddingRight: '1em',
         }}
