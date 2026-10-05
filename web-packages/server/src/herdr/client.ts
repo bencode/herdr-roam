@@ -50,6 +50,11 @@ export type HerdrClient = {
     onEvent: () => void,
     onDisconnect: (error: Error) => void,
   ) => Promise<() => void>
+  readonly subscribeAgentStatus: (
+    paneIds: readonly string[],
+    onEvent: () => void,
+    onDisconnect: (error: Error) => void,
+  ) => Promise<() => void>
 }
 
 export class HerdrApiError extends Error {
@@ -132,17 +137,24 @@ const request = (
     })
   })
 
-const subscriptions = [
+type Subscription = Readonly<Record<string, string>>
+
+const lifecycleSubscriptions: readonly Subscription[] = [
   'pane.created',
   'pane.closed',
   'pane.updated',
   'pane.moved',
   'pane.exited',
   'pane.agent_detected',
-] as const
+].map(type => ({ type }))
+
+// Herdr only emits status changes to subscriptions scoped to one pane.
+const agentStatusSubscriptions = (paneIds: readonly string[]): readonly Subscription[] =>
+  paneIds.map(paneId => ({ type: 'pane.agent_status_changed', pane_id: paneId }))
 
 const openSubscription = (
   socketPath: string,
+  subscriptions: readonly Subscription[],
   onEvent: () => void,
   onDisconnect: (error: Error) => void,
 ): Promise<() => void> =>
@@ -197,7 +209,7 @@ const openSubscription = (
         jsonLine({
           id,
           method: 'events.subscribe',
-          params: { subscriptions: subscriptions.map(type => ({ type })) },
+          params: { subscriptions },
         }),
       ),
     )
@@ -299,5 +311,8 @@ export const createHerdrClient = (socketPath: string): HerdrClient => ({
     const result = agentInfoResultSchema.parse(await request(socketPath, 'agent.focus', { target }))
     return result.agent
   },
-  subscribe: (onEvent, onDisconnect) => openSubscription(socketPath, onEvent, onDisconnect),
+  subscribe: (onEvent, onDisconnect) =>
+    openSubscription(socketPath, lifecycleSubscriptions, onEvent, onDisconnect),
+  subscribeAgentStatus: (paneIds, onEvent, onDisconnect) =>
+    openSubscription(socketPath, agentStatusSubscriptions(paneIds), onEvent, onDisconnect),
 })

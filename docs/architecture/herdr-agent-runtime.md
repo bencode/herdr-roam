@@ -32,9 +32,11 @@ POST /api/agents/:agentId/focus
 
 `/api/agents` returns the complete current snapshot, including Herdr connection
 state. `/api/agents/events` sends the same complete shape over SSE after every
-relevant global Herdr pane event. Herdr's status-change subscription requires a
-specific pane target, so Roam also refreshes the authoritative list every two
-seconds. The browser replaces its in-memory snapshot rather than reproducing
+relevant global Herdr pane event. Herdr only emits status changes to
+subscriptions scoped to one pane, so Roam keeps a `pane.agent_status_changed`
+subscription for the current pane set and refreshes when it fires. A ten-second
+refresh of the authoritative list covers gaps while that subscription is rebuilt.
+The browser replaces its in-memory snapshot rather than reproducing
 Herdr's state machine.
 
 Each snapshot also carries `statusSince`, mapping Agent IDs to the ISO time Roam

@@ -81,6 +81,31 @@ describe('Herdr socket client', () => {
     await expect(disconnected).resolves.toMatchObject({ code: 'events_lost' })
   })
 
+  it('subscribes to Agent status changes for each Pane', async () => {
+    let received: ReceivedRequest | null = null
+    const socketPath = await socketServer(request => {
+      received = request
+      return `${JSON.stringify({ id: request.id, result: { type: 'subscription_started' } })}\n${JSON.stringify({ event: 'pane.agent_status_changed', data: { pane_id: 'w1:p1', agent_status: 'blocked' } })}\n`
+    })
+    const changed = new Promise<void>(resolve => {
+      void createHerdrClient(socketPath).subscribeAgentStatus(
+        ['w1:p1', 'w2:p1'],
+        resolve,
+        () => undefined,
+      )
+    })
+    await changed
+    expect(received).toMatchObject({
+      method: 'events.subscribe',
+      params: {
+        subscriptions: [
+          { type: 'pane.agent_status_changed', pane_id: 'w1:p1' },
+          { type: 'pane.agent_status_changed', pane_id: 'w2:p1' },
+        ],
+      },
+    })
+  })
+
   it('reads a bounded recent ANSI snapshot', async () => {
     let received: ReceivedRequest | null = null
     const socketPath = await socketServer(request => {
