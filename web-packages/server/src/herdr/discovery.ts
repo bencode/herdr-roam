@@ -42,9 +42,7 @@ const errnoCode = (error: unknown): string | null => {
   return typeof error.code === 'string' ? error.code : null
 }
 
-export const discoverHerdr = async (
-  statusReader: StatusReader = readStatus,
-): Promise<HerdrDiscovery> => {
+export const discoverHerdr = async (statusReader: StatusReader = readStatus): Promise<HerdrDiscovery> => {
   let stdout: string
   try {
     stdout = await statusReader()
@@ -54,9 +52,11 @@ export const discoverHerdr = async (
         cause: error,
       })
     }
-    throw new HerdrDiscoveryError('herdr_unavailable', 'Herdr status could not be read.', {
-      cause: error,
-    })
+    throw new HerdrDiscoveryError(
+      'herdr_unavailable',
+      'Herdr status could not be read.',
+      { cause: error },
+    )
   }
 
   let raw: unknown
@@ -69,13 +69,9 @@ export const discoverHerdr = async (
   }
   const parsed = herdrStatusSchema.safeParse(raw)
   if (!parsed.success) {
-    throw new HerdrDiscoveryError(
-      'herdr_unavailable',
-      'Herdr returned an invalid status response.',
-      {
-        cause: parsed.error,
-      },
-    )
+    throw new HerdrDiscoveryError('herdr_unavailable', 'Herdr returned an invalid status response.', {
+      cause: parsed.error,
+    })
   }
   if (!parsed.data.running || !parsed.data.socket) {
     throw new HerdrDiscoveryError('herdr_not_running', 'The default Herdr server is not running.')
