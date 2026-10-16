@@ -5,6 +5,7 @@ const key = 'herdr-roam.compare.v1'
 const schema = z.object({
   mode: z.enum(['split', 'unified']).optional(),
   wrap: z.boolean().default(false),
+  treeWidth: z.number().min(180).optional(),
   targets: z.record(z.string(), z.string()).default({}),
 })
 type Preferences = z.infer<typeof schema>
@@ -22,6 +23,7 @@ export const readComparePreferences = (): Preferences => {
 export const writeComparePreference = (preference: {
   readonly mode?: DiffMode
   readonly wrap?: boolean
+  readonly treeWidth?: number
   readonly target?: { readonly projectName: string; readonly ref: string }
 }): void => {
   try {
@@ -32,6 +34,7 @@ export const writeComparePreference = (preference: {
         ...current,
         ...(preference.mode === undefined ? {} : { mode: preference.mode }),
         ...(preference.wrap === undefined ? {} : { wrap: preference.wrap }),
+        ...(preference.treeWidth === undefined ? {} : { treeWidth: preference.treeWidth }),
         targets: preference.target
           ? { ...current.targets, [preference.target.projectName]: preference.target.ref }
           : current.targets,

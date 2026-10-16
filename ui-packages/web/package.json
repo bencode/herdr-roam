@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@base-ui/react": "^1.9.0",
     "@herdr-roam/shared": "workspace:*",
     "@pierre/diffs": "1.5.2",
     "@radix-ui/react-context-menu": "^2.3.7",
