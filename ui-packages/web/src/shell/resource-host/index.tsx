@@ -1,5 +1,5 @@
 import type { Project } from '@herdr-roam/shared'
-import { Activity } from 'react'
+import { Activity, lazy, Suspense } from 'react'
 import { AgentsBoard } from '../../features/agents-board'
 import { FileTab } from '../../features/file/file-tab'
 import { SessionTab } from '../../features/session/session-tab'
@@ -13,6 +13,10 @@ import {
   sameResource,
 } from '../../workbench/resource'
 
+const CompareTab = lazy(() =>
+  import('../../features/compare/compare-tab').then(module => ({ default: module.CompareTab })),
+)
+
 const ResourceContent = ({
   resource,
   onOpen,
@@ -25,6 +29,12 @@ const ResourceContent = ({
   if (resource.type === 'session') return <SessionTab resource={resource} active={active} />
   if (resource.type === 'file')
     return <FileTab resource={resource} active={active} onOpen={onOpen} />
+  if (resource.type === 'compare')
+    return (
+      <Suspense fallback={<EmptyState>Loading comparison…</EmptyState>}>
+        <CompareTab resource={resource} active={active} />
+      </Suspense>
+    )
   return <SkillTab resource={resource} />
 }
 

@@ -24,6 +24,15 @@ export {
   AGENT_TEXT_MAX_BYTES,
 } from './api/agent.js'
 export type {
+  CommittedText,
+  CompareApiError,
+  CompareBranch,
+  CompareBranches,
+  CompareFile,
+  CompareFileView,
+  Comparison,
+} from './api/compare.js'
+export type {
   FileEntry,
   FileMetadata,
   FilePage,

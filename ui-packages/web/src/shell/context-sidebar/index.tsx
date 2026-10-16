@@ -9,6 +9,7 @@ type Props = {
   readonly dimension: GlobalDimension
   readonly activeProjectName: string
   readonly activeFile: Extract<ResourceRef, { type: 'file' }> | null
+  readonly activeCompare?: Extract<ResourceRef, { type: 'compare' }> | null
   readonly activeSkill: Extract<ResourceRef, { type: 'skill' }> | null
   readonly projectSection: ProjectSection
   readonly projectRouteKey: string
@@ -28,6 +29,7 @@ export const ContextSidebar = (props: Props) => {
               key={props.activeProjectName}
               activeProjectName={props.activeProjectName}
               activeFile={props.activeFile}
+              activeCompare={props.activeCompare}
               section={props.projectSection}
               routeKey={props.projectRouteKey}
               onOpen={props.onOpen}

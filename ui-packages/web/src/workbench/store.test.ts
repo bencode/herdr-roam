@@ -143,4 +143,15 @@ describe('workbench store', () => {
     expect(useWorkbenchStore.getState()).toMatchObject({ version: 8, tabs: [], lastActive: null })
     expect(localStorage.getItem('herdr-roam.workbench.v8')).toBeNull()
   })
+  it('deduplicates and restores comparison tabs using the existing snapshot version', async () => {
+    const resource = { type: 'compare', projectName: 'herdr-roam', workspaceId: 'linked' } as const
+    storeModule.useWorkbenchStore.getState().open(resource)
+    storeModule.useWorkbenchStore.getState().open(resource)
+    storeModule.useWorkbenchStore.getState().open(session)
+    vi.resetModules()
+    const restored = await import('./store')
+    expect(restored.useWorkbenchStore.getState().tabs).toEqual([resource, session])
+    restored.useWorkbenchStore.getState().forgetProject('herdr-roam')
+    expect(restored.useWorkbenchStore.getState().tabs).toEqual([])
+  })
 })

@@ -14,6 +14,7 @@ export type ResourceRef =
       readonly workspaceId: string
       readonly path: string
     }
+  | { readonly type: 'compare'; readonly projectName: string; readonly workspaceId: string }
   | { readonly type: 'skill'; readonly scope: 'user'; readonly skillId: string }
   | {
       readonly type: 'skill'
@@ -45,6 +46,8 @@ export const isResourceRef = (value: unknown): value is ResourceRef => {
         stringField(record, 'workspaceId') &&
         stringField(record, 'path'),
     )
+  if (type === 'compare')
+    return Boolean(stringField(record, 'projectName') && stringField(record, 'workspaceId'))
   if (type !== 'skill') return false
   const scope = stringField(record, 'scope')
   const validScope = scope === 'user' || scope === 'project'
@@ -57,6 +60,7 @@ export const resourceKey = (resource: ResourceRef): string => {
     return `session:${resource.projectName}:${resource.provider}:${resource.sessionId}`
   if (resource.type === 'file')
     return `file:${resource.projectName}:${resource.workspaceId}:${resource.path}`
+  if (resource.type === 'compare') return `compare:${resource.projectName}:${resource.workspaceId}`
   const owner = resource.scope === 'project' ? resource.projectName : 'user'
   return `skill:${resource.scope}:${owner}:${resource.skillId}`
 }
@@ -72,5 +76,6 @@ export const skillTitle = (skillId: string): string => {
 export const resourceTitle = (resource: ResourceRef): string => {
   if (resource.type === 'session') return resource.sessionId
   if (resource.type === 'file') return resource.path.split('/').at(-1) ?? resource.path
+  if (resource.type === 'compare') return `Compare · ${resource.projectName}`
   return skillTitle(resource.skillId)
 }
