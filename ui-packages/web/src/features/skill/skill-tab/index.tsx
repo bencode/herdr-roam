@@ -1,8 +1,7 @@
 import { Box, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { FileReader } from '../../../components/reader'
-import { MarkdownControls } from '../../../components/reader/markdown-controls'
-import { isMarkdownLike, useMarkdownView } from '../../../components/reader/markdown-view'
+import { useMarkdownView } from '../../../components/reader/markdown-view'
 import { Badge } from '../../../ui/badge'
 import { Button } from '../../../ui/button'
 import { DetailHeader } from '../../../ui/detail-header'
@@ -67,20 +66,15 @@ export const SkillTab = ({ resource }: { readonly resource: SkillResource }) => 
           </>
         }
         actions={
-          <>
-            {file && isMarkdownLike(file) && (
-              <MarkdownControls view={markdownView} showOutlineToggle={false} />
-            )}
-            <Button
-              size="compactIcon"
-              onClick={reload}
-              disabled={loading}
-              aria-label="Refresh Skill"
-              title="Refresh Skill"
-            >
-              <RefreshCw aria-hidden="true" />
-            </Button>
-          </>
+          <Button
+            size="compactIcon"
+            onClick={reload}
+            disabled={loading}
+            aria-label="Refresh Skill"
+            title="Refresh Skill"
+          >
+            <RefreshCw aria-hidden="true" />
+          </Button>
         }
       />
       <div className="@container grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_14rem] @max-[54rem]:grid-cols-[minmax(0,1fr)] @max-[54rem]:grid-rows-[auto_minmax(0,1fr)]">

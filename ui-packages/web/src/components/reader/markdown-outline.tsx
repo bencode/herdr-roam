@@ -1,5 +1,4 @@
-import { useEffect } from 'react'
-import { SectionHeader } from '../../ui/section-header'
+import { useEffect, useRef } from 'react'
 import styles from './style.module.scss'
 
 export type MarkdownHeading = {
@@ -23,29 +22,46 @@ export const MarkdownOutline = ({
   readonly onSelect: (id: string) => void
   readonly onClose: () => void
 }) => {
+  const navRef = useRef<HTMLElement>(null)
+  const activeRef = useRef<HTMLButtonElement>(null)
+  const minimumLevel = Math.min(...headings.map(heading => heading.level))
+
   useEffect(() => {
     if (variant !== 'drawer') return
+    ;(activeRef.current ?? navRef.current?.querySelector('button'))?.focus({ preventScroll: true })
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      onClose()
     }
     document.addEventListener('keydown', closeOnEscape)
     return () => document.removeEventListener('keydown', closeOnEscape)
   }, [variant, onClose])
 
-  if (headings.length === 0) return null
+  useEffect(() => {
+    if (!activeId) return
+    const nav = navRef.current
+    const active = activeRef.current
+    if (!nav || !active) return
+    const bounds = nav.getBoundingClientRect()
+    const item = active.getBoundingClientRect()
+    if (item.top < bounds.top) nav.scrollTop += item.top - bounds.top
+    else if (item.bottom > bounds.bottom) nav.scrollTop += item.bottom - bounds.bottom
+  }, [activeId])
 
+  if (headings.length === 0) return null
   const nav = (
-    <nav className={styles.outline} data-variant={variant} aria-label="On this page">
-      <SectionHeader title="On this page" className="mb-1.5 flex-none px-2.5" />
+    <nav ref={navRef} className={styles.outline} data-variant={variant} aria-label="On this page">
       {headings.map(heading => (
         <button
           type="button"
           key={heading.id}
-          style={{ paddingLeft: `${0.625 + (heading.level - 1) * 0.75}rem` }}
+          ref={heading.id === activeId ? activeRef : undefined}
+          style={{ paddingInlineStart: `${10 + (heading.level - minimumLevel) * 14}px` }}
           aria-current={heading.id === activeId ? 'location' : undefined}
           onClick={() => {
-            onSelect(heading.id)
             if (variant === 'drawer') onClose()
+            onSelect(heading.id)
           }}
           title={heading.label}
         >
@@ -54,9 +70,9 @@ export const MarkdownOutline = ({
       ))}
     </nav>
   )
-
-  if (variant === 'column') return nav
-  return (
+  return variant === 'column' ? (
+    nav
+  ) : (
     <div className={styles.outlineDrawer}>
       <button
         type="button"

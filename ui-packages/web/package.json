@@ -32,12 +32,14 @@
     "remark-math": "^6.0.0",
     "tailwind-merge": "^3.7.0",
     "tailwindcss": "^4.1.16",
+    "yaml": "^2.9.0",
     "zod": "^4.1.12",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
+    "@types/hast": "^3.0.5",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.1",
     "@types/react-syntax-highlighter": "^15.5.13",

@@ -1,6 +1,7 @@
+import type { Root } from 'hast'
 import type { ComponentProps, ReactNode } from 'react'
-import { isValidElement, lazy, Suspense, useEffect, useState } from 'react'
-import ReactMarkdown from 'react-markdown'
+import { isValidElement, lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import ReactMarkdown, { type Components, type ExtraProps } from 'react-markdown'
 import rehypeHighlight from 'rehype-highlight'
 import remarkGfm from 'remark-gfm'
 import { cn } from '../../lib/cn'
@@ -23,6 +24,18 @@ const shiftedHeadings = {
   h6: (props: HeadingProps) => <h6 {...props} />,
 }
 
+const placeLeadingContent = () => (tree: Root) => {
+  const first = tree.children.findIndex(node => node.type !== 'text' || node.value.trim() !== '')
+  const node = tree.children[first]
+  const index = node?.type === 'element' && node.tagName === 'h1' ? first + 1 : 0
+  tree.children.splice(index, 0, {
+    type: 'element',
+    tagName: 'section',
+    properties: { 'data-reader-leading-content': true },
+    children: [],
+  })
+}
+
 const containsMath = (text: string): boolean =>
   text.includes('$$') || /(^|[^\\])\$[^\s$][^\n$]*\$/m.test(text)
 
@@ -36,12 +49,14 @@ export const Markdown = ({
   text,
   className,
   headingLevelOffset = 0,
+  leadingContent,
   resolveImageSrc,
   onLink,
 }: {
   readonly text: string
   readonly className?: string
   readonly headingLevelOffset?: 0 | 1
+  readonly leadingContent?: ReactNode
   readonly resolveImageSrc?: (src: string) => string
   readonly onLink?: (href: string) => boolean
 }) => {
@@ -69,51 +84,64 @@ export const Markdown = ({
     }
   }, [math, mathPlugins])
 
+  const renderSection = useCallback(
+    ({ node, children, ...props }: ComponentProps<'section'> & ExtraProps) =>
+      node?.properties['data-reader-leading-content'] ? (
+        leadingContent
+      ) : (
+        <section {...props}>{children}</section>
+      ),
+    [leadingContent],
+  )
+  const components = useMemo<Components>(
+    () => ({
+      section: renderSection,
+      a: ({ children, href, ...props }: ComponentProps<'a'>) => (
+        <a
+          {...props}
+          href={href}
+          target={onLink ? undefined : '_blank'}
+          rel={onLink ? undefined : 'noreferrer'}
+          onClick={event => {
+            if (href && onLink?.(href)) event.preventDefault()
+          }}
+        >
+          {children}
+        </a>
+      ),
+      img: ({ src, alt, ...props }: ComponentProps<'img'>) => (
+        <img {...props} src={src && resolveImageSrc ? resolveImageSrc(src) : src} alt={alt ?? ''} />
+      ),
+      pre: ({ children, ...props }: ComponentProps<'pre'>) => {
+        const child = Array.isArray(children) ? children[0] : children
+        if (
+          isValidElement<{ readonly className?: string; readonly children?: ReactNode }>(child) &&
+          child.props.className?.split(' ').includes('language-mermaid')
+        ) {
+          const source = String(child.props.children).replace(/\n$/, '')
+          return (
+            <Suspense fallback={<MermaidFallback>{source}</MermaidFallback>}>
+              <MermaidBlock source={source} />
+            </Suspense>
+          )
+        }
+        return <pre {...props}>{children}</pre>
+      },
+      ...(headingLevelOffset === 1 ? shiftedHeadings : {}),
+    }),
+    [renderSection, onLink, resolveImageSrc, headingLevelOffset],
+  )
+
   return (
     <div className={cn(styles.markdown, className)}>
       <ReactMarkdown
         remarkPlugins={mathPlugins ? [remarkGfm, mathPlugins.remark] : [remarkGfm]}
-        rehypePlugins={mathPlugins ? [rehypeHighlight, mathPlugins.rehype] : [rehypeHighlight]}
-        components={{
-          a: ({ children, href, ...props }: ComponentProps<'a'>) => (
-            <a
-              {...props}
-              href={href}
-              target={onLink ? undefined : '_blank'}
-              rel={onLink ? undefined : 'noreferrer'}
-              onClick={event => {
-                if (href && onLink?.(href)) event.preventDefault()
-              }}
-            >
-              {children}
-            </a>
-          ),
-          img: ({ src, alt, ...props }: ComponentProps<'img'>) => (
-            <img
-              {...props}
-              src={src && resolveImageSrc ? resolveImageSrc(src) : src}
-              alt={alt ?? ''}
-            />
-          ),
-          pre: ({ children, ...props }: ComponentProps<'pre'>) => {
-            const child = Array.isArray(children) ? children[0] : children
-            if (
-              isValidElement<{ readonly className?: string; readonly children?: ReactNode }>(
-                child,
-              ) &&
-              child.props.className?.split(' ').includes('language-mermaid')
-            ) {
-              const source = String(child.props.children).replace(/\n$/, '')
-              return (
-                <Suspense fallback={<MermaidFallback>{source}</MermaidFallback>}>
-                  <MermaidBlock source={source} />
-                </Suspense>
-              )
-            }
-            return <pre {...props}>{children}</pre>
-          },
-          ...(headingLevelOffset === 1 ? shiftedHeadings : {}),
-        }}
+        rehypePlugins={[
+          rehypeHighlight,
+          ...(mathPlugins ? [mathPlugins.rehype] : []),
+          ...(leadingContent != null ? [placeLeadingContent] : []),
+        ]}
+        components={components}
       >
         {text}
       </ReactMarkdown>

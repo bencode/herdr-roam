@@ -1,10 +1,12 @@
 import * as Popover from '@radix-ui/react-popover'
-import { PanelRight, SunMoon, Type } from 'lucide-react'
+import { Maximize, Minimize, PanelLeft, SunMoon, Type } from 'lucide-react'
+import { useContext } from 'react'
 import { Button } from '../../ui/button'
 import { PopoverContent } from '../../ui/popover'
 import { SegmentedControl } from '../../ui/segmented-control'
-import type { MarkdownView } from './markdown-view'
 import styles from './markdown-controls.module.scss'
+import type { MarkdownView } from './markdown-view'
+import { ReadingFocusContext } from './reading-focus'
 import {
   READING_FONT_SIZE,
   type ReadingTheme,
@@ -41,7 +43,7 @@ const ReadingSettings = () => {
           <Type aria-hidden="true" />
         </Button>
       </Popover.Trigger>
-      <PopoverContent className="grid w-70 gap-4 p-3.5" side="bottom" align="end" sideOffset={6}>
+      <PopoverContent className="grid w-70 gap-4 p-4" side="bottom" align="end" sideOffset={6}>
         <label className="grid gap-2">
           <span className="text-2xs font-medium text-muted">Text size</span>
           <div className="flex items-center gap-2.5 text-muted">
@@ -112,27 +114,50 @@ export const MarkdownControls = ({
 }: {
   readonly view: MarkdownView
   readonly showOutlineToggle: boolean
-}) => (
-  <div className="flex flex-none items-center gap-1">
-    <SegmentedControl
-      size="sm"
-      label="Markdown view"
-      options={modeOptions}
-      value={view.mode}
-      onValueChange={view.setMode}
-    />
-    <ReadingSettings />
-    {showOutlineToggle && view.mode === 'preview' && (
-      <Button
-        size="compactIcon"
-        className="aria-pressed:bg-hover aria-pressed:text-foreground"
-        aria-pressed={view.outlineOpen}
-        aria-label="Toggle outline"
-        title="Toggle outline"
-        onClick={() => view.setOutlineOpen(!view.outlineOpen)}
-      >
-        <PanelRight aria-hidden="true" />
-      </Button>
-    )}
-  </div>
-)
+}) => {
+  const focus = useContext(ReadingFocusContext)
+  const FocusIcon = focus?.focused ? Minimize : Maximize
+  return (
+    <div
+      className="flex h-10 flex-none items-center justify-between gap-3 border-border border-b px-4"
+      role="toolbar"
+      aria-label="Markdown controls"
+    >
+      <div className="flex items-center">
+        {showOutlineToggle && view.mode === 'preview' && (
+          <Button
+            size="compactIcon"
+            className="aria-pressed:bg-hover aria-pressed:text-foreground"
+            aria-pressed={view.outlineOpen}
+            aria-label="Toggle outline"
+            title="Toggle outline"
+            onClick={() => view.setOutlineOpen(!view.outlineOpen)}
+          >
+            <PanelLeft aria-hidden="true" />
+          </Button>
+        )}
+      </div>
+      <div className="flex items-center gap-1">
+        <SegmentedControl
+          size="sm"
+          label="Markdown view"
+          options={modeOptions}
+          value={view.mode}
+          onValueChange={view.setMode}
+        />
+        <ReadingSettings />
+        {focus && (
+          <Button
+            size="compact"
+            aria-pressed={focus.focused}
+            onClick={focus.toggle}
+            aria-label={focus.focused ? 'Exit focused reading' : 'Enter focused reading'}
+          >
+            <FocusIcon aria-hidden="true" />
+            {focus.focused ? 'Exit focus' : 'Focus'}
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+}
