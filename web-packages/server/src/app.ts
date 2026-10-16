@@ -4,6 +4,7 @@ import { serveStatic } from '@hono/node-server/serve-static'
 import { Hono } from 'hono'
 import { createAgentRoutes } from './agents/routes.js'
 import type { AgentServiceApi } from './agents/service.js'
+import { createCompareRoutes } from './compare/routes.js'
 import { createFileRoutes } from './files/routes.js'
 import type { ProjectRegistryApi } from './projects/registry.js'
 import { createProjectRoutes } from './projects/routes.js'
@@ -23,6 +24,7 @@ export const createApp = (
   app.route('/api/agents', createAgentRoutes(service, projects))
   app.route('/api/projects', createProjectRoutes(projects))
   app.route('/api/projects', createFileRoutes(projects))
+  app.route('/api/projects', createCompareRoutes(projects))
   app.route('/api/projects', createSessionRoutes(sessions, service, projects))
   app.route('/api/skills', createSkillRoutes(projects))
 

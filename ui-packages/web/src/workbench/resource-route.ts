@@ -46,6 +46,8 @@ export const resourcePath = (resource: ResourceRef): string => {
     return `${projectSectionPath(resource.projectName, 'sessions')}/${encoded(resource.provider)}/${encoded(resource.sessionId)}`
   if (resource.type === 'file')
     return `${projectSectionPath(resource.projectName, 'files')}/${encoded(resource.workspaceId)}/${encodePath(resource.path)}`
+  if (resource.type === 'compare')
+    return `${projectPath(resource.projectName)}/compare/${encoded(resource.workspaceId)}`
   if (resource.scope === 'project')
     return `${projectPath(resource.projectName)}/skills/${encoded(resource.skillId)}`
   return `/skills/${encoded(resource.skillId)}`
@@ -73,6 +75,8 @@ const projectTarget = (parts: readonly string[]): RouteTarget | null => {
       resource: { type: 'session', projectName, provider: id, sessionId },
     }
   }
+  if (section === 'compare' && id && parts.length === 4)
+    return { kind: 'resource', resource: { type: 'compare', projectName, workspaceId: id } }
   if (section === 'skills' && id && parts.length === 4)
     return {
       kind: 'resource',
@@ -122,6 +126,7 @@ export const routeProjectSection = (target: RouteTarget): ProjectSection | null 
   if (target.kind === 'project-section') return target.section
   if (target.kind !== 'resource') return null
   if (target.resource.type === 'session') return 'sessions'
+  if (target.resource.type === 'compare') return 'files'
   if (target.resource.type === 'file') return 'files'
   return null
 }

@@ -295,6 +295,7 @@ export const AppShell = ({
                 dimension={activeDimension}
                 activeProjectName={activeProjectName}
                 activeFile={active?.type === 'file' ? active : null}
+                activeCompare={active?.type === 'compare' ? active : null}
                 activeSkill={active?.type === 'skill' ? active : null}
                 projectSection={projectSection}
                 projectRouteKey={projectRouteKey}

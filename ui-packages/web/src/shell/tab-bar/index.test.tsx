@@ -58,4 +58,24 @@ describe('TabBar', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'Close Tabs to the Right' }))
     expect(onCloseMany).toHaveBeenCalledWith([file, skill])
   })
+  it('shows a comparison as an ordinary closable workbench tab', () => {
+    const resource = { type: 'compare', projectName: 'herdr-roam', workspaceId: 'primary' } as const
+    const onClose = vi.fn()
+    render(
+      <TabBar
+        tabs={[resource]}
+        active={resource}
+        onWorkbench={() => undefined}
+        onActivate={() => undefined}
+        onClose={onClose}
+        onCloseMany={() => undefined}
+      />,
+    )
+    expect(screen.getByRole('tab', { name: 'Compare · herdr-roam' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Close Compare · herdr-roam' }))
+    expect(onClose).toHaveBeenCalledWith(resource)
+  })
 })

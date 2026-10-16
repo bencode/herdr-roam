@@ -87,4 +87,12 @@ describe('resource routes', () => {
     expect(parseResourcePath('/unrelated')).toEqual({ kind: 'unknown' })
     expect(parseResourcePath('/settings/runtime')).toEqual({ kind: 'unknown' })
   })
+  it('round-trips comparison tabs in the Files context', () => {
+    const resource = { type: 'compare', projectName: 'herdr-roam', workspaceId: 'linked' } as const
+    const route = parseResourcePath(resourcePath(resource))
+    expect(route).toEqual({ kind: 'resource', resource })
+    expect(resourcePath(resource)).toBe('/projects/herdr-roam/compare/linked')
+    expect(routeProjectSection(route)).toBe('files')
+    expect(routeDimension(route)).toBe('projects')
+  })
 })

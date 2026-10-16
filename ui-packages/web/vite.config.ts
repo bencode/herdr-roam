@@ -5,6 +5,7 @@ import { defineConfig } from 'vitest/config'
 // biome-ignore lint/style/noDefaultExport: Vite requires a default configuration export.
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  worker: { format: 'es' },
   server: {
     port: 4310,
     proxy: {

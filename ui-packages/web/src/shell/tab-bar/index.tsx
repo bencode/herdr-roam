@@ -1,4 +1,4 @@
-import { Box, FileText, Home, MessageSquare, X } from 'lucide-react'
+import { Box, FileText, GitCompareArrows, Home, MessageSquare, X } from 'lucide-react'
 import { type ReactNode, useLayoutEffect, useRef } from 'react'
 import { useAgentRuntime } from '../../features/agent/runtime-provider'
 import { StatusDot } from '../../features/agent/status-dot'
@@ -27,6 +27,7 @@ const SessionTitle = ({
 const ResourceIcon = ({ resource }: { readonly resource: ResourceRef }) => {
   if (resource.type === 'session') return <MessageSquare />
   if (resource.type === 'file') return <FileText />
+  if (resource.type === 'compare') return <GitCompareArrows />
   return <Box />
 }
 

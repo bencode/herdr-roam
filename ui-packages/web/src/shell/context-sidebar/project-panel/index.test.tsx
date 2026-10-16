@@ -1,5 +1,5 @@
 import type { ProjectFileEntry } from '@herdr-roam/shared'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { vi } from 'vitest'
 import { fetchProjectFiles } from '../../../features/file/client'
 import type { ProjectSection, ResourceRef } from '../../../workbench/resource'
@@ -243,5 +243,23 @@ describe('ProjectPanel', () => {
     expect(screen.getByRole('button', { name: 'Files' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('region', { name: 'Files browser' })).toBeVisible()
     expect(await screen.findByRole('button', { name: 'docs' })).toBeVisible()
+  })
+  it('opens Compare for the selected workspace without adding a resource category', async () => {
+    localStorage.clear()
+    const onOpen = vi.fn()
+    render(<ProjectPanelHarness section="files" onOpen={onOpen} />)
+    const button = await screen.findByRole('button', { name: 'Compare' })
+    await waitFor(() => expect(button).toBeEnabled())
+    fireEvent.click(button)
+    expect(onOpen).toHaveBeenCalledWith({
+      type: 'compare',
+      projectName: 'herdr-roam',
+      workspaceId: 'primary',
+    })
+    expect(
+      within(screen.getByRole('navigation', { name: 'Project resources' }))
+        .getAllByRole('button')
+        .map(button => button.textContent),
+    ).toEqual(['Sessions', 'Files'])
   })
 })
