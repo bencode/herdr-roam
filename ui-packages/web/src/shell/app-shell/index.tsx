@@ -1,7 +1,8 @@
 import type { Project } from '@herdr-roam/shared'
 import { PanelLeft, PanelRight } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Group, Panel, Separator, useDefaultLayout, usePanelRef } from 'react-resizable-panels'
+import { ReadingFocusContext } from '../../components/reader/reading-focus'
 import { useBlockedNotifications } from '../../features/agent/blocked-notifications'
 import { useAgentRuntime } from '../../features/agent/runtime-provider'
 import { AssistantPanel } from '../../features/assistant'
@@ -9,6 +10,7 @@ import { useAssistantStore } from '../../features/assistant/store'
 import { cn } from '../../lib/cn'
 import { Button } from '../../ui/button'
 import type { GlobalDimension, ProjectSection, ResourceRef } from '../../workbench/resource'
+import { resourceKey } from '../../workbench/resource'
 import { ActivityBar } from '../activity-bar'
 import { BrandMark } from '../brand-mark'
 import { ContextSidebar } from '../context-sidebar'
@@ -83,6 +85,36 @@ export const AppShell = ({
 }: Props) => {
   const { snapshot, transportError } = useAgentRuntime()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const activeKey = active ? resourceKey(active) : null
+  const [focusOwner, setFocusOwner] = useState<{
+    readonly resource: string | null
+    readonly project: string
+    readonly dimension: GlobalDimension
+  } | null>(null)
+  const readingFocused =
+    focusOwner !== null &&
+    focusOwner.resource === activeKey &&
+    focusOwner.project === activeProjectName &&
+    focusOwner.dimension === activeDimension
+  if (focusOwner && !readingFocused) setFocusOwner(null)
+  const setReadingFocused = useCallback(
+    (focused: boolean) => {
+      setFocusOwner(
+        focused
+          ? { resource: activeKey, project: activeProjectName, dimension: activeDimension }
+          : null,
+      )
+    },
+    [activeKey, activeProjectName, activeDimension],
+  )
+  const toggleReadingFocus = useCallback(
+    () => setReadingFocused(!readingFocused),
+    [readingFocused, setReadingFocused],
+  )
+  const readingFocus = useMemo(
+    () => ({ focused: readingFocused, toggle: toggleReadingFocus }),
+    [readingFocused, toggleReadingFocus],
+  )
   const sidebarRef = usePanelRef()
   const expandedWidth = useRef(readWidth(SIDEBAR_WIDTH_KEY, 280, DEFAULT_SIDEBAR_WIDTH))
   const assistantOpen = useAssistantStore(state => state.open)
@@ -101,13 +133,18 @@ export const AppShell = ({
     storage: globalThis.localStorage,
   })
 
+  const visibleSidebarCollapsed = readingFocused || sidebarCollapsed
+  const visibleAssistantOpen = !readingFocused && assistantOpen
+
   const setCollapsed = (collapsed: boolean) => {
+    setReadingFocused(false)
     setSidebarCollapsed(collapsed)
     if (collapsed) sidebarRef.current?.collapse()
     else sidebarRef.current?.resize(expandedWidth.current)
   }
 
   const resizeSidebar = (width: number) => {
+    if (readingFocused) return
     const collapsed = width <= 44
     setSidebarCollapsed(collapsed)
     if (collapsed || width < 280) return
@@ -119,14 +156,28 @@ export const AppShell = ({
   useEffect(() => {
     document.title = blockedCount > 0 ? `(${blockedCount} blocked) Herdr Roam` : 'Herdr Roam'
   }, [blockedCount])
-  useBlockedNotifications(snapshot.items, openAgent)
+  const revealAgent = useCallback(
+    (agentId: string) => {
+      setReadingFocused(false)
+      openAgent(agentId)
+    },
+    [openAgent, setReadingFocused],
+  )
+  useBlockedNotifications(snapshot.items, revealAgent)
+
+  useEffect(() => {
+    const panel = sidebarRef.current
+    if (!panel) return
+    if (visibleSidebarCollapsed && !panel.isCollapsed()) panel.collapse()
+    if (!visibleSidebarCollapsed && panel.isCollapsed()) panel.resize(expandedWidth.current)
+  }, [visibleSidebarCollapsed, sidebarRef])
 
   useEffect(() => {
     const panel = assistantRef.current
     if (!panel) return
-    if (assistantOpen && panel.isCollapsed()) panel.resize(assistantWidth.current)
-    if (!assistantOpen && !panel.isCollapsed()) panel.collapse()
-  }, [assistantOpen, assistantRef])
+    if (visibleAssistantOpen && panel.isCollapsed()) panel.resize(assistantWidth.current)
+    if (!visibleAssistantOpen && !panel.isCollapsed()) panel.collapse()
+  }, [visibleAssistantOpen, assistantRef])
 
   useEffect(() => {
     const panel = workbenchRef.current
@@ -136,6 +187,7 @@ export const AppShell = ({
   }, [maximized, workbenchRef])
 
   const resizeAssistant = (width: number) => {
+    if (readingFocused) return
     const collapsed = width < MIN_ASSISTANT_WIDTH
     setAssistantOpen(!collapsed)
     if (collapsed || maximized) return
@@ -144,6 +196,7 @@ export const AppShell = ({
   }
 
   const selectDimension = () => {
+    setReadingFocused(false)
     if (sidebarCollapsed) setCollapsed(false)
   }
 
@@ -153,7 +206,7 @@ export const AppShell = ({
         orientation="horizontal"
         className="min-h-0 min-w-0"
         defaultLayout={defaultLayout}
-        onLayoutChanged={onLayoutChanged}
+        onLayoutChanged={readingFocused ? undefined : onLayoutChanged}
       >
         <Panel
           id="context-sidebar"
@@ -166,16 +219,16 @@ export const AppShell = ({
           panelRef={sidebarRef}
           onResize={size => resizeSidebar(size.inPixels)}
           className="flex min-h-0 min-w-0 flex-col bg-sidebar"
-          data-collapsed={sidebarCollapsed || undefined}
+          data-collapsed={visibleSidebarCollapsed || undefined}
         >
           <header className="grid h-10 flex-none grid-cols-[2.75rem_minmax(0,1fr)] border-border border-b">
             <div
               className={cn(
                 'grid place-items-center border-border border-r',
-                sidebarCollapsed && 'border-r-0',
+                visibleSidebarCollapsed && 'border-r-0',
               )}
             >
-              {sidebarCollapsed ? (
+              {visibleSidebarCollapsed ? (
                 <button
                   type="button"
                   className="group relative grid h-full w-full place-items-center border-0 bg-transparent text-muted hover:bg-hover hover:text-foreground focus-visible:bg-hover focus-visible:text-foreground"
@@ -201,9 +254,9 @@ export const AppShell = ({
             <div
               className={cn(
                 'flex min-w-0 items-center gap-1 pr-1 pl-2',
-                sidebarCollapsed && 'hidden',
+                visibleSidebarCollapsed && 'hidden',
               )}
-              aria-hidden={sidebarCollapsed || undefined}
+              aria-hidden={visibleSidebarCollapsed || undefined}
             >
               <ProjectSelect
                 projects={projects}
@@ -231,8 +284,11 @@ export const AppShell = ({
               onChange={selectDimension}
             />
             <div
-              className={cn('flex min-h-0 min-w-0 flex-1 flex-col', sidebarCollapsed && 'hidden')}
-              aria-hidden={sidebarCollapsed || undefined}
+              className={cn(
+                'flex min-h-0 min-w-0 flex-1 flex-col',
+                visibleSidebarCollapsed && 'hidden',
+              )}
+              aria-hidden={visibleSidebarCollapsed || undefined}
               data-testid="sidebar-context"
             >
               <ContextSidebar
@@ -271,11 +327,14 @@ export const AppShell = ({
             onClose={onClose}
             onCloseMany={onCloseMany}
             trailing={
-              assistantOpen ? null : (
+              visibleAssistantOpen ? null : (
                 <div className="grid w-10 flex-none place-items-center border-border border-l">
                   <Button
                     size="compactIcon"
-                    onClick={() => setAssistantOpen(true)}
+                    onClick={() => {
+                      setReadingFocused(false)
+                      setAssistantOpen(true)
+                    }}
                     aria-label="Open Assistant"
                     title="Open Assistant"
                   >
@@ -285,13 +344,15 @@ export const AppShell = ({
               )
             }
           />
-          <ResourceHost
-            project={projects.find(project => project.name === activeProjectName) ?? null}
-            dimension={activeDimension}
-            tabs={tabs}
-            active={active}
-            onOpen={onOpen}
-          />
+          <ReadingFocusContext value={readingFocus}>
+            <ResourceHost
+              project={projects.find(project => project.name === activeProjectName) ?? null}
+              dimension={activeDimension}
+              tabs={tabs}
+              active={active}
+              onOpen={onOpen}
+            />
+          </ReadingFocusContext>
         </Panel>
         <Separator className="w-px bg-border transition-colors duration-150 hover:bg-primary data-[resize-handle-active]:bg-primary" />
         <Panel
@@ -305,7 +366,7 @@ export const AppShell = ({
           onResize={size => resizeAssistant(size.inPixels)}
           className="flex min-h-0 min-w-0 flex-col"
         >
-          {assistantOpen && (
+          {visibleAssistantOpen && (
             <AssistantPanel projectName={activeProjectName} projects={projects} onOpen={onOpen} />
           )}
         </Panel>

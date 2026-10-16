@@ -1,7 +1,6 @@
 import { FileCode2, RefreshCw } from 'lucide-react'
 import { FileReader } from '../../../components/reader'
-import { MarkdownControls } from '../../../components/reader/markdown-controls'
-import { isMarkdownLike, useMarkdownView } from '../../../components/reader/markdown-view'
+import { useMarkdownView } from '../../../components/reader/markdown-view'
 import { Button } from '../../../ui/button'
 import { DetailHeader } from '../../../ui/detail-header'
 import { EmptyState } from '../../../ui/empty-state'
@@ -44,20 +43,15 @@ export const FileTab = ({
           )
         }
         actions={
-          <>
-            {state.value && isMarkdownLike(state.value) && (
-              <MarkdownControls view={markdownView} showOutlineToggle />
-            )}
-            <Button
-              size="compactIcon"
-              onClick={state.reload}
-              disabled={state.loading}
-              aria-label="Refresh file"
-              title="Refresh file"
-            >
-              <RefreshCw aria-hidden="true" />
-            </Button>
-          </>
+          <Button
+            size="compactIcon"
+            onClick={state.reload}
+            disabled={state.loading}
+            aria-label="Refresh file"
+            title="Refresh file"
+          >
+            <RefreshCw aria-hidden="true" />
+          </Button>
         }
       />
       <div className="flex min-h-0 flex-1 flex-col overflow-auto" aria-busy={state.loading}>

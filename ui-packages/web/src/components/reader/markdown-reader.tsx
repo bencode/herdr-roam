@@ -1,9 +1,12 @@
 import type { FileView } from '@herdr-roam/shared'
 import type { CSSProperties } from 'react'
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Markdown } from '../markdown'
+import { parseMarkdownDocument } from './frontmatter'
+import { MarkdownControls } from './markdown-controls'
 import type { MarkdownHeading } from './markdown-outline'
 import { MarkdownOutline } from './markdown-outline'
+import { MarkdownProperties } from './markdown-properties'
 import type { MarkdownView } from './markdown-view'
 import { useReadingPreferences } from './reading-preferences'
 import styles from './style.module.scss'
@@ -14,7 +17,7 @@ const CodeReader = lazy(() =>
 
 type MarkdownFile = Extract<FileView, { kind: 'markdown' }>
 
-const COMPACT_WIDTH_REM = 60
+const COMPACT_WIDTH_REM = 53.75
 const ACTIVE_HEADING_OFFSET = 24
 
 const slug = (text: string): string =>
@@ -23,21 +26,6 @@ const slug = (text: string): string =>
     .toLowerCase()
     .replace(/[^\p{Letter}\p{Number}\s-]/gu, '')
     .replace(/\s+/g, '-') || 'section'
-
-const previewContent = (content: string): string => {
-  const lines = content.split(/\r?\n/)
-  if (lines[0] !== '---') return content
-
-  const closingIndex = lines.findIndex(
-    (line, index) => index > 0 && (line === '---' || line === '...'),
-  )
-  return closingIndex < 0
-    ? content
-    : lines
-        .slice(closingIndex + 1)
-        .join('\n')
-        .replace(/^\n/, '')
-}
 
 const localPath = (currentPath: string, href: string): string | null => {
   if (/^[a-z][a-z\d+.-]*:/i.test(href) || href.startsWith('//')) return null
@@ -78,6 +66,14 @@ export const MarkdownReader = ({
 }) => {
   const { mode, outlineOpen, setOutlineOpen } = view
   const { fontSize, width, theme } = useReadingPreferences()
+  const parsedDocument = useMemo(() => parseMarkdownDocument(file.content), [file.content])
+  const leadingContent = useMemo(
+    () =>
+      parsedDocument.frontmatter ? (
+        <MarkdownProperties key={file.path} frontmatter={parsedDocument.frontmatter} />
+      ) : undefined,
+    [file.path, parsedDocument.frontmatter],
+  )
   const [headings, setHeadings] = useState<readonly MarkdownHeading[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [compact, setCompact] = useState<boolean | null>(null)
@@ -89,16 +85,17 @@ export const MarkdownReader = ({
     const root = rootRef.current
     if (!root) return
     const remPx = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
-    const observer = new ResizeObserver(([entry]) => {
-      if (!entry) return
-      const next = entry.contentRect.width < COMPACT_WIDTH_REM * remPx
-      // Only a real width transition resets the outline; re-showing a hidden tab keeps the user's choice.
+    const measure = () => {
+      if (root.clientWidth === 0) return
+      const next = root.clientWidth < COMPACT_WIDTH_REM * remPx
       if (compactRef.current === next) return
       compactRef.current = next
       setCompact(next)
       setOutlineOpen(!next)
-    })
+    }
+    const observer = new ResizeObserver(measure)
     observer.observe(root)
+    measure()
     return () => observer.disconnect()
   }, [setOutlineOpen])
 
@@ -149,29 +146,50 @@ export const MarkdownReader = ({
     }
   }, [headings, mode])
 
-  const selectHeading = (id: string) =>
-    contentRef.current?.querySelector(`#${CSS.escape(id)}`)?.scrollIntoView({
+  const selectHeading = useCallback((id: string) => {
+    const scroller = contentRef.current
+    const heading = scroller?.querySelector(`#${CSS.escape(id)}`)
+    if (!scroller || !heading) return
+    scroller.scrollTo({
+      top:
+        heading.getBoundingClientRect().top -
+        scroller.getBoundingClientRect().top +
+        scroller.scrollTop -
+        ACTIVE_HEADING_OFFSET,
       behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
     })
+    setActiveId(id)
+  }, [])
 
-  const closeOutline = useCallback(() => setOutlineOpen(false), [setOutlineOpen])
+  const closeOutline = useCallback(() => {
+    setOutlineOpen(false)
+    rootRef.current
+      ?.querySelector<HTMLButtonElement>('[aria-label="Toggle outline"]')
+      ?.focus({ preventScroll: true })
+  }, [setOutlineOpen])
   const outlineVisible = showOutline && outlineOpen && compact !== null
 
-  const handleLink = (href: string): boolean => {
-    if (href.startsWith('#')) {
-      selectHeading(href.slice(1))
+  const handleLink = useCallback(
+    (href: string): boolean => {
+      if (href.startsWith('#')) {
+        selectHeading(href.slice(1))
+        return true
+      }
+      const path = localPath(file.path, href)
+      if (!path) return false
+      onOpenPath(path)
       return true
-    }
-    const path = localPath(file.path, href)
-    if (!path) return false
-    onOpenPath(path)
-    return true
-  }
+    },
+    [file.path, onOpenPath, selectHeading],
+  )
 
-  const imageSource = (src: string): string => {
-    const path = localPath(file.path, src)
-    return path ? rawUrl(path) : src
-  }
+  const imageSource = useCallback(
+    (src: string): string => {
+      const path = localPath(file.path, src)
+      return path ? rawUrl(path) : src
+    },
+    [file.path, rawUrl],
+  )
 
   return (
     <div
@@ -181,6 +199,7 @@ export const MarkdownReader = ({
       data-width={width}
       style={{ '--reading-font-size': `${fontSize}px` } as CSSProperties}
     >
+      <MarkdownControls view={view} showOutlineToggle={showOutline && headings.length > 0} />
       {mode === 'source' ? (
         <Suspense fallback={<div className={styles.centered}>Loading source…</div>}>
           <CodeReader content={file.content} language="markdown" />
@@ -190,14 +209,6 @@ export const MarkdownReader = ({
           className={styles.markdownLayout}
           data-outline={(outlineVisible && !compact) || undefined}
         >
-          <article ref={contentRef} className={styles.markdownContent}>
-            <Markdown
-              text={previewContent(file.content)}
-              className={styles.documentMarkdown}
-              resolveImageSrc={imageSource}
-              onLink={handleLink}
-            />
-          </article>
           {outlineVisible && !compact && (
             <MarkdownOutline
               headings={headings}
@@ -207,6 +218,17 @@ export const MarkdownReader = ({
               onClose={closeOutline}
             />
           )}
+          <article ref={contentRef} className={styles.markdownContent}>
+            <div className={styles.documentColumn}>
+              <Markdown
+                text={parsedDocument.body}
+                leadingContent={leadingContent}
+                className={styles.documentMarkdown}
+                resolveImageSrc={imageSource}
+                onLink={handleLink}
+              />
+            </div>
+          </article>
         </div>
       )}
       {mode === 'preview' && outlineVisible && compact && (
