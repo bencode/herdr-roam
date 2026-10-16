@@ -108,9 +108,8 @@ it('rejects obsolete responses when branches change and offers retry after file 
   render(<CompareTab resource={resource} active />)
   await waitFor(() => expect(fetchComparison).toHaveBeenCalledTimes(1))
   vi.mocked(fetchComparisonFile).mockRejectedValueOnce(new Error('File read failed.'))
-  fireEvent.change(screen.getByRole('combobox', { name: 'Source branch' }), {
-    target: { value: target.ref },
-  })
+  fireEvent.click(screen.getByRole('combobox', { name: 'Source branch' }))
+  fireEvent.click(await screen.findByRole('option', { name: 'main' }))
   expect(await screen.findByText('File read failed.')).toBeVisible()
   resolveOld?.({ ...result, files: [] })
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
@@ -134,6 +133,21 @@ it('explains empty and unsupported comparisons and persists view preferences', a
   vi.mocked(fetchComparison).mockResolvedValue({ ...result, files: [] })
   fireEvent.click(screen.getByRole('button', { name: 'Refresh comparison' }))
   expect(await screen.findByText('No committed changes')).toBeVisible()
+})
+
+it('keeps the selected diff when hiding and restoring the resizable file tree', async () => {
+  render(<CompareTab resource={resource} active />)
+  expect(await screen.findByText('Committed content: src/one.ts')).toBeVisible()
+  const diff = screen.getByText('Committed content: src/one.ts')
+  expect(screen.getByRole('separator', { name: 'Resize changed files' })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Hide changed files' }))
+  expect(screen.queryByRole('navigation', { name: 'Changed files' })).not.toBeInTheDocument()
+  expect(screen.getByText('Committed content: src/one.ts')).toBe(diff)
+  fireEvent.click(screen.getByRole('button', { name: 'Show changed files' }))
+  expect(screen.getByRole('navigation', { name: 'Changed files' })).toBeInTheDocument()
+  expect(screen.getByRole('separator', { name: 'Resize changed files' })).toBeInTheDocument()
+  expect(screen.getByText('Committed content: src/one.ts')).toBe(diff)
+  expect(fetchComparisonFile).toHaveBeenCalledTimes(1)
 })
 
 it('encodes project-scoped API queries and validates response bodies', async () => {

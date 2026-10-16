@@ -1,22 +1,23 @@
-import type { CompareBranches, CompareFile, CompareFileView } from '@herdr-roam/shared'
+import type { CompareFile, CompareFileView } from '@herdr-roam/shared'
 import { WorkerPoolContextProvider } from '@pierre/diffs/react'
 import {
   ArrowRight,
   ChevronDown,
   ChevronUp,
-  GitBranch,
   Maximize2,
   Minimize2,
   PanelLeft,
   RefreshCw,
   WrapText,
 } from 'lucide-react'
-import { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useContext, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { Group, Panel, Separator } from 'react-resizable-panels'
 import { ReadingFocusContext } from '../../components/reader/reading-focus'
 import { Button } from '../../ui/button'
 import { SearchField } from '../../ui/search-field'
 import { SegmentedControl } from '../../ui/segmented-control'
 import type { ResourceRef } from '../../workbench/resource'
+import { BranchSelect } from './branch-select'
 import { ChangedFileTree, changedTree } from './changed-tree'
 import { type DiffBookmark, type DiffMode, DiffView } from './diff-view'
 import { filePath } from './file-path'
@@ -33,38 +34,6 @@ const modeOptions = [
   { value: 'split', label: 'Split' },
   { value: 'unified', label: 'Unified' },
 ] as const
-
-const BranchSelect = ({
-  label,
-  value,
-  catalog,
-  onChange,
-}: {
-  readonly label: string
-  readonly value: string
-  readonly catalog: CompareBranches | null
-  readonly onChange: (ref: string) => void
-}) => (
-  <label className={styles.branchSelect} title={value || label}>
-    <GitBranch aria-hidden="true" />
-    <select
-      aria-label={label}
-      value={value}
-      onChange={event => onChange(event.target.value)}
-      disabled={!catalog}
-    >
-      <option value="">{label}</option>
-      {value && !catalog?.items.some(item => item.ref === value) && (
-        <option value={value}>{value.replace(/^refs\/heads\//, '')} (unavailable)</option>
-      )}
-      {catalog?.items.map(branch => (
-        <option key={branch.ref} value={branch.ref}>
-          {branch.name}
-        </option>
-      ))}
-    </select>
-  </label>
-)
 
 const Stats = ({ files }: { readonly files: readonly CompareFile[] }) => (
   <span className={styles.stats}>
@@ -113,7 +82,9 @@ export const CompareTab = ({
   const focus = useContext(ReadingFocusContext)
   const [query, setQuery] = useState('')
   const [treeVisible, setTreeVisible] = useState(true)
+  const panelId = useId()
   const [preferences, setPreferences] = useState(readComparePreferences)
+  const treeWidth = useRef(preferences.treeWidth ?? 250)
   const [narrow, setNarrow] = useState(false)
   const panel = useRef<HTMLDivElement>(null)
   const search = useRef<HTMLInputElement>(null)
@@ -191,7 +162,9 @@ export const CompareTab = ({
               catalog={compare.catalog}
               onChange={compare.selectSource}
             />
-            <ArrowRight className={styles.direction} aria-label="compared into" />
+            <span className={styles.direction}>
+              <ArrowRight aria-label="compared into" />
+            </span>
             <BranchSelect
               label="Target branch"
               value={compare.targetRef}
@@ -227,165 +200,194 @@ export const CompareTab = ({
             )}
           </div>
         </header>
-        <div className={styles.body} data-tree={treeVisible}>
+        <Group
+          className={styles.body}
+          orientation="horizontal"
+          resizeTargetMinimumSize={{ fine: 10, coarse: 24 }}
+        >
           {treeVisible && (
-            <aside className={styles.changedFiles}>
-              <div className={styles.filesHeading}>
-                <span>Changed files</span>
-                <span>{files.length}</span>
-              </div>
-              <div className={styles.search}>
-                <SearchField
-                  ref={search}
-                  label="Filter changed files"
-                  size="sm"
-                  placeholder="Filter files…"
-                  value={query}
-                  onChange={event => setQuery(event.target.value)}
+            <Panel
+              key="tree"
+              id={`${panelId}-tree`}
+              defaultSize={treeWidth.current}
+              minSize={180}
+              maxSize="60%"
+              groupResizeBehavior="preserve-pixel-size"
+              onResize={size => {
+                if (size.inPixels < 180) return
+                treeWidth.current = size.inPixels
+                writeComparePreference({ treeWidth: size.inPixels })
+              }}
+            >
+              <aside className={styles.changedFiles}>
+                <div className={styles.filesHeading}>
+                  <span>Changed files</span>
+                  <span>{files.length}</span>
+                </div>
+                <div className={styles.search}>
+                  <SearchField
+                    ref={search}
+                    label="Filter changed files"
+                    size="sm"
+                    placeholder="Filter files…"
+                    value={query}
+                    onChange={event => setQuery(event.target.value)}
+                  />
+                </div>
+                <ChangedFileTree
+                  nodes={tree.nodes}
+                  query={query}
+                  selectedPath={compare.selectedPath}
+                  onSelect={compare.selectFile}
                 />
-              </div>
-              <ChangedFileTree
-                nodes={tree.nodes}
-                query={query}
-                selectedPath={compare.selectedPath}
-                onSelect={compare.selectFile}
-              />
-              <div className={styles.treeFooter}>
-                {query ? `${tree.paths.length} matching files` : 'Committed changes only'}
-              </div>
-            </aside>
+                <div className={styles.treeFooter}>
+                  {query ? `${tree.paths.length} matching files` : 'Committed changes only'}
+                </div>
+              </aside>
+            </Panel>
           )}
-          <div className={styles.diffPanel} ref={panel}>
-            <div className={styles.fileToolbar}>
-              <Button
-                size="compactIcon"
-                aria-label={treeVisible ? 'Hide changed files' : 'Show changed files'}
-                title={treeVisible ? 'Hide changed files' : 'Show changed files'}
-                aria-pressed={treeVisible}
-                onClick={() => setTreeVisible(value => !value)}
-              >
-                <PanelLeft />
-              </Button>
-              <span
-                className={styles.path}
-                title={
-                  entry?.status === 'renamed'
-                    ? `${entry.oldPath} → ${entry.newPath}`
-                    : compare.selectedPath
-                }
-              >
-                {compare.selectedPath || 'Branch comparison'}
-              </span>
-              {entry && <Stats files={[entry]} />}
-              <span className={styles.filePosition}>
-                {index >= 0 ? `${index + 1} / ${tree.paths.length}` : '—'}
-              </span>
-              <Button
-                size="compactIcon"
-                aria-label="Previous changed file"
-                title="Previous file · Alt ↑"
-                disabled={tree.paths.length === 0 || index === 0}
-                onClick={() => navigate(-1)}
-              >
-                <ChevronUp />
-              </Button>
-              <Button
-                size="compactIcon"
-                aria-label="Next changed file"
-                title="Next file · Alt ↓"
-                disabled={tree.paths.length === 0 || index === tree.paths.length - 1}
-                onClick={() => navigate(1)}
-              >
-                <ChevronDown />
-              </Button>
-              <SegmentedControl
-                label="Diff layout"
-                size="sm"
-                options={modeOptions}
-                value={mode}
-                onValueChange={chooseMode}
-              />
-              <Button
-                size="compactIcon"
-                aria-label="Wrap long lines"
-                title="Wrap long lines"
-                aria-pressed={preferences.wrap}
-                onClick={toggleWrap}
-              >
-                <WrapText />
-              </Button>
-            </div>
-            {snapshot && (
-              <div className={styles.revisions} data-mode={mode}>
+          {treeVisible && (
+            <Separator
+              key="separator"
+              aria-label="Resize changed files"
+              className={styles.separator}
+            />
+          )}
+          <Panel key="diff" id={`${panelId}-diff`} minSize={320}>
+            <div className={styles.diffPanel} ref={panel}>
+              <div className={styles.fileToolbar}>
+                <Button
+                  size="compactIcon"
+                  aria-label={treeVisible ? 'Hide changed files' : 'Show changed files'}
+                  title={treeVisible ? 'Hide changed files' : 'Show changed files'}
+                  aria-pressed={treeVisible}
+                  onClick={() => setTreeVisible(value => !value)}
+                >
+                  <PanelLeft />
+                </Button>
+                <span
+                  className={styles.path}
+                  title={
+                    entry?.status === 'renamed'
+                      ? `${entry.oldPath} → ${entry.newPath}`
+                      : compare.selectedPath
+                  }
+                >
+                  {compare.selectedPath || 'Branch comparison'}
+                </span>
+                {entry && <Stats files={[entry]} />}
+                <span className={styles.filePosition}>
+                  {index >= 0 ? `${index + 1} / ${tree.paths.length}` : '—'}
+                </span>
+                <Button
+                  size="compactIcon"
+                  aria-label="Previous changed file"
+                  title="Previous file · Alt ↑"
+                  disabled={tree.paths.length === 0 || index === 0}
+                  onClick={() => navigate(-1)}
+                >
+                  <ChevronUp />
+                </Button>
+                <Button
+                  size="compactIcon"
+                  aria-label="Next changed file"
+                  title="Next file · Alt ↓"
+                  disabled={tree.paths.length === 0 || index === tree.paths.length - 1}
+                  onClick={() => navigate(1)}
+                >
+                  <ChevronDown />
+                </Button>
+                <SegmentedControl
+                  label="Diff layout"
+                  size="sm"
+                  options={modeOptions}
+                  value={mode}
+                  onValueChange={chooseMode}
+                />
+                <Button
+                  size="compactIcon"
+                  aria-label="Wrap long lines"
+                  title="Wrap long lines"
+                  aria-pressed={preferences.wrap}
+                  onClick={toggleWrap}
+                >
+                  <WrapText />
+                </Button>
+              </div>
+              {snapshot && (
+                <div className={styles.revisions} data-mode={mode}>
+                  <span>
+                    Common base <code>{snapshot.baseOid.slice(0, 7)}</code>
+                  </span>
+                  <span title={snapshot.source.name}>
+                    {snapshot.source.name} <code>{snapshot.source.oid.slice(0, 7)}</code>
+                  </span>
+                </div>
+              )}
+              {entry && <FileChangeDetails entry={entry} file={compare.file} />}
+              {compare.error ? (
+                <div className={styles.message} role="alert">
+                  <strong>Comparison unavailable</strong>
+                  <p>{compare.error}</p>
+                  <Button size="compact" variant="secondary" onClick={compare.refresh}>
+                    Try again
+                  </Button>
+                </div>
+              ) : compare.loading ? (
+                <div className={styles.message} role="status">
+                  Loading comparison…
+                </div>
+              ) : !snapshot ? (
+                <div className={styles.message}>
+                  <strong>Choose branches to compare</strong>
+                  <p>Select the source branch you want to merge and its target branch.</p>
+                </div>
+              ) : files.length === 0 ? (
+                <div className={styles.message}>
+                  <strong>No committed changes</strong>
+                  <p>The source branch has no changes since the common base.</p>
+                </div>
+              ) : compare.fileError ? (
+                <div className={styles.message} role="alert">
+                  <p>{compare.fileError}</p>
+                  <Button size="compact" variant="secondary" onClick={compare.retryFile}>
+                    Try again
+                  </Button>
+                </div>
+              ) : compare.fileLoading ? (
+                <div className={styles.message} role="status">
+                  Loading file…
+                </div>
+              ) : compare.file?.kind === 'unavailable' ? (
+                <div className={styles.message}>
+                  <strong>Preview unavailable</strong>
+                  <p>{unavailable[compare.file.reason]}</p>
+                </div>
+              ) : compare.file?.kind === 'text' ? (
+                <DiffView
+                  key={`${reading.snapshot}:${compare.selectedPath}`}
+                  file={compare.file}
+                  mode={mode}
+                  wrap={preferences.wrap}
+                  bookmark={reading.bookmarks.get(compare.selectedPath)}
+                  onBookmark={value => reading.bookmarks.set(compare.selectedPath, value)}
+                />
+              ) : (
+                <div className={styles.message}>
+                  {compare.selectedPath
+                    ? 'Loading file…'
+                    : 'Select a changed file to read its diff.'}
+                </div>
+              )}
+              <footer className={styles.footer}>
                 <span>
-                  Common base <code>{snapshot.baseOid.slice(0, 7)}</code>
+                  {snapshot ? 'Source changes since the common base' : 'Local Git branches'}
                 </span>
-                <span title={snapshot.source.name}>
-                  {snapshot.source.name} <code>{snapshot.source.oid.slice(0, 7)}</code>
-                </span>
-              </div>
-            )}
-            {entry && <FileChangeDetails entry={entry} file={compare.file} />}
-            {compare.error ? (
-              <div className={styles.message} role="alert">
-                <strong>Comparison unavailable</strong>
-                <p>{compare.error}</p>
-                <Button size="compact" variant="secondary" onClick={compare.refresh}>
-                  Try again
-                </Button>
-              </div>
-            ) : compare.loading ? (
-              <div className={styles.message} role="status">
-                Loading comparison…
-              </div>
-            ) : !snapshot ? (
-              <div className={styles.message}>
-                <strong>Choose branches to compare</strong>
-                <p>Select the source branch you want to merge and its target branch.</p>
-              </div>
-            ) : files.length === 0 ? (
-              <div className={styles.message}>
-                <strong>No committed changes</strong>
-                <p>The source branch has no changes since the common base.</p>
-              </div>
-            ) : compare.fileError ? (
-              <div className={styles.message} role="alert">
-                <p>{compare.fileError}</p>
-                <Button size="compact" variant="secondary" onClick={compare.retryFile}>
-                  Try again
-                </Button>
-              </div>
-            ) : compare.fileLoading ? (
-              <div className={styles.message} role="status">
-                Loading file…
-              </div>
-            ) : compare.file?.kind === 'unavailable' ? (
-              <div className={styles.message}>
-                <strong>Preview unavailable</strong>
-                <p>{unavailable[compare.file.reason]}</p>
-              </div>
-            ) : compare.file?.kind === 'text' ? (
-              <DiffView
-                key={`${reading.snapshot}:${compare.selectedPath}`}
-                file={compare.file}
-                mode={mode}
-                wrap={preferences.wrap}
-                bookmark={reading.bookmarks.get(compare.selectedPath)}
-                onBookmark={value => reading.bookmarks.set(compare.selectedPath, value)}
-              />
-            ) : (
-              <div className={styles.message}>
-                {compare.selectedPath ? 'Loading file…' : 'Select a changed file to read its diff.'}
-              </div>
-            )}
-            <footer className={styles.footer}>
-              <span>
-                {snapshot ? 'Source changes since the common base' : 'Local Git branches'}
-              </span>
-              <span>Alt ↑ ↓ files · / filter</span>
-            </footer>
-          </div>
-        </div>
+                <span>Alt ↑ ↓ files · / filter</span>
+              </footer>
+            </div>
+          </Panel>
+        </Group>
       </section>
     </WorkerPoolContextProvider>
   )
